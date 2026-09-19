@@ -1,6 +1,6 @@
 'use strict';
 
-const { createHttpClient } = require('../http');
+const { createHttpClient } = require('../lib/http');
 const { createTmdb } = require('./tmdb');
 
 /**
@@ -10,12 +10,29 @@ const { createTmdb } = require('./tmdb');
  */
 const SOURCES = [require('./torrentsCsv'), require('./redesTorrents')];
 
-/** Tudo que o modulo declara segue adiante; so `create` e `rps` ficam aqui. */
-function createSources(config) {
-  return SOURCES.map(({ create, rps, ...source }) => {
-    const http = createHttpClient({ rps, ...config.http });
-    return { ...source, ...create(http) };
-  });
+const MODULES = new Map(SOURCES.map((source) => [source.name, source]));
+
+/** What each tracker declares in code: the baseline the admin UI overrides. */
+const sourceDefaults = () =>
+  SOURCES.map(({ name, rps, terms, pages, stopAfterQuietPages, rules }) => ({
+    name,
+    mode: terms ? 'terms' : 'pages',
+    enabled: true,
+    rps,
+    terms: terms ? [...terms] : null,
+    pages: pages ?? null,
+    stopAfterQuietPages: stopAfterQuietPages ?? null,
+    rules: { requireYear: false, dedupe: null, ...rules },
+  }));
+
+/** Only enabled trackers are built; `signal` aborts their in-flight requests. */
+function createSources(config, { signal } = {}) {
+  return (config.sources ?? sourceDefaults())
+    .filter((settings) => settings.enabled)
+    .map(({ enabled, mode, ...settings }) => {
+      const http = createHttpClient({ rps: settings.rps, ...config.http, signal });
+      return { ...settings, ...MODULES.get(settings.name).create(http) };
+    });
 }
 
 /**
@@ -23,10 +40,10 @@ function createSources(config) {
  * indexado. Fica aqui por dividir o cliente HTTP com throttle e retry.
  * Sem chave configurada devolve null, e o enriquecimento e pulado.
  */
-function createTmdbClient(config) {
+function createTmdbClient(config, { signal } = {}) {
   if (!config.tmdb.apiKey) return null;
 
-  const { getJson } = createHttpClient({ rps: config.tmdb.rps, ...config.http });
+  const { getJson } = createHttpClient({ rps: config.tmdb.rps, ...config.http, signal });
   return createTmdb({
     getJson,
     apiKey: config.tmdb.apiKey,
@@ -34,4 +51,4 @@ function createTmdbClient(config) {
   });
 }
 
-module.exports = { createSources, createTmdbClient };
+module.exports = { createSources, createTmdbClient, sourceDefaults };

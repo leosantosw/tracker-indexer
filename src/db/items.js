@@ -124,6 +124,9 @@ function createItems(db) {
     return removed;
   }
 
+  /** Every torrent of one tracker. Works stay: they are the TMDB cache. */
+  const clearSource = (source) => db.prepare('DELETE FROM item WHERE source = ?').run(source).changes;
+
   const stats = () =>
     db.prepare('SELECT source, COUNT(*) AS total FROM item GROUP BY source').all();
 
@@ -132,7 +135,7 @@ function createItems(db) {
     return db.prepare(sql).all();
   };
 
-  return { savePage, applyRules, stats, query };
+  return { savePage, applyRules, clearSource, stats, query };
 }
 
 module.exports = { createItems, now };

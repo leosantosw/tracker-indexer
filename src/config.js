@@ -18,14 +18,39 @@ module.exports = {
     retries: num('HTTP_RETRIES', 3),
   },
 
-  sync: {
-    maxPagesPerTerm: num('SYNC_MAX_PAGES_PER_TERM', 100),
-    maxPagesPerRun: num('SYNC_MAX_PAGES_PER_RUN', 400),
-  },
-
   api: {
     port: num('API_PORT', 3000),
     host: process.env.API_HOST || '0.0.0.0',
+  },
+
+  // Encrypts the secrets saved from the panel. Without it they stay env-only.
+  secretsKey: process.env.SECRETS_KEY || null,
+
+  // Without a token the admin API only answers requests from localhost.
+  admin: {
+    token: process.env.ADMIN_TOKEN || null,
+  },
+
+  // Token the apps (the TV) send to /api/debrid. Same rule: none, localhost only.
+  apps: {
+    token: process.env.API_TOKEN || null,
+  },
+
+  // Automatic catalog update. Set from the panel; off until turned on there.
+  schedule: {
+    enabled: false,
+    mode: 'daily', // 'daily' at `time` on `days` (0 = domingo) | 'interval' every `everyMinutes`
+    time: '03:00',
+    days: [0, 1, 2, 3, 4, 5, 6],
+    everyMinutes: 60,
+  },
+
+  // `provider` picks one of src/debrid; each provider reads its own token.
+  debrid: {
+    provider: process.env.DEBRID_PROVIDER || null,
+    tokens: {
+      torbox: process.env.TORBOX_API_KEY || null,
+    },
   },
 
   // Sem apiKey o enriquecimento e pulado e o resto do job segue igual.

@@ -27,7 +27,7 @@ class HttpError extends Error {
  * Cliente por tracker: espaca as chamadas (rps) e repete erro transitorio com
  * backoff. Erro permanente nao e repetido -- o request e que esta errado.
  */
-function createHttpClient({ rps = 2, timeoutMs = 20000, retries = 3 } = {}) {
+function createHttpClient({ rps = 2, timeoutMs = 20000, retries = 3, signal } = {}) {
   const minGapMs = 1000 / rps;
   let lastCallAt = 0;
 
@@ -44,12 +44,14 @@ function createHttpClient({ rps = 2, timeoutMs = 20000, retries = 3 } = {}) {
       try {
         const res = await fetch(url, {
           headers: HEADERS,
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: signal
+            ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+            : AbortSignal.timeout(timeoutMs),
         });
         if (!res.ok) throw new HttpError(res.status, url);
         return await parse(res);
       } catch (err) {
-        if (err.permanent || attempt >= retries) throw err;
+        if (signal?.aborted || err.permanent || attempt >= retries) throw err;
         await sleep(500 * 2 ** attempt + Math.random() * 500);
       }
     }

@@ -7,7 +7,6 @@ const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
 const { syncSource } = require('../src/job/sync');
 
-const config = { sync: { maxPagesPerTerm: 20, maxPagesPerRun: 100 } };
 const log = () => {};
 
 const torrent = (n) => ({
@@ -46,8 +45,7 @@ function fakeSource(pages) {
   };
 }
 
-const run = (source, db, cfg = config) =>
-  syncSource(source, { repo: createRepo(db), config: cfg, log });
+const run = (source, db) => syncSource(source, { repo: createRepo(db), log });
 
 const countItems = (db) => db.prepare('SELECT COUNT(*) AS n FROM item').get().n;
 
@@ -115,14 +113,38 @@ test('preserva created_at e atualiza updated_at', async () => {
   db.close();
 });
 
-test('respeita o teto de paginas da run', async () => {
+test('sem teto global: pagina ate o fim', async () => {
   const db = openDb(':memory:');
-  const pages = Array.from({ length: 50 }, (_, i) => [torrent(i + 1)]);
+  const pages = Array.from({ length: 500 }, (_, i) => [torrent(i + 1)]);
   const source = fakeSource(pages);
 
-  await run(source, db, { sync: { maxPagesPerTerm: 100, maxPagesPerRun: 5 } });
+  await run(source, db);
+
+  assert.equal(source.calls, 500);
+  db.close();
+});
+
+test('so o limite do proprio tracker corta a paginacao', async () => {
+  const db = openDb(':memory:');
+  const source = { ...fakeSource(Array.from({ length: 50 }, (_, i) => [torrent(i + 1)])), pages: 5 };
+
+  await run(source, db);
 
   assert.equal(source.calls, 5);
+  db.close();
+});
+
+test('tracker que repete a pagina nao prende a run para sempre', async () => {
+  const db = openDb(':memory:');
+  const source = fakeSource([[torrent(1)]]);
+  source.fetchPage = async function () {
+    this.calls++;
+    return { items: [torrent(this.calls)], nextCursor: 'sempre-a-mesma' };
+  };
+
+  await run(source, db);
+
+  assert.equal(source.calls, 2, 'a segunda pagina devolve o cursor ja visto');
   db.close();
 });
 

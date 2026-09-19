@@ -348,14 +348,17 @@ test('o que o enrich grava e o que a API mostra em /movies', async () => {
 
   const app = await buildServer(repo);
   await app.ready();
-  const { movies } = JSON.parse((await app.inject({ url: '/movies' })).payload);
+  const { movies } = JSON.parse((await app.inject({ url: '/api/movies' })).payload);
 
   // So a obra que casou entra na listagem.
   assert.deepEqual(movies.map((m) => m.title), ['Com Capa']);
-  assert.equal(movies[0].poster, 'https://image.tmdb.org/t/p/w342/p.jpg');
+  assert.equal(movies[0].poster, 'https://image.tmdb.org/t/p/w185/p.jpg');
   assert.equal(movies[0].backdrop, 'https://image.tmdb.org/t/p/w780/b.jpg');
   assert.equal(movies[0].rating, 8.1);
-  assert.deepEqual(movies[0].genres, ['Terror', 'Thriller']);
+
+  const detalhe = JSON.parse((await app.inject({ url: `/api/movies/${movies[0].id}` })).payload);
+  assert.deepEqual(detalhe.genres, ['Terror', 'Thriller']);
+  assert.equal(detalhe.backdrop, 'https://image.tmdb.org/t/p/w1280/b.jpg');
 
   // O status sustenta o cache, mas nao vai para o cliente.
   const status = db.prepare('SELECT title, status FROM work ORDER BY title').all();

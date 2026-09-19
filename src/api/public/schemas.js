@@ -12,6 +12,7 @@
 
 const TAGS = {
   catalogo: 'Catálogo',
+  debrid: 'Debrid',
   servico: 'Serviço',
 };
 
@@ -22,81 +23,85 @@ const allRequired = (schema) => ({ ...schema, required: Object.keys(schema.prope
 
 // --- a obra ---
 
-/**
- * A listagem e o detalhe nao carregam a mesma coisa: trailer e contagem de
- * copias so fazem sentido na obra aberta, nao repetidos em cada linha.
- */
-const DETALHE = {
-  trailer: {
-    type: ['string', 'null'],
-    description: 'Link do trailer no YouTube, quando a TMDB tem um.',
-    examples: ['https://www.youtube.com/watch?v=i6avfCqKcQo'],
+/** Todo campo que uma obra pode ter. A listagem usa so um recorte. */
+const WORK_FIELDS = {
+  id: { type: 'integer', description: 'Id da obra no catálogo.', examples: [362] },
+  title: {
+    type: 'string',
+    description: 'Título como o classificador extraiu do release.',
+    examples: ['Interestelar'],
   },
-  torrents: {
-    type: 'integer',
-    description: 'Quantas cópias desta obra existem no catálogo.',
-    examples: [3],
-  },
-  bestSeeders: {
+  year: {
     type: ['integer', 'null'],
-    description: 'Seeders da melhor cópia.',
-    examples: [112],
+    description: 'Ano que o classificador leu do nome do release.',
+    examples: [2014],
+  },
+  genres: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Gêneros da TMDB, no idioma de `TMDB_LANGUAGE`. Lista vazia quando não há.',
+    examples: [['Terror', 'Thriller']],
+  },
+  poster: {
+    type: ['string', 'null'],
+    description: 'Capa vertical, URL direta do CDN da TMDB: `w185` na listagem, `w342` no detalhe.',
+    examples: ['https://image.tmdb.org/t/p/w185/nBNZadXqJSdt05SHLqgT0HuC5Gm.jpg'],
+  },
+  backdrop: {
+    type: ['string', 'null'],
+    description:
+      'Imagem horizontal, para fundo e banner: `w780` na listagem, `w1280` no detalhe. ' +
+      'Nula com mais frequência que a capa.',
+    examples: ['https://image.tmdb.org/t/p/w780/xJHokMbljvjADYdit5fK5VQsXEG.jpg'],
+  },
+  overview: {
+    type: ['string', 'null'],
+    description: 'Sinopse, no idioma de `TMDB_LANGUAGE` (pt-BR por padrão).',
+  },
+  rating: {
+    type: ['number', 'null'],
+    description:
+      'Nota da TMDB, de 0 a 10. **Nula abaixo de `TMDB_MIN_VOTES` votos** (150 por ' +
+      'padrão): 8.0 apurado em 4 votos não é nota, é ruído. A mesma regra vale para ordenar.',
+    examples: [8.487],
+  },
+  votes: {
+    type: ['integer', 'null'],
+    description: 'Quantos votos a TMDB tem. Continua vindo mesmo quando a nota é nula.',
+    examples: [41140],
   },
 };
 
-const work = ($id, description, extra = {}) =>
+/**
+ * O que a grade de uma TV precisa para desenhar o cartão e o fundo do item em
+ * foco -- nada mais. A sinopse sozinha era metade do peso da listagem.
+ */
+const CARD_FIELDS = ['id', 'title', 'year', 'poster', 'backdrop', 'rating'];
+
+const pickFields = (keys) => Object.fromEntries(keys.map((key) => [key, WORK_FIELDS[key]]));
+
+const card = ($id, description) =>
+  allRequired({ $id, title: $id, description, type: 'object', properties: pickFields(CARD_FIELDS) });
+
+/** A obra aberta: tudo da TMDB, o trailer e as copias -- uma requisicao so. */
+const work = ($id, description, torrentRef) =>
   allRequired({
     $id,
     title: $id,
     description,
     type: 'object',
     properties: {
-      id: { type: 'integer', description: 'Id da obra no catálogo.', examples: [362] },
-      title: {
-        type: 'string',
-        description: 'Título como o classificador extraiu do release.',
-        examples: ['Interestelar'],
+      ...WORK_FIELDS,
+      trailer: {
+        type: ['string', 'null'],
+        description: 'Link do trailer no YouTube, quando a TMDB tem um.',
+        examples: ['https://www.youtube.com/watch?v=i6avfCqKcQo'],
       },
-      year: {
-        type: ['integer', 'null'],
-        description: 'Ano que o classificador leu do nome do release.',
-        examples: [2014],
-      },
-      genres: {
+      torrents: {
         type: 'array',
-        items: { type: 'string' },
-        description: 'Gêneros da TMDB, no idioma de `TMDB_LANGUAGE`. Lista vazia quando não há.',
-        examples: [['Terror', 'Thriller']],
+        items: { $ref: torrentRef },
+        description: 'As cópias desta obra, da mais semeada para a menos. Hoje são de 1 a 3.',
       },
-      poster: {
-        type: ['string', 'null'],
-        description: 'Capa vertical, para a grade. URL direta do CDN da TMDB.',
-        examples: ['https://image.tmdb.org/t/p/w342/nBNZadXqJSdt05SHLqgT0HuC5Gm.jpg'],
-      },
-      backdrop: {
-        type: ['string', 'null'],
-        description:
-          'Imagem horizontal, para banner e fundo. Nula com mais frequência que a capa.',
-        examples: ['https://image.tmdb.org/t/p/w780/xJHokMbljvjADYdit5fK5VQsXEG.jpg'],
-      },
-      overview: {
-        type: ['string', 'null'],
-        description: 'Sinopse, no idioma de `TMDB_LANGUAGE` (pt-BR por padrão).',
-      },
-      rating: {
-        type: ['number', 'null'],
-        description:
-          'Nota da TMDB, de 0 a 10. **Nula abaixo de `TMDB_MIN_VOTES` votos** (150 por ' +
-          'padrão): 8.0 apurado em 4 votos não é nota, é ruído. A mesma regra vale para ' +
-          'ordenar e para o filtro `minRating`.',
-        examples: [8.487],
-      },
-      votes: {
-        type: ['integer', 'null'],
-        description: 'Quantos votos a TMDB tem. Continua vindo mesmo quando a nota é nula.',
-        examples: [41140],
-      },
-      ...extra,
     },
   });
 
@@ -172,28 +177,16 @@ const page = ($id, ref, key, description) => ({
   required: [key, 'page', 'limit', 'total', 'pages'],
 });
 
-/** Lista simples, sem paginacao: as copias de uma obra sao poucas. */
-const list = ($id, ref, key, description) => ({
-  $id,
-  title: $id,
-  description,
-  type: 'object',
-  properties: { [key]: { type: 'array', items: { $ref: ref } } },
-  required: [key],
-});
-
 /** Registrados uma vez no boot e referenciados por `$ref: 'Movie#'`. */
 const SHARED = [
-  work('Movie', 'Um filme aberto: traz trailer e os números das cópias.', DETALHE),
-  work('Series', 'Uma série aberta — a obra inteira, não um episódio.', DETALHE),
-  work('MovieListItem', 'Um filme na listagem.'),
-  work('SeriesListItem', 'Uma série na listagem.'),
+  work('Movie', 'Um filme aberto: tudo da TMDB, o trailer e as cópias.', 'MovieTorrent#'),
+  work('Series', 'Uma série aberta — a obra inteira, com os episódios como cópias.', 'SeriesTorrent#'),
+  card('MovieListItem', 'Um filme na listagem: só o que a grade desenha.'),
+  card('SeriesListItem', 'Uma série na listagem: só o que a grade desenha.'),
   torrent('MovieTorrent', 'Uma cópia de um filme.'),
   torrent('SeriesTorrent', 'Uma cópia de uma série: um episódio ou uma temporada.', SEASON_EPISODE),
   page('MovieList', 'MovieListItem#', 'movies', 'Página de filmes.'),
   page('SeriesList', 'SeriesListItem#', 'series', 'Página de séries.'),
-  list('MovieTorrentList', 'MovieTorrent#', 'torrents', 'Cópias de um filme.'),
-  list('SeriesTorrentList', 'SeriesTorrent#', 'torrents', 'Cópias de uma série.'),
   {
     $id: 'NotFound',
     title: 'NotFound',
@@ -239,15 +232,15 @@ const ID_PARAM = {
   required: ['id'],
 };
 
-/** As tres rotas de um tipo. `kind` e o nome do schema: Movie ou Series. */
+/** As duas rotas de um tipo. `kind` e o nome do schema: Movie ou Series. */
 const catalogRoutes = (kind, singular, plural) => ({
   list: {
     tags: [TAGS.catalogo],
     summary: `Lista ${plural}`,
     description:
       `Uma linha por ${singular}, não por torrent — os quatro releases de um mesmo ` +
-      `filme são um item só. Trailer e contagem de cópias só no detalhe; ` +
-      `as cópias em si, em \`{id}/torrents\`.
+      `filme são um item só. Enxuta de propósito: só o que a grade desenha. ` +
+      `Sinopse, gêneros, votos, trailer e as cópias vêm no detalhe.
 
 ` +
       'Sem filtros: a ordem é fixa (ano mais recente primeiro e, dentro do ano, ' +
@@ -259,19 +252,11 @@ const catalogRoutes = (kind, singular, plural) => ({
     tags: [TAGS.catalogo],
     summary: `Busca ${singular} por id`,
     description:
-      `Responde 404 quando o id não existe, quando não é ${singular} ou quando a obra ` +
-      `ficou sem nenhuma cópia no catálogo.`,
+      'Tudo de uma vez: os dados da TMDB, o trailer e as cópias, da mais semeada para a ' +
+      'menos. Ao abrir um item, a TV faz esta requisição e nenhuma outra.\n\n' +
+      `Responde 404 quando o id não existe ou quando não é ${singular}.`,
     params: ID_PARAM,
     response: { 200: { $ref: `${kind}#` }, 404: { $ref: 'NotFound#' } },
-  },
-  torrents: {
-    tags: [TAGS.catalogo],
-    summary: `Cópias ${singular === 'um filme' ? 'do filme' : 'da série'}`,
-    description:
-      'Os torrents desta obra, do mais semeado para o menos. Aqui moram seeders, ' +
-      'tamanho, resolução e infohash — nada disso pertence à obra, e sim à cópia.',
-    params: ID_PARAM,
-    response: { 200: { $ref: `${kind}TorrentList#` }, 404: { $ref: 'NotFound#' } },
   },
 });
 

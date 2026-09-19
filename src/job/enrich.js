@@ -10,7 +10,7 @@ const DAY = 86400;
  * sao uma consulta so. E grava tambem o que nao casou: e o `status` que evita
  * perguntar por "Hexalogia Star Wars" em toda execucao, para sempre.
  */
-async function enrich({ repo, tmdb, config, log }) {
+async function enrich({ repo, tmdb, config, log, signal }) {
   const staleBefore = Math.floor(Date.now() / 1000) - config.tmdb.staleDays * DAY;
   const pending = repo.pendingWorks(staleBefore);
   const total = { seen: 0, ok: 0, notFound: 0, ambiguous: 0, skipped: 0, failed: 0 };
@@ -19,10 +19,13 @@ async function enrich({ repo, tmdb, config, log }) {
   log(`tmdb: ${pending.length} obras para consultar`);
 
   for (const work of pending) {
+    signal?.throwIfAborted();
+
     let result;
     try {
       result = await tmdb.search(work);
     } catch (err) {
+      if (signal?.aborted) throw err;
       // Chave invalida erra em toda obra: para na primeira em vez de gravar
       // 983 `not_found` que teriam de ser refeitos depois.
       if (err.status === 401) throw new Error('TMDB_API_KEY recusada pela API (401)');

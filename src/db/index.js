@@ -54,6 +54,13 @@ CREATE TABLE IF NOT EXISTS work (
   UNIQUE (type, title, year)
 );
 
+-- Overrides saved from the admin UI; a missing key falls back to code/env defaults.
+CREATE TABLE IF NOT EXISTS setting (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS ix_item_created ON item (created_unix DESC);
 CREATE INDEX IF NOT EXISTS ix_item_seeders ON item (seeders DESC);
 CREATE INDEX IF NOT EXISTS ix_item_title   ON item (title);

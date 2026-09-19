@@ -1,5 +1,7 @@
 'use strict';
 
+const { base32ToHex, normalizeInfohash } = require('../../lib/infohash');
+
 /**
  * Extracao por regex, sem dependencia. Frageis por natureza: se o template do
  * site mudar, param de achar e o source passa a indexar zero -- por isso o
@@ -12,31 +14,13 @@ const ATTR = (html, name) => (html.match(new RegExp(`data-${name}="([^"]*)"`)) |
 const MAGNET = /magnet:\?[^"'<\s]+/;
 const SIZE = /<small>Tamanho do Arquivo<\/small>\s*<strong>([^<]+)<\/strong>/;
 
-const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const UNITS = { KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4 };
-
-/** O site publica o infohash em base32; o resto do catalogo usa hex. */
-function base32ToHex(text) {
-  let bits = '';
-  for (const char of text.toUpperCase()) {
-    const value = BASE32.indexOf(char);
-    if (value < 0) return null;
-    bits += value.toString(2).padStart(5, '0');
-  }
-
-  const bytes = bits.slice(0, 160).match(/.{8}/g) ?? [];
-  if (bytes.length !== 20) return null;
-
-  return bytes.map((b) => parseInt(b, 2).toString(16).padStart(2, '0')).join('');
-}
 
 function infohashFrom(magnet) {
   const xt = magnet.match(/btih:([a-zA-Z0-9]+)/);
   if (!xt) return null;
 
-  const raw = xt[1];
-  if (/^[0-9a-fA-F]{40}$/.test(raw)) return raw.toLowerCase();
-  return raw.length === 32 ? base32ToHex(raw) : null;
+  return normalizeInfohash(xt[1]);
 }
 
 function sizeToBytes(text) {

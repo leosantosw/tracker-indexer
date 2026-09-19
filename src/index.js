@@ -1,11 +1,11 @@
 'use strict';
 
-const config = require('./config');
+const baseConfig = require('./config');
 const { openDb } = require('./db');
 const { createRepo } = require('./db/repo');
-const { createSources, createTmdbClient } = require('./sources');
-const { syncSource } = require('./job/sync');
-const { enrich } = require('./job/enrich');
+const { createSettingsStore } = require('./settings');
+const { generateKey } = require('./lib/secrets');
+const { runSync, runEnrich } = require('./job/pipeline');
 const { buildServer } = require('./api/server');
 
 const log = (msg) => console.log(`${new Date().toISOString()} ${msg}`);
@@ -14,54 +14,25 @@ const USAGE = `
   npm run sync                    sincroniza os trackers e enriquece pela TMDB
   npm run enrich                  so o enriquecimento, sem tocar nos trackers
   npm run stats                   quantos itens por tracker
-  npm run serve                   sobe a API
+  npm run serve                   sobe a API e a interface em /admin
   npm run query "SELECT ..."      consulta o banco (somente leitura)
+  npm run keygen                  gera uma SECRETS_KEY para o .env
 `;
 
-/**
- * Segundo passo, compartilhado por `sync` e `enrich`. Roda depois das regras
- * do tracker: elas apagam quase um quarto do catalogo, e consultar antes seria
- * gastar chamada em item que vai embora em seguida.
- */
-async function runEnrich(repo) {
-  const tmdb = createTmdbClient(config);
-  if (!tmdb) return log('tmdb: sem TMDB_API_KEY, enriquecimento pulado');
-
-  const total = await enrich({ repo, tmdb, config, log });
-  if (!total.seen && !total.failed) return log('tmdb: nada novo para consultar');
-
-  log(
-    `tmdb: ${total.ok} casadas, ${total.ambiguous} ambiguas, ` +
-      `${total.notFound} sem match, ${total.skipped} ignoradas` +
-      (total.failed ? `, ${total.failed} com erro` : '')
-  );
-}
+/** Commands that never touch the database. */
+const standalone = {
+  keygen() {
+    console.log(`SECRETS_KEY=${generateKey()}`);
+  },
+};
 
 const commands = {
   async sync(repo) {
-    for (const source of createSources(config)) {
-      const total = await syncSource(source, { repo, config, log });
-      // Cada parcela leva o proprio sinal: "-196 sem ano, 95 duplicados" faria
-      // o segundo numero parecer coisa que entrou.
-      const { noYear, duplicate } = total.removed;
-      const cut = [noYear && `-${noYear} sem ano`, duplicate && `-${duplicate} duplicados`]
-        .filter(Boolean)
-        .join(', ');
-
-      log(`${source.name}: ${total.pages} paginas, ${total.inserted} novos${cut ? `, ${cut}` : ''}`);
-    }
-
-    // A TMDB fora do ar nao pode derrubar o sync: o dado do tracker ja esta
-    // gravado, e torrent que some nao volta -- capa, sim, na proxima run.
-    try {
-      await runEnrich(repo);
-    } catch (err) {
-      log(`tmdb: ${err.message}`);
-    }
+    await runSync({ repo, config: createSettingsStore(repo).config(), log });
   },
 
   async enrich(repo) {
-    await runEnrich(repo);
+    await runEnrich({ repo, config: createSettingsStore(repo).config(), log });
   },
 
   async stats(repo) {
@@ -79,21 +50,22 @@ const commands = {
 
   async serve(repo) {
     const app = await buildServer(repo);
-    await app.listen(config.api);
-    log(`API em http://localhost:${config.api.port} (docs em /docs)`);
+    await app.listen(baseConfig.api);
+    log(`API em http://localhost:${baseConfig.api.port} (docs em /api/docs, painel em /admin)`);
     return 'keep-alive';
   },
 };
 
 async function main() {
   const [command, arg] = process.argv.slice(2);
+  if (Object.hasOwn(standalone, command ?? '')) return standalone[command]();
 
   if (!Object.hasOwn(commands, command ?? '')) {
     console.log(USAGE);
     return;
   }
 
-  const db = openDb(config.dbFile);
+  const db = openDb(baseConfig.dbFile);
   try {
     const result = await commands[command](createRepo(db), arg);
     if (result !== 'keep-alive') db.close();

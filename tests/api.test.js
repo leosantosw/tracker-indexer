@@ -78,50 +78,53 @@ async function setup() {
   return { get, db };
 }
 
-test('/movies lista obra, nao torrent', async () => {
+test('/api/movies lista obra, nao torrent', async () => {
   const { get, db } = await setup();
 
-  const { movies } = (await get('/movies')).body;
+  const { movies } = (await get('/api/movies')).body;
 
   assert.equal(movies.length, 1, 'duas copias do mesmo filme sao uma obra so');
   assert.equal(movies[0].title, 'Filme');
   db.close();
 });
 
-test('trailer e numeros das copias so no detalhe', async () => {
+test('a listagem traz so o cartao da grade', async () => {
   const { get, db } = await setup();
 
-  const [linha] = (await get('/movies')).body.movies;
-  const detalhe = (await get(`/movies/${linha.id}`)).body;
+  const [movie] = (await get('/api/movies')).body.movies;
 
-  for (const campo of ['trailer', 'torrents', 'bestSeeders']) {
-    assert.equal(campo in linha, false, `${campo} nao devia estar na listagem`);
-    assert.ok(campo in detalhe, `${campo} devia estar no detalhe`);
-  }
-
-  assert.equal(detalhe.torrents, 2);
-  assert.equal(detalhe.bestSeeders, 50);
-  assert.equal(detalhe.trailer, 'https://www.youtube.com/watch?v=abc123');
+  assert.deepEqual(Object.keys(movie).sort(), ['backdrop', 'id', 'poster', 'rating', 'title', 'year']);
+  assert.equal(movie.poster, 'https://image.tmdb.org/t/p/w185/p.jpg', 'capa pequena na grade');
+  assert.equal(movie.backdrop, null, 'sem backdrop e nulo, nao URL quebrada');
+  assert.equal(movie.rating, 8.1);
   db.close();
 });
 
-test('a obra traz os dados da TMDB e nenhum dado de torrent', async () => {
+test('o detalhe traz tudo, com as copias dentro', async () => {
   const { get, db } = await setup();
 
-  const [movie] = (await get('/movies')).body.movies;
+  const [linha] = (await get('/api/movies')).body.movies;
+  const detalhe = (await get(`/api/movies/${linha.id}`)).body;
 
-  assert.equal(movie.poster, 'https://image.tmdb.org/t/p/w342/p.jpg');
-  assert.equal(movie.backdrop, null, 'sem backdrop e nulo, nao URL quebrada');
-  assert.equal(movie.rating, 8.1);
-  assert.equal(movie.votes, 900);
+  assert.equal(detalhe.overview, 'sinopse');
+  assert.equal(detalhe.votes, 900);
+  assert.equal(detalhe.poster, 'https://image.tmdb.org/t/p/w342/p.jpg', 'capa maior no detalhe');
+  assert.equal(detalhe.trailer, 'https://www.youtube.com/watch?v=abc123');
 
-  // Nem dado de torrent, nem o que so existe para ordenar e filtrar.
-  const fora = [
-    'seeders', 'size', 'infohash', 'resolution', 'name',
-    'tmdbId', 'status', 'releaseDate', 'lastAdded',
-  ];
-  for (const campo of fora) {
-    assert.equal(campo in movie, false, `${campo} nao devia estar na obra`);
+  assert.deepEqual(detalhe.torrents.map((t) => t.seeders), [50, 3], 'da mais semeada para a menos');
+  assert.equal(detalhe.torrents[0].size, '12.24 GB');
+  assert.equal(detalhe.torrents[0].resolution, '1080p');
+  db.close();
+});
+
+test('a obra nao traz o que so serve ao SQL', async () => {
+  const { get, db } = await setup();
+
+  const [linha] = (await get('/api/movies')).body.movies;
+  const detalhe = (await get(`/api/movies/${linha.id}`)).body;
+
+  for (const campo of ['tmdbId', 'status', 'releaseDate', 'lastAdded', 'bestSeeders', 'seeders', 'infohash']) {
+    assert.equal(campo in detalhe, false, `${campo} nao devia estar na obra`);
   }
   db.close();
 });
@@ -130,40 +133,28 @@ test('por padrao so lista o que casou com a TMDB', async () => {
   const { get, db } = await setup();
 
   // A serie do cenario ficou `ambiguous`; o filme casou.
-  assert.equal((await get('/series')).body.series.length, 0);
-  assert.equal((await get('/movies')).body.movies.length, 1);
+  assert.equal((await get('/api/series')).body.series.length, 0);
+  assert.equal((await get('/api/movies')).body.movies.length, 1);
   db.close();
 });
 
-test('a obra sem match continua acessivel por id e pelas copias', async () => {
+test('a obra sem match continua acessivel por id, com as copias', async () => {
   const { get, db } = await setup();
 
   // Some da listagem, nao do acervo: torrent que existe continua alcancavel.
   const { id } = db.prepare("SELECT id FROM work WHERE type = 'series'").get();
+  const serie = await get(`/api/series/${id}`);
 
-  assert.equal((await get(`/series/${id}`)).code, 200);
-  assert.equal((await get(`/series/${id}/torrents`)).body.torrents.length, 2);
-  db.close();
-});
-
-test('as copias ficam na rota filha, da mais semeada para a menos', async () => {
-  const { get, db } = await setup();
-
-  const [movie] = (await get('/movies')).body.movies;
-  const { torrents } = (await get(`/movies/${movie.id}/torrents`)).body;
-
-  assert.equal(torrents.length, 2);
-  assert.deepEqual(torrents.map((t) => t.seeders), [50, 3]);
-  assert.equal(torrents[0].size, '12.24 GB');
-  assert.equal(torrents[0].resolution, '1080p');
+  assert.equal(serie.code, 200);
+  assert.equal(serie.body.torrents.length, 2);
   db.close();
 });
 
 test('a copia nao repete os dados da obra', async () => {
   const { get, db } = await setup();
 
-  const [movie] = (await get('/movies')).body.movies;
-  const [torrent] = (await get(`/movies/${movie.id}/torrents`)).body.torrents;
+  const [movie] = (await get('/api/movies')).body.movies;
+  const [torrent] = (await get(`/api/movies/${movie.id}`)).body.torrents;
 
   for (const campo of ['poster', 'overview', 'rating', 'votes', 'title', 'year']) {
     assert.equal(campo in torrent, false, `${campo} nao devia estar na copia`);
@@ -175,25 +166,44 @@ test('season e episode so aparecem em copia de serie', async () => {
   const { get, db } = await setup();
 
   const serie = db.prepare("SELECT id FROM work WHERE type = 'series'").get();
-  const { torrents } = (await get(`/series/${serie.id}/torrents`)).body;
-  const [movie] = (await get('/movies')).body.movies;
-  const [copia] = (await get(`/movies/${movie.id}/torrents`)).body.torrents;
+  const { torrents } = (await get(`/api/series/${serie.id}`)).body;
+  const [movie] = (await get('/api/movies')).body.movies;
+  const [copia] = (await get(`/api/movies/${movie.id}`)).body.torrents;
 
-  assert.equal(torrents.length, 2);
   assert.deepEqual(torrents.map((t) => t.episode).sort(), [1, 2]);
   assert.equal('season' in copia, false);
   db.close();
 });
 
-test('id do tipo errado da 404 nas tres rotas', async () => {
+test('id do tipo errado da 404; a rota /torrents nao existe mais', async () => {
   const { get, db } = await setup();
 
-  const [movie] = (await get('/movies')).body.movies;
+  const [movie] = (await get('/api/movies')).body.movies;
 
-  assert.equal((await get(`/movies/${movie.id}`)).code, 200);
-  assert.equal((await get(`/series/${movie.id}`)).code, 404);
-  assert.equal((await get(`/series/${movie.id}/torrents`)).code, 404);
-  assert.equal((await get('/movies/999999/torrents')).code, 404);
+  assert.equal((await get(`/api/movies/${movie.id}`)).code, 200);
+  assert.equal((await get(`/api/series/${movie.id}`)).code, 404);
+  assert.equal((await get('/api/movies/999999')).code, 404);
+  assert.equal((await get(`/api/movies/${movie.id}/torrents`)).code, 404);
+  db.close();
+});
+
+test('resposta sai comprimida e com ETag; repetir da 304', async () => {
+  const { db } = await setup();
+  const repo = createRepo(db);
+  const app = await buildServer(repo);
+
+  // Abaixo de 1 KB nao compensa comprimir; o spec do Swagger passa disso.
+  const big = await app.inject({ url: '/api/docs/json', headers: { 'accept-encoding': 'gzip' } });
+  assert.equal(big.headers['content-encoding'], 'gzip');
+
+  const first = await app.inject({ url: '/api/movies' });
+  assert.equal(first.headers['cache-control'], 'no-cache');
+  assert.ok(first.headers.etag);
+
+  const again = await app.inject({ url: '/api/movies', headers: { 'if-none-match': first.headers.etag } });
+  assert.equal(again.statusCode, 304);
+  assert.equal(again.payload, '');
+  await app.close();
   db.close();
 });
 
@@ -206,7 +216,7 @@ const comNota = (repo, nome, ano, rating, votes) => {
   );
 };
 
-const lista = async (repo, url = '/movies') => {
+const lista = async (repo, url = '/api/movies') => {
   const app = await buildServer(repo);
   await app.ready();
   return JSON.parse((await app.inject({ url })).payload).movies;
@@ -252,16 +262,15 @@ test('quem tem nota vem antes de quem nao tem, em qualquer ano', async () => {
   // lancamento de 2026 sem votacao -- e o 10 de 4 votos vai para o fim.
   assert.deepEqual(movies.map((m) => m.title), ['Apurada', 'Ano anterior', 'Ruido']);
   assert.equal(movies[2].rating, null);
-  assert.equal(movies[2].votes, 4, 'os votos continuam vindo, so a nota some');
   db.close();
 });
 
 test('query fora do schema da 400', async () => {
   const { get, db } = await setup();
 
-  assert.equal((await get('/movies?limit=999')).code, 400);
-  assert.equal((await get('/movies?page=0')).code, 400);
-  assert.equal((await get('/movies/abc')).code, 400);
+  assert.equal((await get('/api/movies?limit=999')).code, 400);
+  assert.equal((await get('/api/movies?page=0')).code, 400);
+  assert.equal((await get('/api/movies/abc')).code, 400);
   db.close();
 });
 
@@ -269,7 +278,7 @@ test('parametro que nao existe e ignorado, nao burla a rota', async () => {
   const { get, db } = await setup();
 
   // A listagem so aceita page e limit; o resto o Fastify descarta.
-  const { movies } = (await get('/movies?type=series&minRating=9')).body;
+  const { movies } = (await get('/api/movies?type=series&minRating=9')).body;
 
   assert.equal(movies.length, 1);
   assert.equal(movies[0].title, 'Filme');
@@ -286,17 +295,17 @@ test('a pagina se descreve: page, limit, total e pages', async () => {
   await app.ready();
   const pagina = async (url) => JSON.parse((await app.inject({ url })).payload);
 
-  const primeira = await pagina('/movies?limit=3');
+  const primeira = await pagina('/api/movies?limit=3');
   assert.deepEqual(
     { page: primeira.page, limit: primeira.limit, total: primeira.total, pages: primeira.pages },
     { page: 1, limit: 3, total: 7, pages: 3 }
   );
   assert.equal(primeira.movies.length, 3);
 
-  const ultima = await pagina('/movies?page=3&limit=3');
+  const ultima = await pagina('/api/movies?page=3&limit=3');
   assert.equal(ultima.movies.length, 1, 'a ultima pagina traz o resto');
 
-  const vazia = await pagina('/movies?page=99&limit=3');
+  const vazia = await pagina('/api/movies?page=99&limit=3');
   assert.deepEqual(vazia.movies, []);
   assert.equal(vazia.total, 7, 'o total nao muda por pedir pagina inexistente');
   db.close();
@@ -313,7 +322,7 @@ test('paginar nao repete nem pula obra', async () => {
   await app.ready();
   const ids = [];
   for (const page of [1, 2, 3, 4]) {
-    const { movies } = JSON.parse((await app.inject({ url: `/movies?page=${page}&limit=3` })).payload);
+    const { movies } = JSON.parse((await app.inject({ url: `/api/movies?page=${page}&limit=3` })).payload);
     ids.push(...movies.map((m) => m.id));
   }
 
@@ -327,12 +336,12 @@ test('obra que perdeu todas as copias some da listagem', async () => {
 
   db.prepare("DELETE FROM item WHERE type = 'movie'").run();
 
-  assert.equal((await get('/movies')).body.movies.length, 0);
+  assert.equal((await get('/api/movies')).body.movies.length, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS c FROM work WHERE type='movie'").get().c, 1);
   db.close();
 });
 
-test('o spec do swagger documenta as seis rotas do catalogo', async () => {
+test('o spec do swagger documenta as quatro rotas do catalogo', async () => {
   const db = openDb(':memory:');
   const app = await buildServer(createRepo(db));
   await app.ready();
@@ -340,19 +349,19 @@ test('o spec do swagger documenta as seis rotas do catalogo', async () => {
   const spec = app.swagger();
 
   for (const path of [
-    '/movies',
-    '/movies/{id}',
-    '/movies/{id}/torrents',
-    '/series',
-    '/series/{id}',
-    '/series/{id}/torrents',
+    '/api/movies',
+    '/api/movies/{id}',
+    '/api/series',
+    '/api/series/{id}',
   ]) {
     assert.ok(spec.paths[path], `faltou ${path} no spec`);
   }
+  assert.equal(spec.paths['/api/movies/{id}/torrents'], undefined);
 
   const schemas = spec.components.schemas;
-  assert.ok(schemas.Movie && schemas.MovieTorrent);
+  assert.ok(schemas.Movie && schemas.MovieTorrent && schemas.MovieListItem);
   assert.equal('seeders' in schemas.Movie.properties, false);
+  assert.equal('overview' in schemas.MovieListItem.properties, false, 'sinopse so no detalhe');
   assert.equal('rating' in schemas.MovieTorrent.properties, false);
 
   // Colunas que so servem para ordenar e filtrar nao podem vazar no spec.

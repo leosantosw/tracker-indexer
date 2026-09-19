@@ -1,6 +1,5 @@
 'use strict';
 
-const config = require('../config');
 const { now } = require('./items');
 
 /**
@@ -11,9 +10,9 @@ const { now } = require('./items');
 const ITEM_TO_WORK = 'i.type = w.type AND i.title = w.title AND i.year IS w.year';
 
 /** Nota so conta com votacao suficiente -- a mesma regra para ordenar e exibir. */
-const RATED = `CASE WHEN w.votes >= ${Number(config.tmdb.minVotes)} THEN w.rating END`;
+const RATED = 'CASE WHEN w.votes >= @minVotes THEN w.rating END';
 
-const WHERE_LISTAVEL = `WHERE w.type = ? AND w.status = 'ok'`;
+const WHERE_LISTAVEL = `WHERE w.type = @type AND w.status = 'ok'`;
 
 /**
  * Ter nota vem antes de tudo -- nota qualquer, nao nota alta. Obra sem votacao
@@ -59,6 +58,13 @@ const PENDING = `
   ORDER BY i.type, i.title
 `;
 
+const WORK_STATS = `
+  SELECT w.status, COUNT(*) AS total FROM work w
+  WHERE EXISTS (SELECT 1 FROM item i WHERE ${ITEM_TO_WORK})
+  GROUP BY w.status
+  ORDER BY total DESC
+`;
+
 const UPSERT = `
   INSERT INTO work (
     type, title, year, tmdb_id, tmdb_title, release_date, genres, overview,
@@ -88,15 +94,16 @@ const UPSERT = `
 function createWorks(db) {
   const upsert = db.prepare(UPSERT);
 
-  function listWorks(type, { page = 1, limit = 50 } = {}) {
+  /** `minVotes` comes per call: it is editable from the panel at runtime. */
+  function listWorks(type, { page = 1, limit = 50, minVotes }) {
     const perPage = Math.min(Math.max(Number(limit) || 50, 1), 200);
     const atual = Math.max(Number(page) || 1, 1);
 
     const rows = db
-      .prepare(`${WORK_SELECT} ${WHERE_LISTAVEL} GROUP BY w.id ORDER BY ${ORDER} LIMIT ? OFFSET ?`)
-      .all(type, perPage, (atual - 1) * perPage);
+      .prepare(`${WORK_SELECT} ${WHERE_LISTAVEL} GROUP BY w.id ORDER BY ${ORDER} LIMIT @limit OFFSET @offset`)
+      .all({ type, minVotes, limit: perPage, offset: (atual - 1) * perPage });
 
-    const { total } = db.prepare(COUNT_LISTAVEL).get(type);
+    const { total } = db.prepare(COUNT_LISTAVEL).get({ type });
 
     return { rows, page: atual, limit: perPage, total };
   }
@@ -131,8 +138,9 @@ function createWorks(db) {
     });
   }
 
+  /** Only works that still have a torrent: orphans are TMDB cache, not catalog. */
   const workStats = () =>
-    db.prepare('SELECT status, COUNT(*) AS total FROM work GROUP BY status ORDER BY total DESC').all();
+    db.prepare(WORK_STATS).all();
 
   return { listWorks, getWork, listTorrents, pendingWorks, saveWork, workStats };
 }
