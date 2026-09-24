@@ -100,11 +100,13 @@ Com o `serve` no ar, a referência navegável fica em
 `/api/docs/json`.
 
 ```
-GET /api/categories?preview=12    linhas da tela inicial, com os primeiros filmes
+GET /api/categories?preview=12    linhas da tela inicial (?type=series para as séries)
 GET /api/movies?page=1&limit=50   grade de filmes (só o cartão)
 GET /api/movies/:id               um filme completo, com as cópias
 GET /api/series                   grade de séries
 GET /api/series/:id               uma série, com os episódios
+GET /api/search?q=batman          busca filmes e séries juntos (?genre=terror)
+GET /api/search/genres            atalhos de gênero para a tela de busca
 
 POST   /api/debrid/torrents       { "hash": "..." }  pede o vídeo ao debrid
 GET    /api/debrid/torrents/:hash acompanha o download
@@ -144,8 +146,8 @@ for salvo no painel vale mais, e os segredos vão cifrados para o banco.
 | `DB_FILE` | `./data/catalog.db` | arquivo do SQLite |
 | `API_PORT` / `API_HOST` | `3000` / `0.0.0.0` | onde a API escuta |
 | `SECRETS_KEY` | — | chave AES dos segredos salvos pelo painel (`npm run keygen`) |
-| `ADMIN_TOKEN` | — | protege o painel; sem ele, só localhost |
-| `API_TOKEN` | — | protege as rotas de debrid; sem ele, só localhost |
+| `ADMIN_TOKEN` | — | exigido pelo painel; opcional no `.env`: o primeiro acesso em localhost cria um |
+| `API_TOKEN` | — | exigido por toda a `/api` menos `/api/health`; sem ele, ela não responde |
 | `TMDB_API_KEY` | — | ativa o enriquecimento |
 | `TMDB_LANGUAGE` | `pt-BR` | idioma de títulos, sinopses e gêneros |
 | `TMDB_RPS` | `8` | requisições por segundo à TMDB |
@@ -156,9 +158,10 @@ for salvo no painel vale mais, e os segredos vão cifrados para o banco.
 | `HTTP_TIMEOUT_MS` / `HTTP_RETRIES` | `20000` / `3` | cliente HTTP dos trackers |
 
 > [!IMPORTANT]
-> Sem `ADMIN_TOKEN` e `API_TOKEN`, o painel e o debrid só respondem para
-> localhost. Para expor o servidor, defina os dois e coloque um proxy com HTTPS
-> na frente.
+> Nenhuma rota é aberta, exceto `/api/health`. O painel exige `ADMIN_TOKEN`; o
+> catálogo, a busca, o debrid e a documentação exigem `API_TOKEN`. Sem
+> `ADMIN_TOKEN`, o primeiro acesso ao painel em localhost cria um (precisa de
+> `SECRETS_KEY`). Para expor o servidor, coloque um proxy com HTTPS na frente.
 
 ## Painel
 

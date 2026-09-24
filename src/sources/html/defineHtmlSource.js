@@ -3,6 +3,7 @@
 const cheerio = require('cheerio');
 
 const { readMagnet } = require('../../lib/infohash');
+const { detectLanguage } = require('../../lib/classifier/language');
 const { sizeToBytes } = require('../../lib/size');
 const { wants } = require('../content');
 const { readFields } = require('./select');
@@ -27,13 +28,24 @@ function toRaw(card, link, nameOf) {
     sizeBytes: magnet.sizeBytes ?? sizeToBytes(link.context) ?? sizeToBytes(card.size),
     seeders: toCount(card.seeders),
     leechers: toCount(card.leechers),
+    language: detectLanguage(link.context) ?? link.language ?? null,
   };
 }
 
-const readMagnets = ($page, selector) =>
-  $page(selector)
-    .toArray()
-    .map((a) => ({ magnet: $page(a).attr('href'), context: $page(a).parent().text() }));
+const linkOf = ($page, a, language) => ({ magnet: $page(a).attr('href'), context: $page(a).parent().text(), language });
+
+function readMagnets($page, { magnets, sections, isSection = () => true }) {
+  if (!sections) return $page(magnets).toArray().map((a) => linkOf($page, a, null));
+
+  const links = [];
+  let language = null;
+  for (const node of $page(`${sections}, ${magnets}`).toArray()) {
+    const text = cleanText($page(node).text());
+    if ($page(node).is(magnets)) links.push(linkOf($page, node, language));
+    else if (isSection(text)) language = detectLanguage(text);
+  }
+  return links;
+}
 
 const uniqueByHash = (items) => [...new Map(items.map((item) => [item.infohash, item])).values()];
 
@@ -57,7 +69,7 @@ function defineHtmlSource({
       return {
         ...card,
         ...readFields($page.root(), detail.fields ?? {}),
-        ...(detail.magnets && { links: readMagnets($page, detail.magnets) }),
+        ...(detail.magnets && { links: readMagnets($page, detail) }),
       };
     }
 
@@ -104,6 +116,7 @@ function defineHtmlSource({
       createdUnix: null,
       seeders: raw.seeders ?? null,
       leechers: raw.leechers ?? null,
+      language: raw.language ?? null,
     });
 
     const api = { readPage, fetchPage, toItem };

@@ -31,7 +31,9 @@ const toTorrent = (row, cachedByHash = {}) => ({
   id: row.id,
   name: row.name,
   // season/episode so existem em serie; em filme sao sempre null.
-  ...(row.type === 'series' ? { season: row.season, episode: row.episode } : {}),
+  ...(row.type === 'series'
+    ? { season: row.season, episode: row.episode, seasonEnd: row.season_end ?? null, episodeEnd: row.episode_end ?? null }
+    : {}),
   seeders: row.seeders,
   leechers: row.leechers,
   size: formatSize(row.size_bytes),
@@ -40,6 +42,7 @@ const toTorrent = (row, cachedByHash = {}) => ({
   videoCodec: row.video_codec,
   audio: row.audio,
   hdr: row.hdr,
+  language: row.language ?? null,
   infohash: row.infohash,
   source: row.source,
   createdAt: isoDate(row.created_at),

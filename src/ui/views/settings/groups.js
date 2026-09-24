@@ -23,8 +23,9 @@ export const SECTIONS = {
   access: {
     id: 'acesso',
     title: 'Acesso',
+    stacked: true,
     description:
-      'Quem entra no painel e quem usa a API da TV. Sem token, cada um só responde para localhost.',
+      'Quem entra no painel e quem usa a API da TV. Sem token, a rota não responde para ninguém.',
   },
 };
 
@@ -37,13 +38,13 @@ const SECRET_META = {
   adminToken: {
     label: 'ADMIN_TOKEN',
     hint: 'Protege o painel. Ao salvar, este navegador já passa a usar o novo token.',
-    missing: ['ausente — só localhost', 'zinc'],
+    missing: ['ausente — criado no primeiro acesso', 'amber'],
     generate: true,
   },
   apiToken: {
     label: 'API_TOKEN',
-    hint: 'Protege só /api/debrid; o catálogo é sempre aberto. Vazio: debrid só para localhost, a TV não usa.',
-    missing: ['ausente — só localhost', 'zinc'],
+    hint: 'Protege toda a /api, menos /api/health. Vazio: a API não responde e a TV não funciona.',
+    missing: ['ausente — API fechada', 'rose'],
     generate: true,
   },
 };
@@ -88,7 +89,7 @@ export function tmdbGroup({ tmdb, secrets }, options) {
 export function accessGroup(secrets, options) {
   return group(
     SECTIONS.access,
-    el('div', { class: 'grid gap-4 xl:grid-cols-2' }, secret('adminToken', secrets, options), secret('apiToken', secrets, options))
+    el('div', { class: 'grid gap-4 md:grid-cols-2' }, secret('adminToken', secrets, options), secret('apiToken', secrets, options))
   );
 }
 

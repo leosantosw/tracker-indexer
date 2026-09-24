@@ -3,6 +3,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const { mkdirSync } = require('node:fs');
 const { dirname } = require('node:path');
+const { fold } = require('../lib/fold');
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS item (
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS item (
   video_codec   TEXT,
   audio         TEXT,
   hdr           TEXT,
+  language      TEXT,
   size_bytes    INTEGER,
   created_unix  INTEGER,
   seeders       INTEGER,
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS work (
   backdrop_path TEXT,  -- horizontal, para banner e fundo
   trailer_key TEXT,    -- id do video no YouTube; a URL e montada na API
   trailer_checked INTEGER NOT NULL DEFAULT 0,  -- 1 = ja procurou, achando ou nao
+  lead_id     INTEGER,         -- obra que representa o grupo com o mesmo tmdb_id
   status      TEXT NOT NULL,   -- ok | not_found | ambiguous | skipped
   checked_at  INTEGER NOT NULL,
   UNIQUE (type, title, year)
@@ -70,6 +73,7 @@ CREATE INDEX IF NOT EXISTS ix_item_added   ON item (created_at DESC);
 -- The item -> work join (type, title, year) used by every listing.
 CREATE INDEX IF NOT EXISTS ix_item_work    ON item (type, title, year);
 CREATE INDEX IF NOT EXISTS ix_work_status  ON work (status, checked_at);
+CREATE INDEX IF NOT EXISTS ix_work_tmdb    ON work (type, tmdb_id);
 `;
 
 /**
@@ -81,6 +85,23 @@ CREATE INDEX IF NOT EXISTS ix_work_status  ON work (status, checked_at);
  * o cache e a proxima execucao busca o dado que faltava, sem flag nem comando
  * especial.
  */
+/** Matched works sharing a tmdb_id follow the one with the lowest id; the rest lead themselves. */
+const REFRESH_LEADS = `
+  UPDATE work SET lead_id = COALESCE(
+    (SELECT MIN(d.id) FROM work d
+     WHERE d.type = work.type AND work.status = 'ok' AND d.status = 'ok' AND d.tmdb_id = work.tmdb_id),
+    id
+  )
+`;
+
+const LANGUAGE_FROM_NAME = `
+  UPDATE item SET language = CASE
+    WHEN ' ' || fold(raw_name) || ' ' LIKE '% dual %' THEN 'dual'
+    WHEN ' ' || fold(raw_name) LIKE '% dublad%' THEN 'dubbed'
+    WHEN ' ' || fold(raw_name) LIKE '% legendad%' THEN 'subtitled'
+  END
+`;
+
 const MIGRATIONS = [
   {
     table: 'work',
@@ -115,6 +136,8 @@ const MIGRATIONS = [
   },
   { table: 'item', column: 'season_end', ddl: 'ALTER TABLE item ADD COLUMN season_end INTEGER' },
   { table: 'item', column: 'episode_end', ddl: 'ALTER TABLE item ADD COLUMN episode_end INTEGER' },
+  { table: 'work', column: 'lead_id', ddl: 'ALTER TABLE work ADD COLUMN lead_id INTEGER', reset: REFRESH_LEADS },
+  { table: 'item', column: 'language', ddl: 'ALTER TABLE item ADD COLUMN language TEXT', reset: LANGUAGE_FROM_NAME },
 ];
 
 function migrate(db) {
@@ -125,6 +148,7 @@ function migrate(db) {
     db.exec(ddl);
     if (reset) db.exec(reset);
   }
+  db.exec('CREATE INDEX IF NOT EXISTS ix_work_lead ON work (lead_id)');
 }
 
 function openDb(file) {
@@ -133,6 +157,7 @@ function openDb(file) {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA busy_timeout = 5000');
+  db.function('fold', { deterministic: true }, fold);
   db.exec(SCHEMA);
   migrate(db);
   return db;
@@ -150,4 +175,4 @@ function transaction(db, fn) {
   }
 }
 
-module.exports = { openDb, transaction };
+module.exports = { openDb, transaction, REFRESH_LEADS };

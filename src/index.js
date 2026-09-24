@@ -59,6 +59,10 @@ const commands = {
   },
 
   async serve(repo) {
+    const { admin, apps } = createSettingsStore(repo).config();
+    if (!admin.token) log(`painel sem token: abra http://localhost:${baseConfig.api.port}/admin nesta maquina para criar`);
+    if (!apps.token) log('aviso: sem API_TOKEN a API (menos /api/health) nao responde; defina no painel ou no .env');
+
     const app = await buildServer(repo);
     await app.listen(baseConfig.api);
     log(`API em http://localhost:${baseConfig.api.port} (docs em /api/docs, painel em /admin)`);

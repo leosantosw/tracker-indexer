@@ -4,20 +4,20 @@ import { el } from '../../lib/dom.js';
  * One block of the settings page: what it is on the left, the fields on the
  * right. Stacks on narrow screens.
  */
-export function group({ id, title, description }, ...content) {
+export function group({ id, title, description, stacked = false }, ...content) {
   return el(
     'article',
     { id: `cfg-${id}`, class: 'card scroll-mt-24' },
     el(
       'div',
-      { class: 'grid gap-6 p-6 md:grid-cols-3 md:gap-10 md:p-8' },
+      { class: `grid gap-6 p-6 md:p-8 ${stacked ? '' : 'md:grid-cols-3 md:gap-10'}` },
       el(
         'div',
         {},
         el('h3', { class: 'text-base font-semibold' }, title),
         el('p', { class: 'mt-1 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400' }, description)
       ),
-      el('div', { class: 'space-y-6 md:col-span-2' }, ...content)
+      el('div', { class: `space-y-6 ${stacked ? '' : 'md:col-span-2'}` }, ...content)
     )
   );
 }

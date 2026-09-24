@@ -5,7 +5,7 @@ const assert = require('node:assert');
 
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
-const { buildServer } = require('../src/api/server');
+const { buildAuthedServer } = require('./authed');
 
 const release = (over = {}) => ({
   canonical: 'Filme (2024) 1080p WEB-DL',
@@ -68,7 +68,7 @@ async function setup() {
   );
   repo.saveWork({ type: 'series', title: 'Serie', year: null }, { status: 'ambiguous' });
 
-  const app = await buildServer(repo);
+  const app = await buildAuthedServer(repo);
   await app.ready();
 
   const get = async (url) => {
@@ -190,7 +190,7 @@ test('id do tipo errado da 404; a rota /torrents nao existe mais', async () => {
 test('resposta sai comprimida e com ETag; repetir da 304', async () => {
   const { db } = await setup();
   const repo = createRepo(db);
-  const app = await buildServer(repo);
+  const app = await buildAuthedServer(repo);
 
   // Abaixo de 1 KB nao compensa comprimir; o spec do Swagger passa disso.
   const big = await app.inject({ url: '/api/docs/json', headers: { 'accept-encoding': 'gzip' } });
@@ -208,16 +208,18 @@ test('resposta sai comprimida e com ETag; repetir da 304', async () => {
 });
 
 /** Cria a obra e o torrent dela em um passo, so com o que a ordenacao olha. */
+let proximoTmdbId = 1;
+
 const comNota = (repo, nome, ano, rating, votes) => {
   repo.savePage('fake', [item(nome, {}, { title: nome, year: ano })]);
   repo.saveWork(
     { type: 'movie', title: nome, year: ano },
-    { status: 'ok', match: { tmdbId: 1, title: nome, rating, votes } }
+    { status: 'ok', match: { tmdbId: proximoTmdbId++, title: nome, rating, votes } }
   );
 };
 
 const lista = async (repo, url = '/api/movies') => {
-  const app = await buildServer(repo);
+  const app = await buildAuthedServer(repo);
   await app.ready();
   return JSON.parse((await app.inject({ url })).payload).movies;
 };
@@ -291,7 +293,7 @@ test('a pagina se descreve: page, limit, total e pages', async () => {
 
   for (let n = 0; n < 7; n++) comNota(repo, `Filme ${n}`, 2020 + n, 7, 500);
 
-  const app = await buildServer(repo);
+  const app = await buildAuthedServer(repo);
   await app.ready();
   const pagina = async (url) => JSON.parse((await app.inject({ url })).payload);
 
@@ -318,7 +320,7 @@ test('paginar nao repete nem pula obra', async () => {
   // Mesmo ano e mesma nota: so o desempate estavel evita sobreposicao.
   for (let n = 0; n < 10; n++) comNota(repo, `Filme ${n}`, 2020, 7, 500);
 
-  const app = await buildServer(repo);
+  const app = await buildAuthedServer(repo);
   await app.ready();
   const ids = [];
   for (const page of [1, 2, 3, 4]) {
@@ -343,7 +345,7 @@ test('obra que perdeu todas as copias some da listagem', async () => {
 
 test('o spec do swagger documenta as quatro rotas do catalogo', async () => {
   const db = openDb(':memory:');
-  const app = await buildServer(createRepo(db));
+  const app = await buildAuthedServer(createRepo(db));
   await app.ready();
 
   const spec = app.swagger();

@@ -3,14 +3,12 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const baseConfig = require('../src/config');
 const torbox = require('../src/debrid/torbox');
 const { videosOf, pickVideo } = require('../src/debrid/torbox/files');
 const { normalizeInfohash } = require('../src/lib/infohash');
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
-const { buildServer } = require('../src/api/server');
-const { createSettingsStore } = require('../src/settings');
+const { buildAuthedServer, API_TOKEN } = require('./authed');
 
 const HASH = 'ac3ee9395349ad9a0b6ef13e1520511a6b9ee2b2';
 const TOKEN = 'tb-secret-token';
@@ -189,10 +187,9 @@ test('limite da TorBox vira 429', async () => {
 
 // --- rotas ---
 
-async function setupApi({ debrid = { provider: 'torbox', tokens: { torbox: TOKEN } }, apps = { token: null } } = {}) {
+async function setupApi({ debrid = { provider: 'torbox', tokens: { torbox: TOKEN } }, apps = { token: API_TOKEN } } = {}) {
   const repo = createRepo(openDb(':memory:'));
-  const store = createSettingsStore(repo, { base: { ...baseConfig, debrid, apps } });
-  return buildServer(repo, { store, admin: { echo: () => {} } });
+  return buildAuthedServer(repo, { base: { debrid, apps }, admin: { echo: () => {} } });
 }
 
 /** Routes build the real client, so the fake goes in place of the global fetch. */
@@ -228,7 +225,7 @@ test('rota: sem o token do provedor da 503 missing_token', async () => {
 test('rota: com API_TOKEN, ele e exigido', async () => {
   const app = await setupApi({ apps: { token: 'tv-token' } });
 
-  const without = await app.inject({ url: `/api/debrid/torrents/${HASH}` });
+  const without = await app.inject({ url: `/api/debrid/torrents/${HASH}`, headers: { authorization: '' } });
   assert.equal(without.statusCode, 401);
 
   const fake = fakeTorbox({ '/torrents/mylist': [] });
@@ -239,9 +236,9 @@ test('rota: com API_TOKEN, ele e exigido', async () => {
   await app.close();
 });
 
-test('rota: sem API_TOKEN, so localhost', async () => {
-  const app = await setupApi();
-  const res = await app.inject({ url: `/api/debrid/torrents/${HASH}`, remoteAddress: '192.168.0.20' });
+test('rota: sem API_TOKEN, nem localhost entra', async () => {
+  const app = await setupApi({ apps: { token: null } });
+  const res = await app.inject({ url: `/api/debrid/torrents/${HASH}` });
 
   assert.equal(res.statusCode, 401);
   await app.close();

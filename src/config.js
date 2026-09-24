@@ -26,12 +26,12 @@ module.exports = {
   // Encrypts the secrets saved from the panel. Without it they stay env-only.
   secretsKey: process.env.SECRETS_KEY || null,
 
-  // Without a token the admin API only answers requests from localhost.
+  // Optional: without it, the first visit to /admin from localhost creates one.
   admin: {
     token: process.env.ADMIN_TOKEN || null,
   },
 
-  // Token the apps (the TV) send to /api/debrid. Same rule: none, localhost only.
+  // Token the apps (the TV) send to every /api route but /health. Without it, they answer no one.
   apps: {
     token: process.env.API_TOKEN || null,
   },

@@ -10,6 +10,7 @@ const { registerSettingsRoutes } = require('./routes/settings');
 const { registerSourceRoutes } = require('./routes/sources');
 const { registerEventRoutes } = require('./routes/events');
 const { registerUiRoutes } = require('./routes/ui');
+const { registerSetupRoutes } = require('./routes/setup');
 
 /** Each run reads the current config, so what was saved in the panel takes effect. */
 const pipelineJobs = ({ repo, store }, log) => ({
@@ -47,6 +48,8 @@ async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = co
   });
 
   registerUiRoutes(app);
+
+  await app.register(async (api) => registerSetupRoutes(api, { store, currentToken }), { prefix: apiPrefix });
 
   await app.register(
     async (api) => {

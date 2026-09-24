@@ -1,16 +1,13 @@
 import { el } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
+import { randomToken } from '../lib/random.js';
 import { badge } from './controls.js';
+import { copyButton } from './copyButton.js';
 
 const SOURCE_BADGE = {
   panel: ['salva no painel', 'emerald'],
   env: ['vinda do .env', 'indigo'],
 };
-
-function randomToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
 
 const MASK = '****************';
 
@@ -52,6 +49,8 @@ export function secretField({ name, meta, status, encryption, draft, onRemove })
       'Gerar'
     );
 
+  const copy = meta.generate && copyButton(input);
+
   const toggle = isSet && el('button', { type: 'button', class: 'btn btn-secondary shrink-0' });
 
   function setEditing(editing) {
@@ -63,7 +62,7 @@ export function secretField({ name, meta, status, encryption, draft, onRemove })
     // The mask is a fixed placeholder, never the real value: the API does not send it back.
     input.placeholder = editing ? 'novo valor' : MASK;
     input.classList.toggle('placeholder:tracking-widest', !editing);
-    if (generate) generate.hidden = !editing || !encryption;
+    if (generate) generate.hidden = copy.hidden = !editing || !encryption;
 
     if (toggle) {
       toggle.replaceChildren(icon(editing ? 'x' : 'pencil', 'size-3.5'), editing ? 'Cancelar' : 'Editar');
@@ -87,7 +86,7 @@ export function secretField({ name, meta, status, encryption, draft, onRemove })
     el('p', { class: 'hint' }, meta.hint),
     // Two buttons would squeeze the input: they drop to their own row.
     generate
-      ? el('div', { class: 'space-y-2' }, input, el('div', { class: 'flex gap-2' }, generate, toggle))
+      ? el('div', { class: 'space-y-2' }, input, el('div', { class: 'flex gap-2' }, generate, copy, toggle))
       : el('div', { class: 'flex gap-2' }, input, toggle),
     status.error && el('p', { class: 'text-xs text-rose-600 dark:text-rose-400' }, status.error),
     status.source === 'panel' &&

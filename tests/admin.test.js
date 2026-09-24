@@ -5,7 +5,7 @@ const assert = require('node:assert');
 
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
-const { buildServer } = require('../src/api/server');
+const { buildAuthedServer } = require('./authed');
 const baseConfig = require('../src/config');
 const { createSettingsStore } = require('../src/settings');
 const { generateKey } = require('../src/lib/secrets');
@@ -28,31 +28,30 @@ function controllableJob() {
 async function setup(admin = {}) {
   const repo = createRepo(openDb(':memory:'));
   const sync = controllableJob();
-  const app = await buildServer(repo, {
-    admin: { token: null, echo: () => {}, jobs: { sync: sync.run, enrich: async () => {} }, ...admin },
+  const app = await buildAuthedServer(repo, {
+    admin: { token: 'admin-token', echo: () => {}, jobs: { sync: sync.run, enrich: async () => {} }, ...admin },
   });
   return { app, sync };
 }
 
 const json = (res) => JSON.parse(res.body);
 
-test('sem token, so localhost entra', async () => {
-  const { app } = await setup();
+test('sem token, nem localhost entra', async () => {
+  const { app } = await setup({ token: null });
 
   const local = await app.inject({ url: '/api/admin/status' });
-  const remote = await app.inject({ url: '/api/admin/status', remoteAddress: '10.0.0.8' });
 
-  assert.equal(local.statusCode, 200);
-  assert.equal(remote.statusCode, 401);
+  assert.equal(local.statusCode, 401);
+  assert.equal(json(local).tokenRequired, false);
   await app.close();
 });
 
 test('com token, ele e exigido por header ou query', async () => {
   const { app } = await setup({ token: 's3cret' });
 
-  const missing = await app.inject({ url: '/api/admin/status' });
+  const missing = await app.inject({ url: '/api/admin/status', headers: { authorization: '' } });
   const header = await app.inject({ url: '/api/admin/status', headers: { authorization: 'Bearer s3cret' } });
-  const query = await app.inject({ url: '/api/admin/settings?token=s3cret' });
+  const query = await app.inject({ url: '/api/admin/settings?token=s3cret', headers: { authorization: '' } });
 
   assert.equal(missing.statusCode, 401);
   assert.equal(json(missing).tokenRequired, true);
@@ -162,8 +161,10 @@ test('toda a API mora sob /api; o painel fica em /admin', async () => {
 /** Real settings store with encryption on, and the token read from it. */
 async function setupWithSecrets() {
   const repo = createRepo(openDb(':memory:'));
-  const store = createSettingsStore(repo, { base: { ...baseConfig, secretsKey: generateKey() } });
-  const app = await buildServer(repo, { store, admin: { echo: () => {}, jobs: { sync: async () => {}, enrich: async () => {} } } });
+  const store = createSettingsStore(repo, {
+    base: { ...baseConfig, secretsKey: generateKey(), admin: { token: 'admin-token' }, apps: { token: 'tv-token' } },
+  });
+  const app = await buildAuthedServer(repo, { store, admin: { echo: () => {}, jobs: { sync: async () => {}, enrich: async () => {} } } });
   return { app, repo, store };
 }
 

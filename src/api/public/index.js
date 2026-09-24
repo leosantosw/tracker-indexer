@@ -3,9 +3,11 @@
 const { HEALTH, STATS } = require('./schemas');
 const { registerCatalogs } = require('./catalog');
 const { registerCategories } = require('./categories');
+const { registerSearch } = require('./search');
+const { authorize } = require('../auth');
 const { allowApps } = require('../cors');
 
-/** The read-only API: service routes plus the movie and series catalogs. */
+/** The read-only API: service routes, the movie and series catalogs and the search. */
 async function registerPublicApi(api, { repo, store, cacheStatus }) {
   await allowApps(api);
 
@@ -16,14 +18,19 @@ async function registerPublicApi(api, { repo, store, cacheStatus }) {
 
   api.get('/health', { schema: HEALTH }, async () => ({ status: 'ok' }));
 
-  api.get('/stats', { schema: STATS }, async () => ({
-    sources: repo.stats(),
-    works: repo.workStats(),
-    tmdb: { configured: Boolean(store.config().tmdb.apiKey) },
-  }));
+  await api.register(async (scoped) => {
+    scoped.addHook('onRequest', authorize(() => store.config().apps.token, 'API_TOKEN'));
 
-  registerCategories(api, { repo, store });
-  registerCatalogs(api, { repo, store, cacheStatus });
+    scoped.get('/stats', { schema: STATS }, async () => ({
+      sources: repo.stats(),
+      works: repo.workStats(),
+      tmdb: { configured: Boolean(store.config().tmdb.apiKey) },
+    }));
+
+    registerCategories(scoped, { repo, store });
+    registerCatalogs(scoped, { repo, store, cacheStatus });
+    registerSearch(scoped, { repo, store });
+  });
 }
 
 module.exports = { registerPublicApi };

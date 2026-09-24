@@ -36,6 +36,9 @@ function createSettingsStore(repo, { base = baseConfig } = {}) {
   function save(patch) {
     const saved = repo.readSettings();
     const sections = mergePatch(saved, patch);
+    if (patch.secrets?.adminToken === null && !base.admin.token) {
+      throw new SettingsError('o painel precisa de um token: troque-o em vez de remover');
+    }
     if (patch.secrets) sections.secrets = sealSecrets(saved.secrets, patch.secrets, cipher);
 
     repo.writeSettings(sections);

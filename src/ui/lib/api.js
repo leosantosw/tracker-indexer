@@ -49,6 +49,8 @@ export const api = {
   cancelJob: () => request('DELETE', '/jobs/current'),
   clearSource: (name) => request('DELETE', `/sources/${encodeURIComponent(name)}/items`),
   checkSource: (name) => request('POST', `/sources/${encodeURIComponent(name)}/check`),
+  setupStatus: () => request('GET', '/setup'),
+  createAdminToken: (value) => request('POST', '/setup', { token: value }),
 };
 
 /** EventSource cannot send headers, so the token goes in the query string. */

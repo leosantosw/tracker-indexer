@@ -5,7 +5,7 @@ const assert = require('node:assert');
 
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
-const { buildServer } = require('../src/api/server');
+const { buildAuthedServer } = require('./authed');
 const { enrich } = require('../src/job/enrich');
 const { createTmdb, pickMatch, pickTrailer } = require('../src/sources/tmdb');
 
@@ -347,7 +347,7 @@ test('o que o enrich grava e o que a API mostra em /movies', async () => {
   });
   await enrich({ repo, tmdb, config, log });
 
-  const app = await buildServer(repo);
+  const app = await buildAuthedServer(repo);
   await app.ready();
   const { movies } = JSON.parse((await app.inject({ url: '/api/movies' })).payload);
 

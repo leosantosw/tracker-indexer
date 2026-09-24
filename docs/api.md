@@ -5,8 +5,12 @@ Com a API no ar, a referência completa e navegável fica em
 cru está em `/api/docs/json` — serve para gerar cliente:
 
 ```bash
-curl -s http://localhost:3000/api/docs/json > openapi.json
+curl -s -H "Authorization: Bearer $API_TOKEN" http://localhost:3000/api/docs/json > openapi.json
 ```
+
+Tudo exige o `API_TOKEN`, menos `/api/health`: `Authorization: Bearer <API_TOKEN>`
+nas chamadas; na página da documentação o navegador pede usuário e senha — o
+usuário é qualquer um, a senha é o token.
 
 **A API tem duas entidades, e elas não se misturam:**
 
@@ -19,12 +23,15 @@ curl -s http://localhost:3000/api/docs/json > openapi.json
 GET /api/health
 GET /api/stats
 
-GET /api/categories    as linhas da tela inicial (com os primeiros filmes, se quiser)
+GET /api/categories    as linhas da tela inicial (com os primeiros filmes, se quiser; ?type=series para séries)
 GET /api/movies        lista filmes    (cartão da grade, uma linha por filme)
 GET /api/movies/:id    um filme        (tudo, com as cópias dentro)
 
 GET /api/series        lista séries
 GET /api/series/:id    uma série
+
+GET /api/search          busca filmes e séries juntos (?q=, ?genre=)
+GET /api/search/genres   atalhos de gênero para a tela de busca
 ```
 
 **Duas requisições por tela, e cada uma com o tamanho da tela.** A listagem
@@ -62,6 +69,10 @@ A listagem tem paginação e a categoria escolhida:
 
 São **filtros salvos, não uma tabela**: saem do próprio catálogo, então aparecem
 e somem sozinhas conforme o acervo muda. Não há nada a cadastrar no painel.
+
+Filmes por padrão. As séries têm as mesmas categorias, montadas só com séries:
+`/api/categories?type=series&preview=12`, com as obras em `series` em vez de
+`movies`, e `/api/series?category=<id>` para paginar.
 
 | Categoria | O quê |
 |---|---|
@@ -115,6 +126,36 @@ A resposta se descreve:
 Todo critério de ordenação termina em `id`, então paginar não repete nem pula
 obra — sem esse desempate, itens de mesmo ano e mesma nota mudariam de posição
 entre duas consultas.
+
+### Busca
+
+`/api/search` devolve filmes e séries numa lista só, em `results`, cada um com
+`type` (`movie` ou `series`) para a TV saber qual detalhe abrir.
+
+- `q` procura no título da TMDB e no do torrent, sem diferenciar acento,
+  maiúscula ou pontuação: `homem aranha` acha *Homem-Aranha*, `acao` acha *Ação*.
+  Cada palavra digitada precisa começar uma palavra do título.
+- Vem primeiro o título que começa com a busca, depois o que tem uma palavra que
+  começa com ela; dentro disso, o mais votado.
+- `genre` é um id de `/api/search/genres` (`acao`, `terror`, `comedia`…) e
+  combina com `q`. Um atalho vale para filme e série: *Ação* também pega o
+  *Action & Adventure* que a TMDB usa nas séries.
+- Sem `q` e sem `genre`, vêm os mais votados.
+- `type=movie` ou `type=series` restringe; `page`, `limit` e `all` funcionam
+  como na listagem.
+
+```json
+// GET /api/search?q=batman&limit=2
+{
+  "results": [
+    { "id": 369, "title": "Batman: O Cavaleiro das Trevas", "year": 2008, "type": "movie", ... },
+    { "id": 370, "title": "Batman vs Superman: A Origem da Justiça", "year": 2016, "type": "movie", ... }
+  ],
+  "page": 1, "limit": 2, "total": 7, "pages": 4
+}
+```
+
+`/api/search/genres` traz só os atalhos que têm ao menos uma obra, com `total`.
 
 ### Nota só com votação suficiente
 
@@ -173,6 +214,7 @@ uma requisição só:
       "videoCodec": null,
       "audio": null,
       "hdr": null,
+      "language": "dual",
       "infohash": "ac3ee9395349ad9a0b6ef13e1520511a6b9ee2b2",
       "source": "torrents-csv",
       "createdAt": "2026-09-14T07:10:30.000Z",
@@ -194,6 +236,13 @@ A obra que não casou com a TMDB some da listagem, mas continua acessível por
 `/api/movies/:id`, com as cópias — some da vitrine, não do acervo.
 
 `size` é o `size_bytes` do banco formatado em GB (acima de 1 GB) ou MB.
+
+`language` diz o áudio da cópia: `dual` (dublado e original), `dubbed` (só
+dublado), `subtitled` (original com legenda) ou `null` quando nada indica. Vem
+do nome do torrent; quando o nome não diz, da linha do link ou da seção da
+página do tracker (no Comando, os títulos "DUBLADO", "LEGENDADO", "DUAL ÁUDIO"; no
+Torrent dos Filmes, os "VERSÃO MKV DUAL ÁUDIO", "VERSÃO MP4 LEGENDADO").
+Duas cópias iguais em idiomas diferentes não contam como duplicata.
 
 Consulta direta ao banco, sem subir nada:
 
@@ -284,10 +333,9 @@ guardá-lo.
 
 ### Segurança
 
-- **`API_TOKEN`:** as rotas exigem `Authorization: Bearer <API_TOKEN>`. Elas
-  gastam a conta paga e apagam torrents, então não ficam abertas como o catálogo.
-  Sem `API_TOKEN` definido, só respondem para localhost. É um token separado do
-  `ADMIN_TOKEN`: a TV não ganha acesso ao painel.
+- **`API_TOKEN`:** as rotas exigem `Authorization: Bearer <API_TOKEN>`, como
+  todo o resto da API. Sem `API_TOKEN` definido, não respondem. É um token
+  separado do `ADMIN_TOKEN`: a TV não ganha acesso ao painel.
 - **O token do TorBox fica no servidor.** Salvo pelo painel, vai cifrado para o
   banco, como os outros segredos. A TV nunca o recebe, e ele não aparece em
   erro nenhum.

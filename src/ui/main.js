@@ -11,6 +11,7 @@ import { openCheckDialog } from './views/checkDialog.js';
 import { renderSettingsPage, focusSettingsGroup } from './views/settings/index.js';
 import { appendLog, clearLog } from './views/log.js';
 import { mountActivity, renderActivity } from './views/activity.js';
+import { askForAccess } from './views/access.js';
 
 const state = { settings: null, stats: null, job: null, schedule: null, connected: false, page: 'dashboard', tracker: null };
 
@@ -176,14 +177,6 @@ const actions = {
 
 // --- session ---
 
-function askForAccess(error) {
-  $('#auth-message').textContent = error.tokenRequired ? '' : error.message;
-  $('#auth-message').hidden = error.tokenRequired;
-  $('#auth-token-field').hidden = !error.tokenRequired;
-  $('#auth-form button').hidden = !error.tokenRequired;
-  $('#auth-dialog').showModal();
-}
-
 /** The token was just changed here: keep this browser signed in with it. */
 function adoptToken(value) {
   token.set(value);
@@ -219,15 +212,10 @@ async function start() {
     route();
     connectEvents();
   } catch (err) {
-    if (err instanceof AuthError) return askForAccess(err);
+    if (err instanceof AuthError) return askForAccess(err, start);
     toast(err.message, 'error');
   }
 }
-
-$('#auth-form').addEventListener('submit', (event) => {
-  token.set(new FormData(event.target).get('token'));
-  start();
-});
 
 window.addEventListener('hashchange', route);
 

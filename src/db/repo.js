@@ -3,11 +3,12 @@
 const { createItems } = require('./items');
 const { createWorks } = require('./works');
 const { createSettings } = require('./settings');
+const { createSearch } = require('./search');
 
 /**
  * Uma fachada sobre as duas entidades: `item` e a copia que veio do tracker,
  * `work` e a obra em si. Cada tabela mora no seu modulo.
  */
-const createRepo = (db) => ({ ...createItems(db), ...createWorks(db), ...createSettings(db) });
+const createRepo = (db) => ({ ...createItems(db), ...createWorks(db), ...createSettings(db), ...createSearch(db) });
 
 module.exports = { createRepo };

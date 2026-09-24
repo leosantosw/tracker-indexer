@@ -382,7 +382,7 @@ src/
 │  └─ errors.js
 ├─ api/
 │  ├─ server.js              monta o app: /api, /api/debrid, /api/admin e /admin
-│  ├─ auth.js                token ou só localhost (painel e debrid)
+│  ├─ auth.js                token obrigatório (painel, API e docs)
 │  ├─ public/                API de leitura
 │  │  ├─ index.js            /health, /stats e os catálogos
 │  │  ├─ catalog.js          rotas de filmes e séries
@@ -426,8 +426,8 @@ src/
 ├─ sources/
 │  ├─ index.js               registry
 │  ├─ content.js             filmes, séries ou os dois, por tracker
-│  ├─ trackers/              um arquivo por tracker (torrentsCsv, redesTorrents, comando)
-│  ├─ html/                  molde para tracker HTML (defineHtmlSource, seletores)
+│  ├─ trackers/              um arquivo por tracker (torrentsCsv, redesTorrents, comando, torrentDosFilmes)
+│  ├─ html/                  molde para tracker HTML (defineHtmlSource, seletores, título do post)
 │  └─ tmdb/                  busca e match: candidate, movie, series, trailer
 └─ ui/                       painel: HTML + ES modules + Tailwind (CDN), sem build
    ├─ index.html

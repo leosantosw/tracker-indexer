@@ -137,6 +137,14 @@ const torrent = ($id, description, extra = {}) =>
       videoCodec: { type: ['string', 'null'], examples: ['x264'] },
       audio: { type: ['string', 'null'], examples: ['DD+ 5.1'] },
       hdr: { type: ['string', 'null'], examples: ['HDR10'] },
+      language: {
+        type: ['string', 'null'],
+        enum: ['dual', 'dubbed', 'subtitled', null],
+        description:
+          '`dual` (áudio dublado e original), `dubbed` (só dublado) ou `subtitled` (áudio original com legenda). ' +
+          'Vem do nome do torrent ou da seção da página do tracker; `null` quando nenhum dos dois diz.',
+        examples: ['subtitled'],
+      },
       infohash: {
         type: ['string', 'null'],
         description: 'Infohash BitTorrent, para montar o magnet.',
@@ -166,6 +174,16 @@ const SEASON_EPISODE = {
     description: 'Episódio, quando o release é unitário.',
     examples: [1168],
   },
+  seasonEnd: {
+    type: ['integer', 'null'],
+    description: 'Última temporada de um pacote com várias (`S01-S03`); nulo quando é uma só.',
+    examples: [3],
+  },
+  episodeEnd: {
+    type: ['integer', 'null'],
+    description: 'Último episódio de uma faixa (`S01E01-E02`); nulo quando é um só.',
+    examples: [2],
+  },
 };
 
 /** Pagina de obras: os itens mais o que o cliente precisa para navegar. */
@@ -194,6 +212,17 @@ const SHARED = [
   torrent('SeriesTorrent', 'Uma cópia de uma série: um episódio ou uma temporada.', SEASON_EPISODE),
   page('MovieList', 'MovieListItem#', 'movies', 'Página de filmes.'),
   page('SeriesList', 'SeriesListItem#', 'series', 'Página de séries.'),
+  allRequired({
+    $id: 'SearchItem',
+    title: 'SearchItem',
+    description: 'Um resultado da busca: o cartão da grade mais o tipo, para saber qual detalhe abrir.',
+    type: 'object',
+    properties: {
+      ...pickFields(CARD_FIELDS),
+      type: { type: 'string', enum: ['movie', 'series'], description: 'Filme ou série.', examples: ['movie'] },
+    },
+  }),
+  page('SearchList', 'SearchItem#', 'results', 'Página de resultados da busca.'),
   {
     $id: 'NotFound',
     title: 'NotFound',
@@ -287,9 +316,12 @@ const CATEGORIES = {
   description:
     'As linhas da tela inicial, montadas a partir do próprio catálogo: as fixas ' +
     '(*Adicionados recentemente*, *Melhores notas*) e uma por gênero com pelo menos ' +
-    '10 filmes. Categoria vazia não entra.\n\n' +
-    'Com `preview`, cada categoria já vem com os primeiros filmes — a tela inicial ' +
-    'inteira em uma requisição. Para paginar, use `/api/movies?category=<id>`.',
+    '10 obras. Categoria vazia não entra.\n\n' +
+    'Filmes por padrão; com `type=series`, as categorias das séries, que vêm em `series` ' +
+    'em vez de `movies`.\n\n' +
+    'Com `preview`, cada categoria já vem com as primeiras obras — a tela inicial ' +
+    'inteira em uma requisição. Para paginar, use `/api/movies?category=<id>` ou ' +
+    '`/api/series?category=<id>`.',
   querystring: {
     type: 'object',
     additionalProperties: false,
@@ -299,7 +331,13 @@ const CATEGORIES = {
         minimum: 0,
         maximum: 30,
         default: 0,
-        description: 'Quantos filmes já vêm em cada categoria.',
+        description: 'Quantas obras já vêm em cada categoria.',
+      },
+      type: {
+        type: 'string',
+        enum: ['movie', 'series'],
+        default: 'movie',
+        description: 'De quem são as categorias: filmes ou séries.',
       },
     },
   },
@@ -314,8 +352,9 @@ const CATEGORIES = {
             properties: {
               id: { type: 'string', examples: ['genero-terror'] },
               title: { type: 'string', examples: ['Terror'] },
-              total: { type: 'integer', description: 'Quantos filmes a categoria tem.', examples: [42] },
-              movies: { type: 'array', items: { $ref: 'MovieListItem#' } },
+              total: { type: 'integer', description: 'Quantas obras a categoria tem.', examples: [42] },
+              movies: { type: 'array', items: { $ref: 'MovieListItem#' }, description: 'Com `preview`, sem `type=series`.' },
+              series: { type: 'array', items: { $ref: 'SeriesListItem#' }, description: 'Com `preview` e `type=series`.' },
             },
             required: ['id', 'title', 'total'],
           },
@@ -330,7 +369,8 @@ const CATEGORIES = {
 const HEALTH = {
   tags: [TAGS.servico],
   summary: 'Liveness',
-  description: 'Responde 200 assim que a API sobe. Não toca no banco.',
+  description: 'Responde 200 assim que a API sobe. Não toca no banco. Única rota sem token.',
+  security: [],
   response: {
     200: {
       type: 'object',
@@ -386,4 +426,69 @@ const STATS = {
   },
 };
 
-module.exports = { SHARED, TAGS, HEALTH, STATS, CATEGORIES, catalogRoutes };
+const SEARCH = {
+  tags: [TAGS.catalogo],
+  summary: 'Busca filmes e séries',
+  description:
+    'Filmes e séries numa lista só. `q` procura no título da TMDB e no do torrent, sem diferenciar ' +
+    'acento, maiúscula ou pontuação: `homem aranha` acha *Homem-Aranha*. Cada palavra precisa ' +
+    'começar uma palavra do título. Vem primeiro o título que começa com a busca, depois o mais votado.\n\n' +
+    '`genre` é um id de `/api/search/genres` e combina com `q`. Sem nenhum dos dois, vêm os mais votados.',
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      q: { type: 'string', maxLength: 80, description: 'O que foi digitado.', examples: ['batman'] },
+      genre: {
+        type: 'string',
+        pattern: '^[a-z0-9-]+$',
+        description: 'Id de `/api/search/genres`.',
+        examples: ['terror'],
+      },
+      type: {
+        type: 'string',
+        enum: ['all', 'movie', 'series'],
+        default: 'all',
+        description: 'Filmes, séries ou os dois.',
+      },
+      page: { type: 'integer', minimum: 1, default: 1, description: 'Página, a partir de 1.' },
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 30, description: 'Itens por página.' },
+      all: {
+        type: 'boolean',
+        default: false,
+        description: 'Inclui as obras que não casaram com a TMDB, como em `/api/movies`.',
+      },
+    },
+  },
+  response: { 200: { $ref: 'SearchList#' }, 400: { $ref: 'BadRequest#' }, 404: { $ref: 'NotFound#' } },
+};
+
+const SEARCH_GENRES = {
+  tags: [TAGS.catalogo],
+  summary: 'Atalhos de busca por gênero',
+  description:
+    'Os gêneros prontos para a tela de busca (*Ação*, *Comédia*, *Terror*…), valendo para filmes e ' +
+    'séries. Só vem o que tem ao menos uma obra no catálogo.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        genres: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', examples: ['terror'] },
+              title: { type: 'string', examples: ['Terror'] },
+              total: { type: 'integer', description: 'Quantas obras o atalho encontra.', examples: [68] },
+            },
+            required: ['id', 'title', 'total'],
+          },
+        },
+      },
+      required: ['genres'],
+    },
+  },
+};
+
+module.exports = { SHARED, TAGS, HEALTH, STATS, CATEGORIES, SEARCH, SEARCH_GENRES, catalogRoutes };

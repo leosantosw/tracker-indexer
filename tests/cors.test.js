@@ -3,19 +3,16 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const baseConfig = require('../src/config');
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
-const { buildServer } = require('../src/api/server');
-const { createSettingsStore } = require('../src/settings');
+const { buildAuthedServer } = require('./authed');
 
 // The TV app runs from file://, which Chromium sends as Origin "null".
 const TV = { origin: 'null' };
 
 async function setup() {
   const repo = createRepo(openDb(':memory:'));
-  const store = createSettingsStore(repo, { base: { ...baseConfig, apps: { token: 'tv-token' } } });
-  return buildServer(repo, { store, admin: { echo: () => {} } });
+  return buildAuthedServer(repo, { admin: { echo: () => {} } });
 }
 
 test('o catalogo responde para outra origem', async () => {
@@ -43,7 +40,7 @@ test('preflight do debrid passa sem token e libera o Authorization', async () =>
 
 test('o preflight nao abre a rota: sem token, a chamada de verdade ainda leva 401', async () => {
   const app = await setup();
-  const res = await app.inject({ method: 'POST', url: '/api/debrid/torrents', headers: TV, payload: { hash: 'a'.repeat(40) } });
+  const res = await app.inject({ method: 'POST', url: '/api/debrid/torrents', headers: { ...TV, authorization: '' }, payload: { hash: 'a'.repeat(40) } });
 
   assert.equal(res.statusCode, 401);
   await app.close();

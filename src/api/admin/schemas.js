@@ -114,8 +114,19 @@ const CLEAR_SOURCE = hidden({
   },
 });
 
+const SETUP_STATUS = hidden({});
+
+const SETUP = hidden({
+  body: {
+    type: 'object',
+    additionalProperties: false,
+    properties: { token: { type: 'string', minLength: 1, maxLength: 256, pattern: '^\\S+$' } },
+    required: ['token'],
+  },
+});
+
 const EVENTS = hidden({
   querystring: { type: 'object', properties: { token: { type: 'string' } } },
 });
 
-module.exports = { hidden, SETTINGS_PATCH, START_JOB, CLEAR_SOURCE, EVENTS };
+module.exports = { hidden, SETTINGS_PATCH, START_JOB, CLEAR_SOURCE, SETUP_STATUS, SETUP, EVENTS };

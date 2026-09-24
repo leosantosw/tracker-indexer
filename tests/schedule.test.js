@@ -77,13 +77,17 @@ function setup(schedule, { running = false } = {}) {
     },
   };
   const logs = [];
-  const scheduler = createScheduler({ store, runner, timers, log: (m) => logs.push(m), now: () => WEDNESDAY_10H });
+  let clock = WEDNESDAY_10H;
+  const scheduler = createScheduler({ store, runner, timers, log: (m) => logs.push(m), now: () => clock });
 
   return {
     scheduler,
     timers,
     runner,
     logs,
+    advanceTo(date) {
+      clock = date;
+    },
     change(next) {
       current = next;
       listener?.();
@@ -98,20 +102,25 @@ test('agendador: desligado nao arma nada', () => {
 });
 
 test('agendador: arma para a hora certa e roda a atualizacao', async () => {
-  const { scheduler, timers, runner } = setup(daily('23:00'));
+  const { scheduler, timers, runner, advanceTo } = setup(daily('23:00'));
 
   assert.equal(timers.pending.length, 1);
-  assert.equal(timers.pending[0].ms, 13 * 60 * 60 * 1000);
+  assert.equal(timers.pending[0].ms, 60 * 1000, 'confere o relogio a cada minuto, nunca espera 13h de uma vez');
   assert.equal(scheduler.status().nextRunAt, new Date(2026, 8, 16, 23, 0).toISOString());
 
   await timers.pending.shift().fn(); // a real timer leaves the list when it fires
+  assert.equal(runner.started, 0, 'ainda nao deu a hora');
+
+  advanceTo(new Date(2026, 8, 16, 23, 0));
+  await timers.pending.shift().fn();
   assert.equal(runner.started, 1);
   assert.equal(timers.pending.length, 1, 'rearma depois de rodar');
 });
 
 test('agendador: com outra execucao rodando, pula e rearma', async () => {
-  const { timers, runner, logs } = setup(every(1), { running: true });
+  const { timers, runner, logs, advanceTo } = setup(every(1), { running: true });
 
+  advanceTo(new Date(2026, 8, 16, 10, 1));
   await timers.pending.shift().fn(); // a real timer leaves the list when it fires
 
   assert.equal(runner.started, 0);
@@ -124,7 +133,7 @@ test('agendador: mudar a configuracao rearma na hora', () => {
 
   change(every(5));
   assert.equal(timers.pending.length, 1, 'o timer antigo foi cancelado');
-  assert.equal(timers.pending[0].ms, 5 * 60 * 1000);
+  assert.equal(scheduler.status().nextRunAt, new Date(2026, 8, 16, 10, 5).toISOString());
 
   change({ ...every(5), enabled: false });
   assert.equal(timers.pending.length, 0);

@@ -3,6 +3,7 @@
 const { findAll, findOne } = require('./normalize');
 const { extractTitle } = require('./title');
 const { parseSeries } = require('./series');
+const { languageOf } = require('./language');
 const {
   RESOLUTIONS,
   SOURCES,
@@ -55,6 +56,7 @@ module.exports = {
       container: findOne(text, CONTAINERS),
       audio: findAll(text, AUDIO_CODECS),
       hdr: findAll(text, HDR_FORMATS),
+      language: languageOf(text),
     };
 
     return { ...info, canonical: buildCanonical(info) };

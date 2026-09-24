@@ -106,9 +106,13 @@ não entrega a chave da TMDB nem o token. O que não protege: quem lê o `.env` 
 a `SECRETS_KEY` — mantenha o `.env` fora do repositório, como já está no
 `.gitignore`.
 
-**Acesso:** sem `ADMIN_TOKEN`, a API do painel só responde para localhost — e
-requisição que chega por proxy (com `X-Forwarded-For`, `X-Real-IP` ou
-`Forwarded`) não conta como local, mesmo vindo de `127.0.0.1`. Com
+**Acesso:** a API do painel sempre exige o `ADMIN_TOKEN`. Ele não precisa estar
+no `.env`: no primeiro acesso, o painel pede para criar o token (ou gerar um), e
+ele vai cifrado para o banco — por isso a `SECRETS_KEY` é necessária. Só dá para
+criar o primeiro token abrindo o painel em localhost, na máquina do servidor; a
+requisição que chega por proxy (`X-Forwarded-For`, `X-Real-IP`, `Forwarded`) ou
+com outro `Host` não conta como local. Criado o token, esse caminho fecha, e o
+painel recusa removê-lo (só trocar) quando o `.env` não tem um. Com
 ele, o painel pede o token e o guarda no navegador; trocar o token pelo painel
 vale na hora e o navegador que trocou já passa a usar o novo. O token trafega
 em texto puro no HTTP: para expor o painel fora da máquina, ponha um proxy com

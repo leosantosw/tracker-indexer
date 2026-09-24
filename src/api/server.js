@@ -34,7 +34,7 @@ async function buildServer(repo, options = {}) {
   await app.register(etag);
 
   for (const schema of SHARED) app.addSchema(schema);
-  await registerDocs(app, `${API_PREFIX}/docs`);
+  await registerDocs(app, `${API_PREFIX}/docs`, () => store.config().apps.token);
 
   await app.register(async (api) => registerPublicApi(api, deps), { prefix: API_PREFIX });
   await app.register(async (api) => registerDebridApi(api, deps), { prefix: `${API_PREFIX}/debrid` });

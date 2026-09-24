@@ -39,6 +39,7 @@ async function enrichStep({ repo, config, log, signal, progress }) {
     onStart: progress.startTmdb,
     onStep: progress.tmdbStep,
   });
+  repo.refreshLeads();
   progress.endTmdb('done');
   if (!total.seen && !total.failed) {
     log('tmdb: nada novo para consultar');

@@ -1,6 +1,7 @@
 'use strict';
 
 const { now } = require('./items');
+const { REFRESH_LEADS } = require('./index');
 
 /**
  * Item e obra se ligam pela chave de match, nao por FK. `IS` em vez de `=`
@@ -9,7 +10,22 @@ const { now } = require('./items');
  */
 const WORK_YEAR = "CASE WHEN i.type = 'series' THEN NULL ELSE i.year END";
 
-const ITEM_TO_WORK = `i.type = w.type AND i.title = w.title AND ${WORK_YEAR} IS w.year`;
+const itemOf = (alias) => `i.type = ${alias}.type AND i.title = ${alias}.title AND ${WORK_YEAR} IS ${alias}.year`;
+
+const ITEM_TO_WORK = itemOf('w');
+
+/**
+ * The same TMDB title reached by different torrent names ("Escola De Rock",
+ * "Escola de Rock") is one entry: the matched work with the lowest id leads,
+ * and its siblings lend it their torrents.
+ */
+const IS_LEAD = 'w.id = w.lead_id';
+
+const WITH_TORRENTS = `JOIN work m ON m.lead_id = w.lead_id JOIN item i ON ${itemOf('m')}`;
+
+const HAS_TORRENTS = `EXISTS (SELECT 1 FROM work m JOIN item i ON ${itemOf('m')} WHERE m.lead_id = w.lead_id)`;
+
+const LEAD_SELF = 'UPDATE work SET lead_id = id WHERE lead_id IS NULL';
 
 /** Nota so conta com votacao suficiente -- a mesma regra para ordenar e exibir. */
 const RATED = 'CASE WHEN w.votes >= @minVotes THEN w.rating END';
@@ -48,26 +64,27 @@ const WORK_SELECT = `
          MAX(i.seeders) AS best_seeders,
          MAX(i.created_at) AS last_added
   FROM work w
-  JOIN item i ON ${ITEM_TO_WORK}
+  ${WITH_TORRENTS}
 `;
 
 const countListable = (genre) => `
   SELECT COUNT(*) AS total FROM (
-    SELECT w.id FROM work w JOIN item i ON ${ITEM_TO_WORK} ${WHERE_LISTABLE_ALL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id
+    SELECT w.id FROM work w ${WITH_TORRENTS} ${WHERE_LISTABLE_ALL} AND ${IS_LEAD} ${genre ? WHERE_GENRE : ''} GROUP BY w.id
   )
 `;
 
 /** Genres of the listable works, one row per work; counting happens in JS. */
 const GENRES_LISTAVEL = `
   SELECT w.genres FROM work w
-  ${WHERE_LISTAVEL} AND w.genres IS NOT NULL
-    AND EXISTS (SELECT 1 FROM item i WHERE ${ITEM_TO_WORK})
+  ${WHERE_LISTAVEL} AND w.genres IS NOT NULL AND ${IS_LEAD} AND ${HAS_TORRENTS}
 `;
 
+/** The same infohash from two trackers is one copy: the most seeded one stays. */
 const TORRENTS_OF_WORK = `
-  SELECT i.* FROM item i
-  JOIN work w ON ${ITEM_TO_WORK}
+  SELECT i.*, MAX(COALESCE(i.seeders, -1)) AS best
+  FROM work w ${WITH_TORRENTS}
   WHERE w.id = ?
+  GROUP BY COALESCE(i.infohash, 'item:' || i.id)
   ORDER BY i.seeders DESC, i.id ASC
 `;
 
@@ -109,7 +126,7 @@ const PENDING = `
 
 const TYPE_STATS = `
   SELECT w.type, COUNT(*) AS total FROM work w
-  WHERE EXISTS (SELECT 1 FROM item i WHERE ${ITEM_TO_WORK})
+  WHERE ${IS_LEAD} AND ${HAS_TORRENTS}
   GROUP BY w.type
 `;
 
@@ -180,7 +197,7 @@ function createWorks(db) {
     };
 
     const list =
-      `${WORK_SELECT} ${WHERE_LISTABLE_ALL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id ` +
+      `${WORK_SELECT} ${WHERE_LISTABLE_ALL} AND ${IS_LEAD} ${genre ? WHERE_GENRE : ''} GROUP BY w.id ` +
       `ORDER BY ${ORDERS[order] ?? ORDER} LIMIT @limit OFFSET @offset`;
 
     const rows = db.prepare(list).all(bind(list, values));
@@ -222,7 +239,13 @@ function createWorks(db) {
       .map(({ maxSeason, seasonYears, ...work }) => ({ ...work, hints: toHints({ maxSeason, seasonYears }) }));
 
   /** Creates the missing works, still `pending`; returns how many. */
-  const registerWorks = () => db.prepare(REGISTER).run().changes;
+  function registerWorks() {
+    const { changes } = db.prepare(REGISTER).run();
+    db.exec(LEAD_SELF);
+    return changes;
+  }
+
+  const refreshLeads = () => db.exec(REFRESH_LEADS);
 
   /** Grava tambem o fracasso: e o `status` que impede de reconsultar sempre. */
   function saveWork(work, result) {
@@ -245,7 +268,10 @@ function createWorks(db) {
       status: result.status,
       checkedAt: now(),
     };
-    if (!update.run(values).changes) insert.run(values);
+    if (!update.run(values).changes) {
+      insert.run(values);
+      db.exec(LEAD_SELF);
+    }
   }
 
   /** Only works that still have a torrent: orphans are TMDB cache, not catalog. */
@@ -254,7 +280,7 @@ function createWorks(db) {
 
   const typeStats = () => db.prepare(TYPE_STATS).all();
 
-  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, saveWork, workStats, typeStats };
+  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, refreshLeads, saveWork, workStats, typeStats };
 }
 
-module.exports = { createWorks };
+module.exports = { createWorks, WITH_TORRENTS, HAS_TORRENTS, IS_LEAD };

@@ -16,7 +16,7 @@ const DEDUPE_BY_SEEDERS = `
     AND id NOT IN (
       SELECT id FROM (
         SELECT id, ROW_NUMBER() OVER (
-          PARTITION BY type, title, year, season, season_end, episode, episode_end
+          PARTITION BY type, title, year, season, season_end, episode, episode_end, language
           ORDER BY seeders DESC, id ASC
         ) AS pos
         FROM item WHERE source = ?1
@@ -35,6 +35,7 @@ const BEATEN = `
     AND type IS @type AND title IS @title AND year IS @year
     AND season IS @season AND season_end IS @seasonEnd
     AND episode IS @episode AND episode_end IS @episodeEnd
+    AND language IS @language
     AND seeders >= @seeders
   LIMIT 1
 `;
@@ -44,12 +45,12 @@ const UPSERT = `
     source, source_id, infohash, name, raw_name, size_bytes, created_unix,
     seeders, leechers, created_at, updated_at,
     title, year, type, season, season_end, episode, episode_end,
-    resolution, release_source, video_codec, audio, hdr
+    resolution, release_source, video_codec, audio, hdr, language
   ) VALUES (
     @source, @sourceId, @infohash, @name, @rawName, @sizeBytes, @createdUnix,
     @seeders, @leechers, @now, @now,
     @title, @year, @type, @season, @seasonEnd, @episode, @episodeEnd,
-    @resolution, @releaseSource, @videoCodec, @audio, @hdr
+    @resolution, @releaseSource, @videoCodec, @audio, @hdr, @language
   )
   ON CONFLICT (source, source_id) DO UPDATE SET
     name         = excluded.name,
@@ -68,7 +69,8 @@ const UPSERT = `
     release_source = excluded.release_source,
     video_codec  = excluded.video_codec,
     audio        = excluded.audio,
-    hdr          = excluded.hdr
+    hdr          = excluded.hdr,
+    language     = excluded.language
 `;
 
 function createItems(db) {
@@ -82,6 +84,8 @@ function createItems(db) {
       .all(source, ...ids);
     return new Set(rows.map((row) => row.source_id));
   }
+
+  const languageOf = (item) => item.release.language ?? item.language ?? null;
 
   const isBeaten = (source, item) =>
     item.seeders !== null &&
@@ -97,6 +101,7 @@ function createItems(db) {
         seasonEnd: item.release.seasonEnd ?? null,
         episode: item.release.episode,
         episodeEnd: item.release.episodeEnd ?? null,
+        language: languageOf(item),
         seeders: item.seeders,
       })
     );
@@ -136,6 +141,7 @@ function createItems(db) {
           videoCodec: item.release.videoCodec,
           audio: item.release.audio.join(', ') || null,
           hdr: item.release.hdr.join(', ') || null,
+          language: languageOf(item),
         });
       }
     });
