@@ -70,8 +70,8 @@ mesma do botão *Atualizar catálogo*: busca os torrents e, no fim, capas e nota
 
 ### Apagar resultados
 
-Na zona de perigo da página do tracker. A confirmação só libera o botão depois
-de digitar o nome do tracker, e o servidor recusa enquanto um job roda — um sync
+Na zona de perigo da página do tracker. Pede uma confirmação simples, e o
+servidor recusa enquanto um job roda — um sync
 em andamento traria parte das linhas de volta na hora.
 
 Apaga só os torrents daquele tracker. As obras e capas da TMDB ficam: são cache,

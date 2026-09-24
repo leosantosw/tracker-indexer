@@ -150,12 +150,8 @@ const actions = {
 
   async clearSource(name) {
     const ok = await confirmAction({
-      title: `Apagar resultados de ${name}?`,
-      message:
-        `Os ${indexedBy(name).toLocaleString('pt-BR')} torrents deste tracker serão apagados. Não dá para desfazer, ` +
-        'mas a próxima atualização do catálogo traz de volta o que ainda estiver no tracker. Capas e notas da TMDB ficam.',
-      confirmLabel: 'Apagar resultados',
-      requireText: name,
+      title: `Tem certeza que quer apagar os torrents de ${name}?`,
+      confirmLabel: 'Apagar',
     });
     if (!ok) return;
 
