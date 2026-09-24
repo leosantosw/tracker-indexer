@@ -182,6 +182,7 @@ module.exports = defineHtmlSource({
   rps: 1,
   pages: 10,
   stopAfterQuietPages: 2,
+  content: 'movies',
   rules: { requireYear: true },
 
   list: {
@@ -195,7 +196,8 @@ module.exports = defineHtmlSource({
 });
 ```
 
-Depois, é só registrar o tracker em `src/sources/index.js` e conferir com
+O arquivo fica em `src/sources/trackers/`. Depois, é só registrar o tracker em
+`src/sources/index.js` e conferir com
 `npm run check-source meu-tracker`. Tracker com API JSON segue o contrato
 `fetchPage` / `toItem`, descrito em
 [docs/arquitetura.md](docs/arquitetura.md#adicionando-um-tracker).

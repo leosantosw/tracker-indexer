@@ -3,7 +3,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const source = require('../src/sources/redesTorrents');
+const source = require('../src/sources/trackers/redesTorrents');
 const { base32ToHex } = require('../src/lib/infohash');
 const { sizeToBytes } = require('../src/lib/size');
 
@@ -119,9 +119,9 @@ const fakeHttp = () => {
   };
 };
 
-test('serie fica de fora ate haver desenho para um torrent por episodio', async () => {
+test("com 'apenas filmes', a serie nem chega a ser aberta", async () => {
   const http = fakeHttp();
-  const { items } = await source.create(http).fetchPage({ cursor: 1 });
+  const { items } = await source.create(http, { content: 'movies' }).fetchPage({ cursor: 1 });
 
   assert.equal(items.length, 2);
   assert.equal(
@@ -133,7 +133,7 @@ test('serie fica de fora ate haver desenho para um torrent por episodio', async 
 
 test('o cursor avanca enquanto a pagina render cartoes', async () => {
   const http = fakeHttp();
-  const { nextCursor } = await source.create(http).fetchPage({ cursor: 1 });
+  const { nextCursor } = await source.create(http, { content: 'movies' }).fetchPage({ cursor: 1 });
   assert.equal(nextCursor, '2');
 
   const vazia = { getText: async () => '<html></html>' };

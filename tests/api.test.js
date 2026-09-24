@@ -66,7 +66,7 @@ async function setup() {
       },
     }
   );
-  repo.saveWork({ type: 'series', title: 'Serie', year: 2024 }, { status: 'ambiguous' });
+  repo.saveWork({ type: 'series', title: 'Serie', year: null }, { status: 'ambiguous' });
 
   const app = await buildServer(repo);
   await app.ready();

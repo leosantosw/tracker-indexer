@@ -28,6 +28,7 @@ module.exports = {
   name: 'torrents-csv',
   rps: 2,
   terms: TERMS,
+  content: 'both',
 
   /**
    * Regras deste tracker, e so dele: a base vem cheia de release sem ano e do

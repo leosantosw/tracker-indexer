@@ -16,7 +16,7 @@ const DEDUPE_BY_SEEDERS = `
     AND id NOT IN (
       SELECT id FROM (
         SELECT id, ROW_NUMBER() OVER (
-          PARTITION BY type, title, year, season, episode
+          PARTITION BY type, title, year, season, season_end, episode, episode_end
           ORDER BY seeders DESC, id ASC
         ) AS pos
         FROM item WHERE source = ?1
@@ -33,7 +33,8 @@ const BEATEN = `
   SELECT 1 FROM item
   WHERE source = @source AND source_id <> @sourceId
     AND type IS @type AND title IS @title AND year IS @year
-    AND season IS @season AND episode IS @episode
+    AND season IS @season AND season_end IS @seasonEnd
+    AND episode IS @episode AND episode_end IS @episodeEnd
     AND seeders >= @seeders
   LIMIT 1
 `;
@@ -42,12 +43,12 @@ const UPSERT = `
   INSERT INTO item (
     source, source_id, infohash, name, raw_name, size_bytes, created_unix,
     seeders, leechers, created_at, updated_at,
-    title, year, type, season, episode,
+    title, year, type, season, season_end, episode, episode_end,
     resolution, release_source, video_codec, audio, hdr
   ) VALUES (
     @source, @sourceId, @infohash, @name, @rawName, @sizeBytes, @createdUnix,
     @seeders, @leechers, @now, @now,
-    @title, @year, @type, @season, @episode,
+    @title, @year, @type, @season, @seasonEnd, @episode, @episodeEnd,
     @resolution, @releaseSource, @videoCodec, @audio, @hdr
   )
   ON CONFLICT (source, source_id) DO UPDATE SET
@@ -60,7 +61,9 @@ const UPSERT = `
     year         = excluded.year,
     type         = excluded.type,
     season       = excluded.season,
+    season_end   = excluded.season_end,
     episode      = excluded.episode,
+    episode_end  = excluded.episode_end,
     resolution   = excluded.resolution,
     release_source = excluded.release_source,
     video_codec  = excluded.video_codec,
@@ -91,7 +94,9 @@ function createItems(db) {
         title: item.release.title || null,
         year: item.release.year,
         season: item.release.season,
+        seasonEnd: item.release.seasonEnd ?? null,
         episode: item.release.episode,
+        episodeEnd: item.release.episodeEnd ?? null,
         seeders: item.seeders,
       })
     );
@@ -123,7 +128,9 @@ function createItems(db) {
           year: item.release.year,
           type: item.release.type,
           season: item.release.season,
+          seasonEnd: item.release.seasonEnd ?? null,
           episode: item.release.episode,
+          episodeEnd: item.release.episodeEnd ?? null,
           resolution: item.release.resolution,
           releaseSource: item.release.source,
           videoCodec: item.release.videoCodec,
@@ -148,7 +155,7 @@ function createItems(db) {
     transaction(db, () => {
       if (rules.requireYear) {
         removed.noYear = db
-          .prepare('DELETE FROM item WHERE source = ? AND year IS NULL')
+          .prepare("DELETE FROM item WHERE source = ? AND type = 'movie' AND year IS NULL")
           .run(source).changes;
       }
       if (rules.dedupe === 'seeders') {

@@ -1,7 +1,7 @@
 import { $, el, formatNumber } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { badge, toggle, setToggle } from '../components/controls.js';
-import { SOURCE_SYNC } from '../lib/labels.js';
+import { CONTENT, SOURCE_SYNC } from '../lib/labels.js';
 
 export const MODE_LABEL = { terms: 'busca', pages: 'catálogo' };
 
@@ -17,6 +17,7 @@ export function avatar(source, size = 'size-9') {
 function summary(source, indexed) {
   return [
     `${formatNumber(indexed)} torrents`,
+    CONTENT[source.content]?.short,
     `${source.rps} req/s`,
     source.mode === 'terms' && `${source.terms.length} termos`,
   ]

@@ -26,7 +26,16 @@ const GROUP_RE =
 const ANIME_EPISODE_RE = /\s[-–—]\s*(\d{1,4})(?:v\d)?\s*$/;
 const ANIME_RANGE_RE = /\s\d{1,3}\s*[-–—]\s*\d{1,3}\s*$/;
 
-const SEASON_TOKEN = String.raw`s\d{1,2}\s?e\d{1,3}|s\d{1,2}(?=\s|$)|\d{1,2}\s*[ao]?\s*(?:temporada|season)`;
+const SEASON_TOKEN = [
+  String.raw`s\d{1,2}\s?e\d{1,3}`,
+  String.raw`s\d{1,2}(?=[\s\-+.]|$)`,
+  String.raw`\d{1,2}\s*[ªºao°]?\s*(?:(?:a|ao|e)\s*\d{1,2}\s*[ªºao°]?\s*)?(?:temporadas?|season)`,
+  String.raw`\d{1,2}x\d{2,3}`,
+  String.raw`cap\.?\s*\d{3,4}`,
+  String.raw`\d{1,3}\s*[ºo°]?\s*(?:(?:a|ao|e)\s*\d{1,3}\s*[ºo°]?\s*)?epis[oó]dios?`,
+  String.raw`epis[oó]dios?`,
+  String.raw`complete\s+series`,
+].join('|');
 
 /** Onde o titulo acaba e comecam as marcas de release. */
 const TITLE_END_RE = new RegExp(
@@ -37,7 +46,7 @@ const TITLE_END_RE = new RegExp(
     String.raw`|x26[45]|h\.?26[45]|hevc|avc|av1|xvid` +
     String.raw`|mkv|avi|mp4|m4v|rmvb|mpe?g|wmv|mov` +
     String.raw`|${SEASON_TOKEN}|season|temporada` +
-    String.raw`|dual|dublad[oa]|legendad[oa]|completo|completa)\b`,
+    String.raw`|dual|dublad[oa]|legendad[oa]|fan\s*dub\w*|completo|completa)\b`,
   'i'
 );
 

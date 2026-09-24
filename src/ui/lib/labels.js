@@ -14,6 +14,12 @@ export const JOBS = {
   },
 };
 
+export const CONTENT = {
+  movies: { label: 'Buscar apenas filmes', short: 'filmes' },
+  series: { label: 'Buscar apenas séries', short: 'séries' },
+  both: { label: 'Buscar filmes e séries', short: 'filmes e séries' },
+};
+
 export const SOURCE_SYNC = {
   action: 'Buscar torrents',
   hint: (name) => `Busca torrents novos só no ${name} e depois capas e notas`,

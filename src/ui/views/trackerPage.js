@@ -1,7 +1,7 @@
 import { el, formatNumber, numberOrNull } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { SOURCE_SYNC } from '../lib/labels.js';
-import { badge, field, numberInput, toggleRow } from '../components/controls.js';
+import { CONTENT, SOURCE_SYNC } from '../lib/labels.js';
+import { badge, field, numberInput, selectInput, toggleRow } from '../components/controls.js';
 import { pageBar } from '../components/pageBar.js';
 import { tagInput } from '../components/tagInput.js';
 import { group, twoColumns } from './settings/layout.js';
@@ -91,6 +91,7 @@ export function renderTrackerPage(container, source, { indexed, running, save, s
   const byTerms = source.mode === 'terms';
   const draft = {
     enabled: source.enabled,
+    content: source.content,
     rps: source.rps,
     pages: source.pages,
     stopAfterQuietPages: source.stopAfterQuietPages,
@@ -120,6 +121,15 @@ export function renderTrackerPage(container, source, { indexed, running, save, s
           onChange: (value) => (draft.enabled = value),
         }),
         field({
+          label: 'Conteúdo',
+          hint: 'O que este tracker traz para o catálogo.',
+          input: selectInput({
+            value: draft.content,
+            options: Object.entries(CONTENT).map(([id, { label }]) => [id, label]),
+            onChange: (value) => (draft.content = value),
+          }),
+        }),
+        field({
           label: 'Requisições por segundo',
           hint: 'Cortesia com o site: abaixo de 1 espaça ainda mais as chamadas.',
           input: numberInput({ value: draft.rps, min: 0.1, step: 0.1, required: true, onInput: (v) => (draft.rps = Number(v)) }),
@@ -147,7 +157,7 @@ export function renderTrackerPage(container, source, { indexed, running, save, s
       group(
         { id: 'regras', title: 'Regras', description: 'Valem só para o catálogo deste tracker.' },
         toggleRow({
-          label: 'Exigir ano',
+          label: 'Exigir ano (apenas para filmes)',
           hint: 'Item sem ano fica de fora: sem ele não dá para casar com a TMDB.',
           checked: draft.rules.requireYear,
           onChange: (value) => (draft.rules.requireYear = value),

@@ -12,6 +12,8 @@ const FIXED = [
   { id: 'melhores', title: 'Melhores notas', order: 'rating' },
 ];
 
+const LIST_KEY = { movie: 'movies', series: 'series' };
+
 const slug = (text) =>
   text
     .normalize('NFD')
@@ -38,11 +40,11 @@ function registerCategories(app, { repo, store }) {
   const minVotes = () => store.config().tmdb.minVotes;
 
   app.get('/categories', { schema: CATEGORIES }, async (request) => {
-    const preview = request.query.preview ?? 0;
+    const { preview = 0, type = 'movie' } = request.query;
     const votes = minVotes();
 
-    const categories = listCategories(repo, 'movie').map((category) => {
-      const { rows, total } = repo.listWorks('movie', {
+    const categories = listCategories(repo, type).map((category) => {
+      const { rows, total } = repo.listWorks(type, {
         limit: Math.max(preview, 1),
         minVotes: votes,
         genre: category.genre ?? null,
@@ -53,7 +55,7 @@ function registerCategories(app, { repo, store }) {
         id: category.id,
         title: category.title,
         total,
-        ...(preview ? { movies: rows.map((row) => toWorkCard(row, votes)) } : {}),
+        ...(preview ? { [LIST_KEY[type]]: rows.map((row) => toWorkCard(row, votes)) } : {}),
       };
     });
 

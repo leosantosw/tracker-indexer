@@ -4,6 +4,7 @@ const cheerio = require('cheerio');
 
 const { readMagnet } = require('../../lib/infohash');
 const { sizeToBytes } = require('../../lib/size');
+const { wants } = require('../content');
 const { readFields } = require('./select');
 
 const toCount = (text) => {
@@ -11,45 +12,43 @@ const toCount = (text) => {
   return text && Number.isFinite(value) ? value : null;
 };
 
-/**
- * A card plus one of its magnets becomes an item; without a usable magnet,
- * null. The size comes from the magnet, then from the text around its link
- * ("1080p (2.24 GB)"), then from the card.
- */
+const cleanText = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
+
 function toRaw(card, link, nameOf) {
   const magnet = readMagnet(link.magnet);
-  if (!magnet.infohash || !magnet.name) return null;
+  if (!magnet.infohash) return null;
+
+  const name = cleanText(nameOf({ card, release: magnet.name ?? '', context: cleanText(link.context) }));
+  if (!name) return null;
 
   return {
     infohash: magnet.infohash,
-    name: nameOf({ card, release: magnet.name }),
+    name,
     sizeBytes: magnet.sizeBytes ?? sizeToBytes(link.context) ?? sizeToBytes(card.size),
     seeders: toCount(card.seeders),
     leechers: toCount(card.leechers),
   };
 }
 
-/** Every magnet link of a title page, with the text around it. */
 const readMagnets = ($page, selector) =>
   $page(selector)
     .toArray()
     .map((a) => ({ magnet: $page(a).attr('href'), context: $page(a).parent().text() }));
 
-/**
- * Mold for trackers that are an HTML catalog: the tracker declares selectors,
- * the mold does the walking. Known fields: `url`, `title`, `magnet`, `size`,
- * `seeders`, `leechers`; anything else (like `kind`) is there for the hooks.
- *
- *   list    { url(page), rows, fields }  the paginated listing
- *   detail  { fields, magnets? }         optional: read from each title's page;
- *                                        `magnets` is a selector for pages with
- *                                        several (one per quality), each an item
- *   accept  (card) => boolean            optional: which cards enter
- *   nameOf  ({ card, release }) => name  optional: what the classifier reads
- *   extend  (api, http) => overrides     optional: replace fetchPage/toItem
- */
-function defineHtmlSource({ list, detail, accept = () => true, nameOf = ({ release }) => release, extend, ...source }) {
-  function create(http) {
+const uniqueByHash = (items) => [...new Map(items.map((item) => [item.infohash, item])).values()];
+
+function defineHtmlSource({
+  list,
+  detail,
+  kindOf = () => 'movie',
+  nameOf = ({ release }) => release,
+  extend,
+  ...source
+}) {
+  function create(http, settings = {}) {
+    const content = settings.content ?? source.content;
+    const accept = (card) => wants(content, kindOf(card));
+
     async function readCard($row) {
       const card = readFields($row, list.fields);
       if (!detail || !accept(card)) return card;
@@ -62,10 +61,11 @@ function defineHtmlSource({ list, detail, accept = () => true, nameOf = ({ relea
       };
     }
 
-    /**
-     * Every row of the page and what became of it: the sync and `check-source`
-     * share this. A title with several magnets yields one entry per magnet.
-     */
+    function itemsOf(card) {
+      const links = card.links ?? [{ magnet: card.magnet, context: '' }];
+      return uniqueByHash(links.map((link) => toRaw(card, link, nameOf)).filter(Boolean));
+    }
+
     async function readPage(page) {
       const $ = cheerio.load(await http.getText(list.url(page)));
       const entries = [];
@@ -77,7 +77,7 @@ function defineHtmlSource({ list, detail, accept = () => true, nameOf = ({ relea
           continue;
         }
 
-        const items = (card.links ?? [{ magnet: card.magnet }]).map((link) => toRaw(card, link, nameOf)).filter(Boolean);
+        const items = itemsOf(card);
         if (!items.length) entries.push({ card, item: null, status: 'no-magnet' });
         for (const item of items) entries.push({ card, item, status: 'ok' });
       }

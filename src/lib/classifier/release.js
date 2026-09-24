@@ -2,6 +2,7 @@
 
 const { findAll, findOne } = require('./normalize');
 const { extractTitle } = require('./title');
+const { parseSeries } = require('./series');
 const {
   RESOLUTIONS,
   SOURCES,
@@ -12,36 +13,22 @@ const {
 } = require('./tags');
 
 const YEAR_RE = /\b(19\d{2}|20\d{2})\b/;
-const EPISODE_RE = /\bs(\d{1,2})\s?e(\d{1,3})\b/;
 
-// "Temporada 3", "3 Temporada" (de "3ª") e "S03" -- as tres formas aparecem.
-const SEASON_RES = [
-  /\b(?:season|temporada)\s*(\d{1,2})\b/,
-  /\b(\d{1,2})\s*[ao]?\s*(?:season|temporada)\b/,
-  /\bs(\d{1,2})(?=\s|$)/,
-];
+const pad = (n) => String(n).padStart(2, '0');
+const span = (letter, start, end) => (end === null ? `${letter}${pad(start)}` : `${letter}${pad(start)}-${letter}${pad(end)}`);
 
-function findSeason(text) {
-  for (const regex of SEASON_RES) {
-    const match = text.match(regex);
-    if (match) return Number(match[1]);
-  }
-  return null;
-}
-
-/** "S02" para temporada inteira, "S01E09" com episodio, "E1168" para anime. */
-function seasonTag(season, episode) {
-  const ep = episode === null ? null : `E${String(episode).padStart(2, '0')}`;
+function seasonTag({ season, seasonEnd, episode, episodeEnd }) {
+  const ep = episode === null ? null : span('E', episode, episodeEnd);
   if (season === null) return ep;
 
-  const tag = `S${String(season).padStart(2, '0')}`;
+  const tag = span('S', season, seasonEnd);
   return ep === null ? tag : tag + ep;
 }
 
 function buildCanonical(info) {
   const tags = [info.resolution, info.source, info.videoCodec, ...info.audio, ...info.hdr];
 
-  return [info.title, seasonTag(info.season, info.episode), info.year && `(${info.year})`, ...tags]
+  return [info.title, seasonTag(info), info.year && `(${info.year})`, ...tags]
     .filter(Boolean)
     .join(' ');
 }
@@ -52,16 +39,15 @@ module.exports = {
   classify(text, raw) {
     const { title, episodeFromTitle } = extractTitle(raw);
 
-    const episodeMatch = text.match(EPISODE_RE);
-    const season = episodeMatch ? Number(episodeMatch[1]) : findSeason(text);
-    const episode = episodeMatch ? Number(episodeMatch[2]) : episodeFromTitle;
+    const coverage = parseSeries(text);
+    const episode = coverage.episode ?? episodeFromTitle;
     const year = text.match(YEAR_RE);
 
     const info = {
       title,
       year: year ? Number(year[1]) : null,
-      type: season === null && episode === null ? 'movie' : 'series',
-      season,
+      type: coverage.season === null && episode === null ? 'movie' : 'series',
+      ...coverage,
       episode,
       resolution: findOne(text, RESOLUTIONS),
       source: findOne(text, SOURCES),

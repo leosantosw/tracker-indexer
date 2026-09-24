@@ -3,6 +3,12 @@ import { icon } from '../lib/icons.js';
 import { badge } from '../components/controls.js';
 import { JOBS, RESULTS } from '../lib/labels.js';
 import { countdown } from '../components/countdown.js';
+import { donut, share } from '../components/donut.js';
+
+const TYPES = [
+  { type: 'movie', label: 'Filmes', stroke: 'stroke-[#2a78d6] dark:stroke-[#3987e5]', dot: 'bg-[#2a78d6] dark:bg-[#3987e5]' },
+  { type: 'series', label: 'Séries', stroke: 'stroke-[#eb6834] dark:stroke-[#d95926]', dot: 'bg-[#eb6834] dark:bg-[#d95926]' },
+];
 
 const MATCH = [
   { status: 'ok', label: 'casadas', color: 'bg-emerald-500' },
@@ -35,7 +41,7 @@ function matchTile(works) {
   const share = (status) => (total ? ((count[status] ?? 0) / total) * 100 : 0);
 
   return tile(
-    'film',
+    'sparkles',
     'Match com a TMDB',
     el(
       'div',
@@ -46,7 +52,7 @@ function matchTile(works) {
     ),
     el(
       'ul',
-      { class: 'mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs whitespace-nowrap' },
+      { class: 'mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm whitespace-nowrap sm:grid-cols-3' },
       MATCH.map(({ status, color, label }) =>
         el(
           'li',
@@ -54,6 +60,38 @@ function matchTile(works) {
           el('span', { class: `size-2 shrink-0 rounded-full ${color}` }),
           el('span', { class: 'text-zinc-500' }, label),
           el('span', { class: 'ml-auto font-medium tabular-nums' }, formatNumber(count[status] ?? 0))
+        )
+      )
+    )
+  );
+}
+
+function typesTile(types) {
+  const count = Object.fromEntries(types.map((row) => [row.type, row.total]));
+  const slices = TYPES.map((item) => ({ ...item, value: count[item.type] ?? 0 }));
+  const total = slices.reduce((sum, slice) => sum + slice.value, 0);
+
+  if (!total) return tile('film', 'Filmes e séries', el('p', { class: 'text-sm text-zinc-500' }, 'Nada no catálogo ainda.'));
+
+  return tile(
+    'film',
+    'Filmes e séries',
+    el(
+      'div',
+      { class: 'flex flex-wrap items-center gap-6' },
+      donut(slices, { centerLabel: 'obras' }),
+      el(
+        'ul',
+        { class: 'min-w-40 flex-1 space-y-3 text-sm' },
+        slices.map((slice) =>
+          el(
+            'li',
+            { class: 'flex items-center gap-2' },
+            el('span', { class: `size-2.5 shrink-0 rounded-full ${slice.dot}` }),
+            el('span', { class: 'text-zinc-600 dark:text-zinc-300' }, slice.label),
+            el('span', { class: 'ml-auto font-semibold tabular-nums' }, formatNumber(slice.value)),
+            el('span', { class: 'w-10 text-right text-zinc-500 tabular-nums' }, `${share(slice.value, total)}%`)
+          )
         )
       )
     )
@@ -108,8 +146,9 @@ export function renderOverview({ stats, job, schedule }, actions) {
   $('#overview').replaceChildren(
     tile('database', 'Torrents indexados', bigNumber(torrents), caption(`em ${plural(stats.sources.length, 'tracker', 'trackers')}`)),
     tile('layers', 'Obras no catálogo', bigNumber(matched), caption('casadas com a TMDB')),
-    matchTile(stats.works),
     lastRunTile(job.last),
     nextRunTile(schedule, actions)
   );
+
+  $('#charts').replaceChildren(typesTile(stats.types ?? []), matchTile(stats.works));
 }

@@ -53,6 +53,14 @@ export function numberInput({ value, placeholder, min = 1, step = 1, required = 
 }
 
 /** A labelled on/off row: text on the left, switch on the right. */
+export function selectInput({ value, options, onChange }) {
+  return el(
+    'select',
+    { class: 'input', onchange: (event) => onChange(event.target.value) },
+    options.map(([id, label]) => el('option', { value: id, selected: id === value }, label))
+  );
+}
+
 export function toggleRow({ label, hint, checked, onChange }) {
   return el(
     'div',

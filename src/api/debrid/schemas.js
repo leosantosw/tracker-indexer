@@ -10,6 +10,20 @@ const HASH = {
   examples: ['ac3ee9395349ad9a0b6ef13e1520511a6b9ee2b2'],
 };
 
+const SEASON = { type: 'integer', minimum: 0, description: 'Temporada do episódio desejado, num pacote.' };
+const EPISODE = { type: 'integer', minimum: 0, description: 'Episódio desejado, num pacote.' };
+
+const FILE = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' },
+    name: { type: 'string' },
+    size: { type: ['integer', 'null'] },
+    season: { type: ['integer', 'null'] },
+    episode: { type: ['integer', 'null'] },
+  },
+};
+
 const STATUS = {
   type: 'object',
   description:
@@ -18,14 +32,19 @@ const STATUS = {
   properties: {
     status: { type: 'string', enum: ['ready', 'downloading', 'queued', 'failed'] },
     url: { type: 'string', description: 'Link direto do vídeo no CDN do provedor. Só em `ready`.' },
-    file: {
-      type: 'object',
-      properties: { name: { type: 'string' }, size: { type: ['integer', 'null'] } },
+    file: { ...FILE, description: 'O vídeo do link. `season`/`episode` saem do nome do arquivo.' },
+    files: {
+      type: 'array',
+      items: FILE,
+      description: 'Todos os vídeos do torrent, por temporada e episódio. Só quando há mais de um (pacote).',
     },
     progress: { type: 'integer', description: 'Porcentagem, 0 a 100. Só em `downloading`.' },
     eta: { type: ['integer', 'null'], description: 'Segundos até terminar, quando o provedor sabe.' },
     state: { type: ['string', 'null'], description: 'Estado cru do provedor, para diagnóstico.' },
-    reason: { type: 'string', description: 'Em `failed`: `no_video` ou `provider_failed`.' },
+    reason: {
+      type: 'string',
+      description: 'Em `failed`: `no_video`, `provider_failed` ou `episode_not_found` (o pacote não tem o episódio pedido).',
+    },
     cached: { type: 'boolean', description: 'Só no POST de um torrent novo: se o provedor já o tinha.' },
   },
   required: ['status'],
@@ -61,7 +80,12 @@ const RESOLVE = {
     'baixar e responde **202 `downloading`** (ou `queued`, com todas as vagas ocupadas).\n\n' +
     'Pode chamar de novo sem medo: um torrent que já está na conta não é adicionado outra vez. ' +
     'Para acompanhar o download, prefira o `GET`, que nunca adiciona nada.',
-  body: { type: 'object', properties: { hash: HASH }, required: ['hash'], additionalProperties: false },
+  body: {
+    type: 'object',
+    properties: { hash: HASH, season: SEASON, episode: EPISODE },
+    required: ['hash'],
+    additionalProperties: false,
+  },
   response: { 200: STATUS, 202: STATUS, 400: ERROR, ...errors },
 };
 
@@ -72,6 +96,7 @@ const STATUS_ROUTE = {
     'Só leitura. A TV consulta a cada ~5 s depois do `POST`, até vir `ready` ou `failed`. ' +
     'Em `ready`, cada chamada gera um link novo.',
   params: HASH_PARAM,
+  querystring: { type: 'object', properties: { season: SEASON, episode: EPISODE }, additionalProperties: false },
   response: { 200: STATUS, 400: ERROR, ...errors },
 };
 

@@ -7,7 +7,9 @@ const { now } = require('./items');
  * porque no SQLite NULL nao e igual a NULL, e obra sem ano existe em tracker
  * que nao tenha a regra `requireYear`.
  */
-const ITEM_TO_WORK = 'i.type = w.type AND i.title = w.title AND i.year IS w.year';
+const WORK_YEAR = "CASE WHEN i.type = 'series' THEN NULL ELSE i.year END";
+
+const ITEM_TO_WORK = `i.type = w.type AND i.title = w.title AND ${WORK_YEAR} IS w.year`;
 
 /** Nota so conta com votacao suficiente -- a mesma regra para ordenar e exibir. */
 const RATED = 'CASE WHEN w.votes >= @minVotes THEN w.rating END';
@@ -75,7 +77,7 @@ const TORRENTS_OF_WORK = `
  */
 const REGISTER = `
   INSERT INTO work (type, title, year, status, checked_at)
-  SELECT DISTINCT i.type, i.title, i.year, 'pending', 0 FROM item i
+  SELECT DISTINCT i.type, i.title, ${WORK_YEAR}, 'pending', 0 FROM item i
   WHERE i.title IS NOT NULL AND i.type IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM work w WHERE ${ITEM_TO_WORK})
 `;
@@ -85,7 +87,13 @@ const REGISTER = `
  * que nao casaram ha tempo suficiente para tentar de novo.
  */
 const PENDING = `
-  SELECT DISTINCT i.type, i.title, i.year, COALESCE(w.trailer_checked, 0) AS trailerChecked
+  SELECT i.type, i.title, ${WORK_YEAR} AS year,
+         COALESCE(MAX(w.trailer_checked), 0) AS trailerChecked,
+         MAX(COALESCE(i.season_end, i.season)) AS maxSeason,
+         GROUP_CONCAT(DISTINCT CASE
+           WHEN i.season IS NOT NULL AND i.season_end IS NULL AND i.year IS NOT NULL
+           THEN i.season || ':' || i.year
+         END) AS seasonYears
   FROM item i
   LEFT JOIN work w ON ${ITEM_TO_WORK}
   WHERE i.title IS NOT NULL
@@ -95,7 +103,14 @@ const PENDING = `
       OR (w.status = 'ok' AND w.checked_at < @staleBefore)
       OR (w.status IN ('not_found', 'ambiguous') AND w.checked_at < @retryBefore)
     )
+  GROUP BY i.type, i.title, ${WORK_YEAR}
   ORDER BY i.type, i.title
+`;
+
+const TYPE_STATS = `
+  SELECT w.type, COUNT(*) AS total FROM work w
+  WHERE EXISTS (SELECT 1 FROM item i WHERE ${ITEM_TO_WORK})
+  GROUP BY w.type
 `;
 
 const WORK_STATS = `
@@ -191,7 +206,20 @@ function createWorks(db) {
 
   const listTorrents = (workId) => db.prepare(TORRENTS_OF_WORK).all(workId);
 
-  const pendingWorks = (staleBefore, retryBefore = 0) => db.prepare(PENDING).all({ staleBefore, retryBefore });
+  const toHints = ({ maxSeason, seasonYears }) => ({
+    maxSeason,
+    seasonYears: (seasonYears ?? '')
+      .split(',')
+      .filter(Boolean)
+      .map((pair) => pair.split(':').map(Number))
+      .map(([season, year]) => ({ season, year })),
+  });
+
+  const pendingWorks = (staleBefore, retryBefore = 0) =>
+    db
+      .prepare(PENDING)
+      .all({ staleBefore, retryBefore })
+      .map(({ maxSeason, seasonYears, ...work }) => ({ ...work, hints: toHints({ maxSeason, seasonYears }) }));
 
   /** Creates the missing works, still `pending`; returns how many. */
   const registerWorks = () => db.prepare(REGISTER).run().changes;
@@ -224,7 +252,9 @@ function createWorks(db) {
   const workStats = () =>
     db.prepare(WORK_STATS).all();
 
-  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, saveWork, workStats };
+  const typeStats = () => db.prepare(TYPE_STATS).all();
+
+  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, saveWork, workStats, typeStats };
 }
 
 module.exports = { createWorks };

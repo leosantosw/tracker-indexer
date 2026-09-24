@@ -1,6 +1,7 @@
 'use strict';
 
 const { classify } = require('../lib/classifier');
+const { wants } = require('../sources/content');
 
 /**
  * O tracker ordena por seeders e nao tem rota de "mais recentes", entao nao ha
@@ -58,8 +59,8 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
         .filter((item) => item.sourceId && item.name)
         .map((item) => ({ ...item, release: classify(item.name) }))
         .filter((item) => !item.release.rejected)
-        // Barrado na entrada: apagado so no fim, voltaria como "novo" em toda run.
-        .filter((item) => !rules.requireYear || item.release.year !== null);
+        .filter((item) => wants(source.content, item.release.type))
+        .filter((item) => !rules.requireYear || item.release.type !== 'movie' || item.release.year !== null);
 
       const inserted = repo.savePage(source.name, items, rules);
 

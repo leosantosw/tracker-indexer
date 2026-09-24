@@ -16,6 +16,10 @@ const FINAL = new Set(['ready', 'failed']);
 async function registerDebridApi(api, { store }) {
   const debrid = () => createDebrid(store.config());
   const hashOf = (request) => normalizeInfohash(request.body?.hash ?? request.params.hash);
+  const wantOf = (request) => {
+    const source = request.body ?? request.query ?? {};
+    return { season: source.season ?? null, episode: source.episode ?? null };
+  };
 
   await allowApps(api);
   api.addHook('onRequest', authorize(() => store.config().apps.token, 'API_TOKEN'));
@@ -30,11 +34,11 @@ async function registerDebridApi(api, { store }) {
   });
 
   api.post('/torrents', { schema: RESOLVE }, async (request, reply) => {
-    const result = await debrid().resolve(hashOf(request));
+    const result = await debrid().resolve(hashOf(request), wantOf(request));
     return reply.code(FINAL.has(result.status) ? 200 : 202).send(result);
   });
 
-  api.get('/torrents/:hash', { schema: STATUS_ROUTE }, async (request) => debrid().status(hashOf(request)));
+  api.get('/torrents/:hash', { schema: STATUS_ROUTE }, async (request) => debrid().status(hashOf(request), wantOf(request)));
 
   api.delete('/torrents/:hash', { schema: REMOVE }, async (request) => debrid().remove(hashOf(request)));
 }

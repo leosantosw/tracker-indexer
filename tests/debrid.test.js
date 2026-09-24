@@ -5,7 +5,7 @@ const assert = require('node:assert');
 
 const baseConfig = require('../src/config');
 const torbox = require('../src/debrid/torbox');
-const { pickVideoFile } = require('../src/debrid/torbox/files');
+const { videosOf, pickVideo } = require('../src/debrid/torbox/files');
 const { normalizeInfohash } = require('../src/lib/infohash');
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
@@ -64,8 +64,8 @@ test('hash em hex ou base32 vira hex minusculo; o resto e recusado', () => {
 });
 
 test('o video e o maior arquivo de video que nao e sample', () => {
-  assert.equal(pickVideoFile(FILES).id, 2);
-  assert.equal(pickVideoFile([FILES[2]]), null, 'legenda nao e video');
+  assert.equal(pickVideo(videosOf(FILES)).id, 2);
+  assert.deepEqual(videosOf([FILES[2]]), [], 'legenda nao e video');
 });
 
 test('em cache: adiciona e ja devolve o link do video, na primeira chamada', async () => {
@@ -81,7 +81,7 @@ test('em cache: adiciona e ja devolve o link do video, na primeira chamada', asy
   assert.deepEqual(result, {
     status: 'ready',
     url: 'https://cdn.torbox.app/link-novo',
-    file: { name: 'Filme.2024.1080p.mkv', size: 9000 },
+    file: { id: 2, name: 'Filme.2024.1080p.mkv', size: 9000, season: null, episode: null },
     cached: true,
   });
 

@@ -1,6 +1,7 @@
 'use strict';
 
 const { PROVIDERS, PROVIDER_IDS } = require('../../debrid');
+const { CONTENT_IDS } = require('../../sources/content');
 
 /** Admin routes stay out of the public Swagger: they drive the job, not the catalog. */
 const hidden = (schema) => ({ hide: true, ...schema });
@@ -20,6 +21,7 @@ const SOURCE_PATCH = {
     rps,
     pages: optionalPositiveInt,
     stopAfterQuietPages: optionalPositiveInt,
+    content: { enum: CONTENT_IDS },
     terms: {
       type: 'array',
       minItems: 1,

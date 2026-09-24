@@ -231,7 +231,7 @@ configurado em *Configurações → Debrid*. Hoje o único provedor é o
 [TorBox](https://torbox.app); a estrutura já comporta outros.
 
 ```
-POST   /api/debrid/torrents          { "hash": "..." }  pede o vídeo (manda baixar se preciso)
+POST   /api/debrid/torrents          { "hash": "...", "season"?, "episode"? }  pede o vídeo (manda baixar se preciso)
 GET    /api/debrid/torrents/:hash    só consulta: nunca adiciona nada
 DELETE /api/debrid/torrents/:hash    cancela o download / remove da conta
 ```
@@ -250,13 +250,30 @@ base32 de 32 caracteres).
 
 | `status` | Definitivo? | Traz |
 |---|---|---|
-| `ready` | sim | `url`, `file` (`name`, `size`) |
+| `ready` | sim | `url`, `file` (`id`, `name`, `size`, `season`, `episode`); `files` num pacote |
 | `downloading` | não | `progress`, `eta`, `state` |
 | `queued` | não | todas as vagas do TorBox ocupadas; tente o `POST` de novo mais tarde |
-| `failed` | sim | `reason`: `no_video` ou `provider_failed` |
+| `failed` | sim | `reason`: `no_video`, `provider_failed` ou `episode_not_found` |
 
 O `POST` é idempotente: um torrent que já está na conta só é descrito, não
-adicionado de novo. O arquivo escolhido é o maior vídeo que não é `sample`.
+adicionado de novo.
+
+### Filme, episódio e pacote
+
+Com um vídeo só no torrent — filme ou episódio avulso —, é ele, com ou sem
+`season`/`episode`. Num **pacote** (temporada inteira, várias temporadas,
+`S01E01-E02`), a resposta traz `files`: todos os vídeos, por temporada e
+episódio, lidos do nome do arquivo (`S02E05`, `2x05`, `Episódio 05`, ou `05.mkv`
+numa pasta `Temporada 2`). A TV escolhe assim:
+
+| Pedido | Vídeo |
+|---|---|
+| sem `season`/`episode` | o maior que não é `sample` |
+| `season` + `episode` | o arquivo daquele episódio (inclui episódio duplo `E06-E07`) |
+| só `season` | o primeiro episódio da temporada |
+| episódio que o pacote não tem | `failed` com `episode_not_found`, e `files` para escolher |
+
+No `GET`, `season` e `episode` vão na query: `/api/debrid/torrents/:hash?season=2&episode=5`.
 
 ### O link nunca é guardado
 

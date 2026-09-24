@@ -13,7 +13,7 @@ GET /service/search?q=<termo>&after=<cursor>  ->  { torrents: [...], next: <id|n
 Três consequências que moldam o job:
 
 - **`q` é obrigatório** (mínimo 3 caracteres) e não existe rota de "mais
-  recentes". A cobertura vem da lista de termos em `src/sources/torrentsCsv.js`,
+  recentes". A cobertura vem da lista de termos em `src/sources/trackers/torrentsCsv.js`,
   que é também o recorte pt-br. A busca é AND entre os termos, então termo
   composto é subconjunto do simples — `dublado 1080p` nunca traz nada que
   `dublado` já não tenha.
@@ -88,9 +88,31 @@ Divertida Mente (2015) 1080p BluRay  ─┼──→  movie | Divertida Mente | 
 Divertida Mente (2015) 720p          ─┘     tmdb_id 150540, nota 7.9
 ```
 
-Para série isso cai certo sozinho: todos os episódios compartilham
-`(type, title, year)`, então a linha de `work` é **a série** — que é
-exatamente o que `/search/tv` devolve.
+### Séries
+
+A obra de série é `(series, título)`, **sem ano**: o ano no nome do torrent é o
+da temporada (*Prison Break* aparece com 2005, 2006, 2008 e 2009), e com ele uma
+série viraria quatro obras. Todos os episódios e pacotes apontam para a mesma
+linha de `work` — a série, que é o que `/search/tv` devolve.
+
+Cada torrent guarda a cobertura em `season`/`season_end` e
+`episode`/`episode_end`, lida por `lib/classifier/series.js`:
+
+| Nome | Cobertura |
+|---|---|
+| `S03E05` · `3x05` · `Cap.305` | temporada 3, episódio 5 |
+| `S01E01-02` · `01º AO 02º EPISÓDIO` | temporada 1, episódios 1 a 2 |
+| `S02` · `2ª Temporada Completa` | temporada 2 inteira |
+| `S01-S03` · `1ª a 3ª Temporada` | temporadas 1 a 3 |
+
+Sem ano, o match usa o título exato (em português, original ou sem o prefixo de
+franquia: `Star Wars: Andor` → `Andor`). Um candidato só é aceito. Havendo
+homônimos, os torrents desempatam: a série precisa ter a temporada mais alta
+vista e ter exibido cada temporada no ano do torrent (±1, ou o ano de estreia
+exato). É o que separa as duas *Ghosts*: `S04 (2022)` é a britânica, `S04 (2024)`
+a americana. Depois disso vale a margem de popularidade de 2×.
+
+`requireYear` vale só para filme: episódio sem ano é comum e não impede o match.
 
 ### Por que é um passo separado
 
@@ -403,11 +425,10 @@ src/
 │  └─ secrets.js             AES-256-GCM e geração de chave
 ├─ sources/
 │  ├─ index.js               registry
-│  ├─ torrentsCsv.js         API JSON
-│  ├─ redesTorrents.js       catálogo HTML, declarado por seletores
-│  ├─ comando.js             catálogo HTML, um magnet por qualidade
+│  ├─ content.js             filmes, séries ou os dois, por tracker
+│  ├─ trackers/              um arquivo por tracker (torrentsCsv, redesTorrents, comando)
 │  ├─ html/                  molde para tracker HTML (defineHtmlSource, seletores)
-│  └─ tmdb.js                busca e regra de match
+│  └─ tmdb/                  busca e match: candidate, movie, series, trailer
 └─ ui/                       painel: HTML + ES modules + Tailwind (CDN), sem build
    ├─ index.html
    ├─ main.js                estado da página e ações

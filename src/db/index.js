@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS item (
   year          INTEGER,
   type          TEXT,
   season        INTEGER,
+  season_end    INTEGER,
   episode       INTEGER,
+  episode_end   INTEGER,
   resolution    TEXT,
   release_source TEXT,
   video_codec   TEXT,
@@ -111,6 +113,8 @@ const MIGRATIONS = [
     column: 'trailer_checked',
     ddl: 'ALTER TABLE work ADD COLUMN trailer_checked INTEGER NOT NULL DEFAULT 0',
   },
+  { table: 'item', column: 'season_end', ddl: 'ALTER TABLE item ADD COLUMN season_end INTEGER' },
+  { table: 'item', column: 'episode_end', ddl: 'ALTER TABLE item ADD COLUMN episode_end INTEGER' },
 ];
 
 function migrate(db) {

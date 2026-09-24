@@ -6,7 +6,7 @@ function registerJobRoutes(api, { repo, runner, scheduler }) {
   api.get('/status', { schema: hidden({}) }, async () => ({
     job: runner.status(),
     schedule: scheduler.status(),
-    stats: { sources: repo.stats(), works: repo.workStats() },
+    stats: { sources: repo.stats(), works: repo.workStats(), types: repo.typeStats() },
   }));
 
   api.post('/jobs/:job', { schema: START_JOB }, async (request, reply) => {
