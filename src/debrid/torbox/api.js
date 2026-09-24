@@ -59,9 +59,10 @@ function createTorboxApi({ token, timeoutMs = 20000, fetch = globalThis.fetch })
 
     getTorrent: (id) => call('GET', '/torrents/mylist', { query: { id, bypass_cache: true } }),
 
-    async isCached(hash) {
-      const data = await call('GET', '/torrents/checkcached', { query: { hash, format: 'object' } });
-      return Boolean(data?.[hash]);
+    /** Which of `hashes` TorBox already has cached: one call for all of them. */
+    async cachedHashes(hashes) {
+      const data = await call('GET', '/torrents/checkcached', { query: { hash: hashes.join(','), format: 'object' } });
+      return new Set(Object.keys(data ?? {}).map((key) => key.toLowerCase()));
     },
 
     createTorrent: (magnet) => call('POST', '/torrents/createtorrent', { form: { magnet, allow_zip: false } }),

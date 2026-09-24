@@ -4,7 +4,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const source = require('../src/sources/redesTorrents');
-const { parseList, parseDetail, base32ToHex, sizeToBytes } = require('../src/sources/redesTorrents/parse');
+const { base32ToHex } = require('../src/lib/infohash');
+const { sizeToBytes } = require('../src/lib/size');
 
 const card = (slug, titulo, tipo) => `
   <div class="col">
@@ -29,6 +30,17 @@ const detalhe = (hash, dn, tamanho) => `<html><body>
   <a href="magnet:?xt=urn:btih:${hash}&amp;tr=udp%3A%2F%2Ftracker%3A80&amp;dn=${dn}">Baixar</a>
 </body></html>`;
 
+/** Reads one listing (and the detail pages it links) through the real source. */
+const readPage = (pages) =>
+  source.create({ getText: async (url) => pages[url] ?? '<html></html>' }).readPage(1);
+
+const LIST_URL = 'https://redestorrents.com/pagina/1/';
+const onlyFilmeA = `<html><body>${card('filme-a', 'Filme A', 'Filmes')}</body></html>`;
+
+/** The item the source builds for "Filme A" given its detail page. */
+const itemOf = async (detailHtml) =>
+  (await readPage({ [LIST_URL]: onlyFilmeA, 'https://redestorrents.com/filme-a/': detailHtml }))[0];
+
 test('base32 do site vira o hex que o resto do catalogo usa', () => {
   assert.equal(base32ToHex('A'.repeat(32)), '0'.repeat(40));
   assert.equal(
@@ -46,30 +58,31 @@ test('tamanho em texto vira bytes', () => {
   assert.equal(sizeToBytes(undefined), null);
 });
 
-test('a listagem entrega link, titulo e tipo de cada cartao', () => {
-  const cards = parseList(LISTA);
+test('a listagem entrega link, titulo e tipo de cada cartao', async () => {
+  const entries = await readPage({ [LIST_URL]: LISTA });
+  const { url, title, kind } = entries[0].card;
 
-  assert.equal(cards.length, 4);
-  assert.deepEqual(cards[0], {
+  assert.equal(entries.length, 4);
+  assert.deepEqual({ url, title, kind }, {
     url: 'https://redestorrents.com/filme-a/',
     title: 'Filme A',
     kind: 'Filmes',
   });
 });
 
-test('o titulo limpo entra na frente das marcas do magnet', () => {
+test('o titulo limpo entra na frente das marcas do magnet', async () => {
   const dn = 'SITE.COM-.WEB-DL.1080P.MKV.-DUBLADO-.Filme+A.2024.1080p.WEB-DL.x264';
-  const found = parseDetail(detalhe('7cfoc7xog7x6yohgbnpoia355doepjt7', dn, '2.69 GB'), 'Filme A');
+  const { item: found } = await itemOf(detalhe('7cfoc7xog7x6yohgbnpoia355doepjt7', dn, '2.69 GB'));
 
   assert.equal(found.infohash, 'f88ae17eee37efec38e60b5ee4037de8dc47a67f');
   assert.equal(found.sizeBytes, 2888365507);
   assert.ok(found.name.startsWith('Filme A.'), 'sem isso o classificador corta o titulo nas tags');
 });
 
-test('o nome composto vira titulo e marcas corretos no classificador', () => {
+test('o nome composto vira titulo e marcas corretos no classificador', async () => {
   const { classify } = require('../src/lib/classifier');
   const dn = 'SITE.COM-.WEB-DL.1080P.MKV.5.1.-DUBLADO-DUAL-AUDIO-.Filme+A.2024.1080p.WEB-DL.x264';
-  const { name } = parseDetail(detalhe('A'.repeat(32), dn, '2.69 GB'), 'Filme A');
+  const { name } = (await itemOf(detalhe('A'.repeat(32), dn, '2.69 GB'))).item;
 
   const release = classify(name);
 
@@ -80,9 +93,12 @@ test('o nome composto vira titulo e marcas corretos no classificador', () => {
   assert.equal(release.source, 'WEB-DL');
 });
 
-test('pagina sem magnet nao vira item', () => {
-  assert.equal(parseDetail('<html>nada aqui</html>', 'Filme A'), null);
-  assert.equal(parseDetail(detalhe('hash-invalido', 'Filme+A', '1 GB'), 'Filme A'), null);
+test('pagina sem magnet nao vira item', async () => {
+  const semMagnet = await itemOf('<html>nada aqui</html>');
+  const hashInvalido = await itemOf(detalhe('hash-invalido', 'Filme+A', '1 GB'));
+
+  assert.deepEqual([semMagnet.item, semMagnet.status], [null, 'no-magnet']);
+  assert.deepEqual([hashInvalido.item, hashInvalido.status], [null, 'no-magnet']);
 });
 
 /** getText falso: uma listagem e as paginas de detalhe dos dois filmes. */

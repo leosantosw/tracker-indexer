@@ -65,6 +65,8 @@ CREATE INDEX IF NOT EXISTS ix_item_created ON item (created_unix DESC);
 CREATE INDEX IF NOT EXISTS ix_item_seeders ON item (seeders DESC);
 CREATE INDEX IF NOT EXISTS ix_item_title   ON item (title);
 CREATE INDEX IF NOT EXISTS ix_item_added   ON item (created_at DESC);
+-- The item -> work join (type, title, year) used by every listing.
+CREATE INDEX IF NOT EXISTS ix_item_work    ON item (type, title, year);
 CREATE INDEX IF NOT EXISTS ix_work_status  ON work (status, checked_at);
 `;
 

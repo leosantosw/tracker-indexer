@@ -27,4 +27,19 @@ function normalizeInfohash(raw) {
 
 const magnetOf = (hash) => `magnet:?xt=urn:btih:${hash}`;
 
-module.exports = { base32ToHex, normalizeInfohash, magnetOf };
+/** What a magnet link carries: infohash, release name (`dn`) and exact size (`xl`). */
+function readMagnet(magnet) {
+  const text = String(magnet ?? '');
+  const param = (name) => (text.match(new RegExp(`[?&]${name}=([^&]*)`)) ?? [])[1] ?? null;
+
+  const dn = param('dn');
+  const xl = Number(param('xl'));
+
+  return {
+    infohash: normalizeInfohash((text.match(/btih:([a-zA-Z0-9]+)/) ?? [])[1]),
+    name: dn ? decodeURIComponent(dn.replace(/\+/g, ' ')) : null,
+    sizeBytes: Number.isFinite(xl) && xl > 0 ? xl : null,
+  };
+}
+
+module.exports = { base32ToHex, normalizeInfohash, magnetOf, readMagnet };

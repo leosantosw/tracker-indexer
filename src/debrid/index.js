@@ -6,10 +6,11 @@ const { DebridError } = require('./errors');
  * Debrid providers. To add one: create its folder with the same contract and
  * list it here, plus its token in `config.debrid.tokens`.
  *
- * Contract: { id, label, secret, create({ token, timeoutMs }) -> { resolve, status, remove } }
- * where every method takes a lowercase hex infohash and returns
+ * Contract: { id, label, secret, create({ token, timeoutMs }) -> { resolve, status, remove, checkCached } }
+ * where resolve/status/remove take a lowercase hex infohash and return
  *   { status: 'ready', url, file } | { status: 'downloading', progress, eta, state }
  *   | { status: 'queued' } | { status: 'failed', reason }
+ * and checkCached(hashes) returns { [hash]: boolean } without adding anything.
  */
 const PROVIDERS = [require('./torbox')];
 

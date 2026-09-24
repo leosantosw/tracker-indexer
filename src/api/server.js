@@ -5,6 +5,7 @@ const compress = require('@fastify/compress');
 const etag = require('@fastify/etag');
 
 const { createSettingsStore } = require('../settings');
+const { createCacheStatus } = require('../debrid/cacheStatus');
 const { SHARED } = require('./public/schemas');
 const { registerDocs } = require('./public/docs');
 const { registerPublicApi } = require('./public');
@@ -26,7 +27,8 @@ const API_PREFIX = '/api';
  */
 async function buildServer(repo, options = {}) {
   const app = fastify();
-  const deps = { repo, store: options.store ?? createSettingsStore(repo) };
+  const store = options.store ?? createSettingsStore(repo);
+  const deps = { repo, store, cacheStatus: createCacheStatus({ store }) };
 
   await app.register(compress);
   await app.register(etag);

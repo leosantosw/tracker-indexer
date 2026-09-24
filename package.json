@@ -14,13 +14,16 @@
     "serve": "node --env-file-if-exists=.env src/index.js serve",
     "query": "node --env-file-if-exists=.env src/index.js query",
     "keygen": "node src/index.js keygen",
+    "check-source": "node --env-file-if-exists=.env src/index.js check-source",
     "test": "node --test"
   },
   "dependencies": {
     "@fastify/compress": "^9.2.0",
+    "@fastify/cors": "^11.3.0",
     "@fastify/etag": "^6.2.0",
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
+    "cheerio": "^1.2.0",
     "fastify": "^5.2.0"
   }
 }

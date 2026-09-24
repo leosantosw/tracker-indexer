@@ -18,6 +18,7 @@ const { classify } = require('../lib/classifier');
  * cursor seen before means the tracker is looping, and ends the term.
  */
 async function syncSource(source, { repo, log, signal }) {
+  const rules = source.rules ?? {};
   const quietLimit = source.stopAfterQuietPages ?? Infinity;
   const total = { pages: 0, inserted: 0, removed: { noYear: 0, duplicate: 0 } };
 
@@ -47,9 +48,11 @@ async function syncSource(source, { repo, log, signal }) {
         .map(source.toItem)
         .filter((item) => item.sourceId && item.name)
         .map((item) => ({ ...item, release: classify(item.name) }))
-        .filter((item) => !item.release.rejected);
+        .filter((item) => !item.release.rejected)
+        // Barrado na entrada: apagado so no fim, voltaria como "novo" em toda run.
+        .filter((item) => !rules.requireYear || item.release.year !== null);
 
-      const inserted = repo.savePage(source.name, items);
+      const inserted = repo.savePage(source.name, items, rules);
 
       total.inserted += inserted;
       total.pages++;
@@ -71,7 +74,7 @@ async function syncSource(source, { repo, log, signal }) {
 
   // Depois de gravar tudo: so com a base inteira da para ver duplicata que
   // chegou por termos diferentes.
-  total.removed = repo.applyRules(source.name, source.rules);
+  total.removed = repo.applyRules(source.name, rules);
 
   return total;
 }

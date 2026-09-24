@@ -18,7 +18,7 @@ export const SECTIONS = {
   debrid: {
     id: 'debrid',
     title: 'Debrid',
-    description: 'Provedor que entrega à TV o link do vídeo em /api/debrid. O link nunca é guardado: ele expira.',
+    description: 'Provedor que entrega à TV o link do vídeo.',
   },
   access: {
     id: 'acesso',

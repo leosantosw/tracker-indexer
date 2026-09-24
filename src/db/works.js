@@ -14,6 +14,10 @@ const RATED = 'CASE WHEN w.votes >= @minVotes THEN w.rating END';
 
 const WHERE_LISTAVEL = `WHERE w.type = @type AND w.status = 'ok'`;
 
+// The genre column is a list ("Terror, Thriller"); the commas around it make
+// the match exact, so "Terror" never matches "Terror psicológico".
+const WHERE_GENRE = `AND ', ' || w.genres || ', ' LIKE @genre`;
+
 /**
  * Ter nota vem antes de tudo -- nota qualquer, nao nota alta. Obra sem votacao
  * apurada cai para o fim da lista inteira, nao so do proprio ano.
@@ -25,6 +29,13 @@ const ORDER = [
   'w.id DESC',
 ].join(', ');
 
+/** Every order ends in `w.id`, so paging never repeats nor skips a work. */
+const ORDERS = {
+  default: ORDER,
+  added: 'last_added DESC, w.id DESC',
+  rating: `${RATED} DESC NULLS LAST, w.id DESC`,
+};
+
 /** O JOIN interno exclui obra que ficou sem nenhuma copia. */
 const WORK_SELECT = `
   SELECT w.*,
@@ -35,10 +46,17 @@ const WORK_SELECT = `
   JOIN item i ON ${ITEM_TO_WORK}
 `;
 
-const COUNT_LISTAVEL = `
+const countListable = (genre) => `
   SELECT COUNT(*) AS total FROM (
-    SELECT w.id FROM work w JOIN item i ON ${ITEM_TO_WORK} ${WHERE_LISTAVEL} GROUP BY w.id
+    SELECT w.id FROM work w JOIN item i ON ${ITEM_TO_WORK} ${WHERE_LISTAVEL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id
   )
+`;
+
+/** Genres of the listable works, one row per work; counting happens in JS. */
+const GENRES_LISTAVEL = `
+  SELECT w.genres FROM work w
+  ${WHERE_LISTAVEL} AND w.genres IS NOT NULL
+    AND EXISTS (SELECT 1 FROM item i WHERE ${ITEM_TO_WORK})
 `;
 
 const TORRENTS_OF_WORK = `
@@ -48,13 +66,20 @@ const TORRENTS_OF_WORK = `
   ORDER BY i.seeders DESC, i.id ASC
 `;
 
-/** Obras que o enrich ainda precisa ver: nunca consultadas ou com nota velha. */
+/**
+ * Obras que o enrich ainda precisa ver: nunca consultadas, com nota velha ou
+ * que nao casaram ha tempo suficiente para tentar de novo.
+ */
 const PENDING = `
   SELECT DISTINCT i.type, i.title, i.year, COALESCE(w.trailer_checked, 0) AS trailerChecked
   FROM item i
   LEFT JOIN work w ON ${ITEM_TO_WORK}
   WHERE i.title IS NOT NULL
-    AND (w.id IS NULL OR (w.status = 'ok' AND w.checked_at < ?))
+    AND (
+      w.id IS NULL
+      OR (w.status = 'ok' AND w.checked_at < @staleBefore)
+      OR (w.status IN ('not_found', 'ambiguous') AND w.checked_at < @retryBefore)
+    )
   ORDER BY i.type, i.title
 `;
 
@@ -91,21 +116,49 @@ const UPSERT = `
     checked_at  = excluded.checked_at
 `;
 
+/** Only the named parameters the SQL declares: node:sqlite rejects extras. */
+const bind = (sql, values) =>
+  Object.fromEntries(Object.entries(values).filter(([name]) => sql.includes(`@${name}`)));
+
 function createWorks(db) {
   const upsert = db.prepare(UPSERT);
 
-  /** `minVotes` comes per call: it is editable from the panel at runtime. */
-  function listWorks(type, { page = 1, limit = 50, minVotes }) {
+  /**
+   * `minVotes` comes per call (editable from the panel), `genre` and `order`
+   * come from the chosen category.
+   */
+  function listWorks(type, { page = 1, limit = 50, minVotes, genre = null, order = 'default' }) {
     const perPage = Math.min(Math.max(Number(limit) || 50, 1), 200);
     const atual = Math.max(Number(page) || 1, 1);
 
-    const rows = db
-      .prepare(`${WORK_SELECT} ${WHERE_LISTAVEL} GROUP BY w.id ORDER BY ${ORDER} LIMIT @limit OFFSET @offset`)
-      .all({ type, minVotes, limit: perPage, offset: (atual - 1) * perPage });
+    const values = {
+      type,
+      minVotes,
+      genre: genre ? `%, ${genre}, %` : null,
+      limit: perPage,
+      offset: (atual - 1) * perPage,
+    };
 
-    const { total } = db.prepare(COUNT_LISTAVEL).get({ type });
+    const list =
+      `${WORK_SELECT} ${WHERE_LISTAVEL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id ` +
+      `ORDER BY ${ORDERS[order] ?? ORDER} LIMIT @limit OFFSET @offset`;
+
+    const rows = db.prepare(list).all(bind(list, values));
+    const count = countListable(genre);
+    const { total } = db.prepare(count).get(bind(count, values));
 
     return { rows, page: atual, limit: perPage, total };
+  }
+
+  /** How many listable works each genre has, most first. */
+  function genreCounts(type) {
+    const counts = new Map();
+    for (const row of db.prepare(GENRES_LISTAVEL).all({ type })) {
+      for (const genre of row.genres.split(', ')) counts.set(genre, (counts.get(genre) ?? 0) + 1);
+    }
+    return [...counts]
+      .map(([genre, total]) => ({ genre, total }))
+      .sort((a, b) => b.total - a.total || a.genre.localeCompare(b.genre, 'pt-BR'));
   }
 
   const getWork = (id, type) =>
@@ -113,7 +166,7 @@ function createWorks(db) {
 
   const listTorrents = (workId) => db.prepare(TORRENTS_OF_WORK).all(workId);
 
-  const pendingWorks = (staleBefore) => db.prepare(PENDING).all(staleBefore);
+  const pendingWorks = (staleBefore, retryBefore = 0) => db.prepare(PENDING).all({ staleBefore, retryBefore });
 
   /** Grava tambem o fracasso: e o `status` que impede de reconsultar sempre. */
   function saveWork(work, result) {
@@ -142,7 +195,7 @@ function createWorks(db) {
   const workStats = () =>
     db.prepare(WORK_STATS).all();
 
-  return { listWorks, getWork, listTorrents, pendingWorks, saveWork, workStats };
+  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, saveWork, workStats };
 }
 
 module.exports = { createWorks };

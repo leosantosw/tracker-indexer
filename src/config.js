@@ -60,6 +60,9 @@ module.exports = {
     rps: num('TMDB_RPS', 8),
     // De quanto em quanto tempo revalidar uma obra ja casada: nota muda.
     staleDays: num('TMDB_STALE_DAYS', 30),
+    // De quanto em quanto tempo tentar de novo o que nao casou: filme recente
+    // pode ainda nao estar na TMDB. 0 desliga.
+    retryDays: num('TMDB_RETRY_DAYS', 14),
     // Abaixo disso a nota nao e divulgada nem usada para ordenar: 8.0 apurado
     // em 4 votos nao e nota, e ruido.
     minVotes: num('TMDB_MIN_VOTES', 150),

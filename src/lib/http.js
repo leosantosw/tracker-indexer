@@ -15,9 +15,19 @@ const HEADERS = {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Without the query string: it may carry a key (the TMDB `api_key`), and this message goes to the log. */
+function safeUrl(url) {
+  try {
+    const { origin, pathname } = new URL(url);
+    return origin + pathname;
+  } catch {
+    return String(url).split('?')[0];
+  }
+}
+
 class HttpError extends Error {
   constructor(status, url) {
-    super(`HTTP ${status} em ${url}`);
+    super(`HTTP ${status} em ${safeUrl(url)}`);
     this.status = status;
     this.permanent = PERMANENT_STATUS.has(status);
   }

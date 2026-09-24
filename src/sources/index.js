@@ -25,10 +25,10 @@ const sourceDefaults = () =>
     rules: { requireYear: false, dedupe: null, ...rules },
   }));
 
-/** Only enabled trackers are built; `signal` aborts their in-flight requests. */
-function createSources(config, { signal } = {}) {
+/** Only enabled trackers are built, unless asked; `signal` aborts their in-flight requests. */
+function createSources(config, { signal, includeDisabled = false } = {}) {
   return (config.sources ?? sourceDefaults())
-    .filter((settings) => settings.enabled)
+    .filter((settings) => includeDisabled || settings.enabled)
     .map(({ enabled, mode, ...settings }) => {
       const http = createHttpClient({ rps: settings.rps, ...config.http, signal });
       return { ...settings, ...MODULES.get(settings.name).create(http) };

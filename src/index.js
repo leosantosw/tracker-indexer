@@ -6,6 +6,8 @@ const { createRepo } = require('./db/repo');
 const { createSettingsStore } = require('./settings');
 const { generateKey } = require('./lib/secrets');
 const { runSync, runEnrich } = require('./job/pipeline');
+const { checkSource } = require('./job/checkSource');
+const { createSources } = require('./sources');
 const { buildServer } = require('./api/server');
 
 const log = (msg) => console.log(`${new Date().toISOString()} ${msg}`);
@@ -17,6 +19,7 @@ const USAGE = `
   npm run serve                   sobe a API e a interface em /admin
   npm run query "SELECT ..."      consulta o banco (somente leitura)
   npm run keygen                  gera uma SECRETS_KEY para o .env
+  npm run check-source <tracker>  confere a primeira pagina de um tracker, sem gravar
 `;
 
 /** Commands that never touch the database. */
@@ -33,6 +36,13 @@ const commands = {
 
   async enrich(repo) {
     await runEnrich({ repo, config: createSettingsStore(repo).config(), log });
+  },
+
+  async 'check-source'(repo, name) {
+    const sources = createSources(createSettingsStore(repo).config(), { includeDisabled: true });
+    const source = sources.find((item) => item.name === name);
+    if (!source) throw new Error(`informe o tracker: ${sources.map((item) => item.name).join(', ')}`);
+    await checkSource(source);
   },
 
   async stats(repo) {

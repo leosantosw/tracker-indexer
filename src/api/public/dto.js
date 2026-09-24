@@ -1,5 +1,7 @@
 'use strict';
 
+const { normalizeInfohash } = require('../../lib/infohash');
+
 const KB = 1024;
 
 // O banco guarda so o caminho; o tamanho e escolhido aqui, sem reprocessar
@@ -25,7 +27,7 @@ function formatSize(bytes) {
 const isoDate = (unix) => new Date(unix * 1000).toISOString();
 
 /** A copia: o que muda de release para release. O nome vem normalizado. */
-const toTorrent = (row) => ({
+const toTorrent = (row, cachedByHash = {}) => ({
   id: row.id,
   name: row.name,
   // season/episode so existem em serie; em filme sao sempre null.
@@ -42,6 +44,7 @@ const toTorrent = (row) => ({
   source: row.source,
   createdAt: isoDate(row.created_at),
   updatedAt: isoDate(row.updated_at),
+  cached: cachedByHash[normalizeInfohash(row.infohash)] ?? null,
 });
 
 // Mesma regra do SQL: sem votacao suficiente, nao ha nota para divulgar.
@@ -61,7 +64,7 @@ const toWorkCard = (row, minVotes) => ({
  * A obra aberta, com as copias dentro. `release_date`, `last_added` e
  * `status` ficam de fora de proposito -- servem ao SQL, nao ao payload.
  */
-const toWorkDetail = (row, minVotes, torrents) => ({
+const toWorkDetail = (row, minVotes, torrents, cachedByHash) => ({
   id: row.id,
   title: row.title,
   year: row.year,
@@ -72,7 +75,7 @@ const toWorkDetail = (row, minVotes, torrents) => ({
   rating: ratingOf(row, minVotes),
   votes: row.votes,
   trailer: row.trailer_key ? YOUTUBE + row.trailer_key : null,
-  torrents: torrents.map(toTorrent),
+  torrents: torrents.map((torrent) => toTorrent(torrent, cachedByHash)),
 });
 
 module.exports = { toWorkCard, toWorkDetail };

@@ -11,8 +11,10 @@ const DAY = 86400;
  * perguntar por "Hexalogia Star Wars" em toda execucao, para sempre.
  */
 async function enrich({ repo, tmdb, config, log, signal }) {
-  const staleBefore = Math.floor(Date.now() / 1000) - config.tmdb.staleDays * DAY;
-  const pending = repo.pendingWorks(staleBefore);
+  const ts = Math.floor(Date.now() / 1000);
+  const staleBefore = ts - config.tmdb.staleDays * DAY;
+  const retryBefore = config.tmdb.retryDays ? ts - config.tmdb.retryDays * DAY : 0;
+  const pending = repo.pendingWorks(staleBefore, retryBefore);
   const total = { seen: 0, ok: 0, notFound: 0, ambiguous: 0, skipped: 0, failed: 0 };
 
   if (!pending.length) return total;

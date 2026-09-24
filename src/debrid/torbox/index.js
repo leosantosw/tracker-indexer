@@ -48,7 +48,7 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
       const existing = await api.findByHash(hash);
       if (existing) return describe(existing);
 
-      const cached = await api.isCached(hash);
+      const cached = (await api.cachedHashes([hash])).has(hash);
       const created = await api.createTorrent(magnetOf(hash));
 
       // All download slots busy: TorBox queues it and there is no torrent id yet.
@@ -57,6 +57,12 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
       const torrent = cached ? await waitUntilReady(created.torrent_id) : await api.getTorrent(created.torrent_id);
       if (!torrent) return { ...progressOf({}), cached };
       return { ...(await describe(torrent)), cached };
+    },
+
+    /** Cache status of many hashes at once. Read only: adds nothing to the account. */
+    async checkCached(hashes) {
+      const cached = await api.cachedHashes(hashes);
+      return Object.fromEntries(hashes.map((hash) => [hash, cached.has(hash)]));
     },
 
     /** Read only: never adds anything, so the TV can poll it freely. */

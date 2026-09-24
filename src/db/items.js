@@ -24,6 +24,20 @@ const DEDUPE_BY_SEEDERS = `
     )
 `;
 
+/**
+ * A copy that would lose the dedupe to one already kept. Skipping it at the
+ * insert keeps it from coming back as "new" on every run only to be deleted.
+ * Ties go to the stored copy, the older one -- same as DEDUPE_BY_SEEDERS.
+ */
+const BEATEN = `
+  SELECT 1 FROM item
+  WHERE source = @source AND source_id <> @sourceId
+    AND type IS @type AND title IS @title AND year IS @year
+    AND season IS @season AND episode IS @episode
+    AND seeders >= @seeders
+  LIMIT 1
+`;
+
 const UPSERT = `
   INSERT INTO item (
     source, source_id, infohash, name, raw_name, size_bytes, created_unix,
@@ -56,23 +70,44 @@ const UPSERT = `
 
 function createItems(db) {
   const upsert = db.prepare(UPSERT);
+  const beaten = db.prepare(BEATEN);
 
-  function countKnown(source, ids) {
+  function knownIds(source, ids) {
     const marks = ids.map(() => '?').join(',');
-    return db
+    const rows = db
       .prepare(`SELECT source_id FROM item WHERE source = ? AND source_id IN (${marks})`)
-      .all(source, ...ids).length;
+      .all(source, ...ids);
+    return new Set(rows.map((row) => row.source_id));
   }
 
+  const isBeaten = (source, item) =>
+    item.seeders !== null &&
+    item.seeders !== undefined &&
+    Boolean(
+      beaten.get({
+        source,
+        sourceId: item.sourceId,
+        type: item.release.type,
+        title: item.release.title || null,
+        year: item.release.year,
+        season: item.release.season,
+        episode: item.release.episode,
+        seeders: item.seeders,
+      })
+    );
+
   /** Grava a pagina inteira em uma transacao e devolve quantos eram novos. */
-  function savePage(source, items) {
+  function savePage(source, items, rules = {}) {
     if (!items.length) return 0;
 
     const ts = now();
-    const inserted = items.length - countKnown(source, items.map((i) => i.sourceId));
+    const known = knownIds(source, items.map((i) => i.sourceId));
+    const fresh = items.filter((item) => !known.has(item.sourceId));
+    const skipped = rules.dedupe === 'seeders' ? new Set(fresh.filter((item) => isBeaten(source, item))) : new Set();
 
     transaction(db, () => {
       for (const item of items) {
+        if (skipped.has(item)) continue;
         upsert.run({
           source,
           sourceId: item.sourceId,
@@ -98,7 +133,7 @@ function createItems(db) {
       }
     });
 
-    return inserted;
+    return fresh.length - skipped.size;
   }
 
   /**

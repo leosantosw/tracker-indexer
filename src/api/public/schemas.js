@@ -143,6 +143,13 @@ const torrent = ($id, description, extra = {}) =>
         examples: ['246ce142aa1a42ef3ddc40c96895777b7b327de6'],
       },
       source: { type: 'string', description: 'Tracker de origem.', examples: ['torrents-csv'] },
+      cached: {
+        type: ['boolean', 'null'],
+        description:
+          'Se o debrid já tem esta cópia em cache — toca na hora. `null` com o debrid desligado ou quando ' +
+          'o provedor não respondeu a tempo. A resposta do provedor fica guardada por 10 minutos.',
+        examples: [true],
+      },
       createdAt: { type: 'string', format: 'date-time', description: 'Entrada no catálogo.' },
       updatedAt: {
         type: 'string',
@@ -223,6 +230,12 @@ const LIST_QUERY = {
       default: 50,
       description: 'Itens por página.',
     },
+    category: {
+      type: 'string',
+      pattern: '^[a-z0-9-]+$',
+      description: 'Id de `/api/categories`. Muda o filtro e a ordem da listagem.',
+      examples: ['novidades', 'genero-terror'],
+    },
   },
 };
 
@@ -243,8 +256,9 @@ const catalogRoutes = (kind, singular, plural) => ({
       `Sinopse, gêneros, votos, trailer e as cópias vêm no detalhe.
 
 ` +
-      'Sem filtros: a ordem é fixa (ano mais recente primeiro e, dentro do ano, ' +
-      'a melhor nota) e só entra obra que casou com a TMDB.',
+      'Sem `category`, a ordem é fixa (ano mais recente primeiro e, dentro do ano, ' +
+      'a melhor nota) e só entra obra que casou com a TMDB. Com `category`, valem o ' +
+      'filtro e a ordem dela.',
     querystring: LIST_QUERY,
     response: { 200: { $ref: `${kind}List#` }, 400: { $ref: 'BadRequest#' } },
   },
@@ -259,6 +273,52 @@ const catalogRoutes = (kind, singular, plural) => ({
     response: { 200: { $ref: `${kind}#` }, 404: { $ref: 'NotFound#' } },
   },
 });
+
+const CATEGORIES = {
+  tags: [TAGS.catalogo],
+  summary: 'Lista as categorias',
+  description:
+    'As linhas da tela inicial, montadas a partir do próprio catálogo: as fixas ' +
+    '(*Adicionados recentemente*, *Melhores notas*) e uma por gênero com pelo menos ' +
+    '10 filmes. Categoria vazia não entra.\n\n' +
+    'Com `preview`, cada categoria já vem com os primeiros filmes — a tela inicial ' +
+    'inteira em uma requisição. Para paginar, use `/api/movies?category=<id>`.',
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      preview: {
+        type: 'integer',
+        minimum: 0,
+        maximum: 30,
+        default: 0,
+        description: 'Quantos filmes já vêm em cada categoria.',
+      },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        categories: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', examples: ['genero-terror'] },
+              title: { type: 'string', examples: ['Terror'] },
+              total: { type: 'integer', description: 'Quantos filmes a categoria tem.', examples: [42] },
+              movies: { type: 'array', items: { $ref: 'MovieListItem#' } },
+            },
+            required: ['id', 'title', 'total'],
+          },
+        },
+      },
+      required: ['categories'],
+    },
+    400: { $ref: 'BadRequest#' },
+  },
+};
 
 const HEALTH = {
   tags: [TAGS.servico],
@@ -311,4 +371,4 @@ const STATS = {
   },
 };
 
-module.exports = { SHARED, TAGS, HEALTH, STATS, catalogRoutes };
+module.exports = { SHARED, TAGS, HEALTH, STATS, CATEGORIES, catalogRoutes };
