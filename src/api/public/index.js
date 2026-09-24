@@ -19,6 +19,7 @@ async function registerPublicApi(api, { repo, store, cacheStatus }) {
   api.get('/stats', { schema: STATS }, async () => ({
     sources: repo.stats(),
     works: repo.workStats(),
+    tmdb: { configured: Boolean(store.config().tmdb.apiKey) },
   }));
 
   registerCategories(api, { repo, store });

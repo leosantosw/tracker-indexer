@@ -244,7 +244,8 @@ export function mountActivity() {
 }
 
 export function renderActivity({ job }) {
-  body.replaceChildren(...(job.running ? runningView(job.running) : idleView(job.last)));
+  // replaceChildren would print a null child as the text "null".
+  body.replaceChildren(...(job.running ? runningView(job.running) : idleView(job.last)).filter(Boolean));
 
   clearInterval(ticker);
   if (job.running) {

@@ -128,6 +128,7 @@ O fracasso também é gravado. É o `status` que impede de perguntar por
 | `not_found` | a TMDB não conhece | sim, a cada `TMDB_RETRY_DAYS` (lançamento recente ainda não cadastrado) |
 | `ambiguous` | achou candidatos, nenhum confiável | sim, a cada `TMDB_RETRY_DAYS` |
 | `skipped` | coletânea, nem foi consultado | não |
+| `pending` | criada pelo sync, ainda não passou pela TMDB | sim, na próxima execução com chave |
 
 ### Quantas requisições custa
 
@@ -430,9 +431,9 @@ src/
   contagens (`/api/stats` e o painel só contam obra com ao menos um torrent),
   mas continua no banco servindo de cache: se o release voltar, a capa já está
   lá, sem nova consulta à TMDB.
-- **`/api/movies` depende do enrich ter rodado.** É o enrich que cria a linha em
-  `work`, inclusive para o que não casou. Sem `TMDB_API_KEY` configurada na
-  primeira sincronização, as rotas do catálogo vêm vazias.
+- **Sem `TMDB_API_KEY`, a vitrine vem vazia.** As obras existem desde o sync,
+  como `pending`, mas a listagem padrão só mostra o que casou com a TMDB: use
+  `all=true` para ver o resto, e o detalhe (`/api/movies/:id`) funciona sempre.
 - **As cópias vêm todas no detalhe, sem paginar.** Hoje o máximo observado é 3
   por obra; se um tracker de séries trouxer centenas de episódios, isso muda.
 - **As regras de tracker apagam de verdade.** `requireYear` e `dedupe` fazem

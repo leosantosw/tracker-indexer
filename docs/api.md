@@ -56,6 +56,7 @@ A listagem tem paginação e a categoria escolhida:
 | `page` | `1` | página, a partir de 1 |
 | `limit` | `50` | itens por página, máximo 200 |
 | `category` | — | id de `/api/categories`; sem ele, a ordem padrão |
+| `all` | `false` | inclui, no fim, as obras sem match na TMDB: título e ano do torrent, sem capa |
 
 ### Categorias
 
@@ -93,8 +94,11 @@ Obra sem nota apurada cai para o fim da lista inteira, não só do próprio ano.
 prática isso empurra o lançamento recente para baixo: filme de 2026 ainda não
 teve tempo de juntar 150 votos.
 
-E só entra obra que casou com a TMDB: sem capa, sem sinopse e sem nota não há o
-que listar.
+Por padrão só entra obra que casou com a TMDB: sem capa, sem sinopse e sem nota
+não há o que listar. Com `all=true` entram também as que não casaram ou ainda não
+foram consultadas (`pending`), com `poster`, `backdrop` e `rating` nulos. Sem
+`TMDB_API_KEY`, é o único jeito de listar algo — e o `/api/stats` diz por quê:
+`tmdb.configured` vem `false` e as obras aparecem como `pending`.
 
 A resposta se descreve:
 

@@ -1,7 +1,7 @@
 import { $, el, ago, formatNumber, plural, when } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { badge } from '../components/controls.js';
-import { JOBS, REASONS, RESULTS } from '../lib/labels.js';
+import { JOBS, RESULTS } from '../lib/labels.js';
 import { countdown } from '../components/countdown.js';
 
 const MATCH = [
@@ -9,6 +9,7 @@ const MATCH = [
   { status: 'ambiguous', label: 'ambíguas', color: 'bg-amber-400' },
   { status: 'not_found', label: 'sem match', color: 'bg-zinc-400' },
   { status: 'skipped', label: 'ignoradas', color: 'bg-sky-400' },
+  { status: 'pending', label: 'aguardando', color: 'bg-zinc-200 dark:bg-zinc-700' },
 ];
 
 function tile(iconName, label, ...content) {
@@ -50,30 +51,12 @@ function matchTile(works) {
         el(
           'li',
           { class: 'flex items-center gap-1.5' },
-          el('span', { class: `size-2 rounded-full ${color}` }),
+          el('span', { class: `size-2 shrink-0 rounded-full ${color}` }),
           el('span', { class: 'text-zinc-500' }, label),
           el('span', { class: 'ml-auto font-medium tabular-nums' }, formatNumber(count[status] ?? 0))
         )
       )
     )
-  );
-}
-
-/** Why a run was skipped or only half done, with a shortcut to fix it. */
-function reasonNote(code, onFix) {
-  const reason = REASONS[code];
-  if (!reason) return null;
-
-  return el(
-    'div',
-    { class: 'mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-200' },
-    el('p', {}, reason.text),
-    reason.fix &&
-      el(
-        'button',
-        { class: 'mt-1 font-semibold underline underline-offset-2 hover:no-underline', onclick: onFix },
-        reason.fix
-      )
   );
 }
 
@@ -103,7 +86,7 @@ function nextRunTile(schedule, actions) {
   );
 }
 
-function lastRunTile(last, actions) {
+function lastRunTile(last) {
   if (!last) {
     return tile('clock', 'Última execução', el('p', { class: 'text-sm text-zinc-500' }, 'Nenhuma desde que o servidor subiu.'));
   }
@@ -114,7 +97,6 @@ function lastRunTile(last, actions) {
     'Última execução',
     el('div', { class: 'flex flex-wrap items-center gap-2' }, el('span', { class: 'text-sm font-semibold' }, JOBS[last.job].title), badge(label, tone)),
     caption(ago(last.finishedAt)),
-    reasonNote(last.reason, actions.openSettings),
     last.error && el('p', { class: 'mt-2 line-clamp-2 text-xs text-rose-600 dark:text-rose-400' }, last.error)
   );
 }
@@ -127,7 +109,7 @@ export function renderOverview({ stats, job, schedule }, actions) {
     tile('database', 'Torrents indexados', bigNumber(torrents), caption(`em ${plural(stats.sources.length, 'tracker', 'trackers')}`)),
     tile('layers', 'Obras no catálogo', bigNumber(matched), caption('casadas com a TMDB')),
     matchTile(stats.works),
-    lastRunTile(job.last, actions),
+    lastRunTile(job.last),
     nextRunTile(schedule, actions)
   );
 }

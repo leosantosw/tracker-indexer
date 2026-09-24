@@ -338,6 +338,7 @@ test('o que o enrich grava e o que a API mostra em /movies', async () => {
       status: 'ok',
       match: candidate({
         tmdbId: 42,
+        title: 'Com Capa: O Filme',
         posterPath: '/p.jpg',
         rating: 8.1,
         genres: ['Terror', 'Thriller'],
@@ -350,8 +351,8 @@ test('o que o enrich grava e o que a API mostra em /movies', async () => {
   await app.ready();
   const { movies } = JSON.parse((await app.inject({ url: '/api/movies' })).payload);
 
-  // So a obra que casou entra na listagem.
-  assert.deepEqual(movies.map((m) => m.title), ['Com Capa']);
+  // So a obra que casou entra na listagem, com o titulo da TMDB.
+  assert.deepEqual(movies.map((m) => m.title), ['Com Capa: O Filme']);
   assert.equal(movies[0].poster, 'https://image.tmdb.org/t/p/w185/p.jpg');
   assert.equal(movies[0].backdrop, 'https://image.tmdb.org/t/p/w780/b.jpg');
   assert.equal(movies[0].rating, 8.1);

@@ -14,6 +14,9 @@ const RATED = 'CASE WHEN w.votes >= @minVotes THEN w.rating END';
 
 const WHERE_LISTAVEL = `WHERE w.type = @type AND w.status = 'ok'`;
 
+// `all` also lists what the TMDB did not match (or never saw): no poster, title from the torrent.
+const WHERE_LISTABLE_ALL = `WHERE w.type = @type AND (w.status = 'ok' OR @all = 1)`;
+
 // The genre column is a list ("Terror, Thriller"); the commas around it make
 // the match exact, so "Terror" never matches "Terror psicológico".
 const WHERE_GENRE = `AND ', ' || w.genres || ', ' LIKE @genre`;
@@ -48,7 +51,7 @@ const WORK_SELECT = `
 
 const countListable = (genre) => `
   SELECT COUNT(*) AS total FROM (
-    SELECT w.id FROM work w JOIN item i ON ${ITEM_TO_WORK} ${WHERE_LISTAVEL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id
+    SELECT w.id FROM work w JOIN item i ON ${ITEM_TO_WORK} ${WHERE_LISTABLE_ALL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id
   )
 `;
 
@@ -67,6 +70,17 @@ const TORRENTS_OF_WORK = `
 `;
 
 /**
+ * Every torrent's work exists as soon as the torrent does, TMDB or not: the
+ * enrich only fills it in. `IS` because a work without a year is a real key.
+ */
+const REGISTER = `
+  INSERT INTO work (type, title, year, status, checked_at)
+  SELECT DISTINCT i.type, i.title, i.year, 'pending', 0 FROM item i
+  WHERE i.title IS NOT NULL AND i.type IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM work w WHERE ${ITEM_TO_WORK})
+`;
+
+/**
  * Obras que o enrich ainda precisa ver: nunca consultadas, com nota velha ou
  * que nao casaram ha tempo suficiente para tentar de novo.
  */
@@ -77,6 +91,7 @@ const PENDING = `
   WHERE i.title IS NOT NULL
     AND (
       w.id IS NULL
+      OR w.status = 'pending'
       OR (w.status = 'ok' AND w.checked_at < @staleBefore)
       OR (w.status IN ('not_found', 'ambiguous') AND w.checked_at < @retryBefore)
     )
@@ -90,7 +105,7 @@ const WORK_STATS = `
   ORDER BY total DESC
 `;
 
-const UPSERT = `
+const INSERT = `
   INSERT INTO work (
     type, title, year, tmdb_id, tmdb_title, release_date, genres, overview,
     rating, votes, poster_path, backdrop_path, trailer_key, trailer_checked,
@@ -100,20 +115,28 @@ const UPSERT = `
     @rating, @votes, @posterPath, @backdropPath, @trailerKey, @trailerChecked,
     @status, @checkedAt
   )
-  ON CONFLICT (type, title, year) DO UPDATE SET
-    tmdb_id      = excluded.tmdb_id,
-    tmdb_title   = excluded.tmdb_title,
-    release_date = excluded.release_date,
-    genres       = excluded.genres,
-    overview     = excluded.overview,
-    rating       = excluded.rating,
-    votes        = excluded.votes,
-    poster_path  = excluded.poster_path,
-    backdrop_path = excluded.backdrop_path,
-    trailer_key = COALESCE(excluded.trailer_key, work.trailer_key),
-    trailer_checked = MAX(excluded.trailer_checked, work.trailer_checked),
-    status      = excluded.status,
-    checked_at  = excluded.checked_at
+`;
+
+/**
+ * By key with `IS`, not ON CONFLICT: SQLite's UNIQUE never matches NULL, so a
+ * work without a year would get a second row instead of being updated.
+ */
+const UPDATE = `
+  UPDATE work SET
+    tmdb_id      = @tmdbId,
+    tmdb_title   = @tmdbTitle,
+    release_date = @releaseDate,
+    genres       = @genres,
+    overview     = @overview,
+    rating       = @rating,
+    votes        = @votes,
+    poster_path  = @posterPath,
+    backdrop_path = @backdropPath,
+    trailer_key = COALESCE(@trailerKey, trailer_key),
+    trailer_checked = MAX(@trailerChecked, trailer_checked),
+    status      = @status,
+    checked_at  = @checkedAt
+  WHERE type = @type AND title = @title AND year IS @year
 `;
 
 /** Only the named parameters the SQL declares: node:sqlite rejects extras. */
@@ -121,13 +144,14 @@ const bind = (sql, values) =>
   Object.fromEntries(Object.entries(values).filter(([name]) => sql.includes(`@${name}`)));
 
 function createWorks(db) {
-  const upsert = db.prepare(UPSERT);
+  const insert = db.prepare(INSERT);
+  const update = db.prepare(UPDATE);
 
   /**
    * `minVotes` comes per call (editable from the panel), `genre` and `order`
    * come from the chosen category.
    */
-  function listWorks(type, { page = 1, limit = 50, minVotes, genre = null, order = 'default' }) {
+  function listWorks(type, { page = 1, limit = 50, minVotes, genre = null, order = 'default', all = false }) {
     const perPage = Math.min(Math.max(Number(limit) || 50, 1), 200);
     const atual = Math.max(Number(page) || 1, 1);
 
@@ -135,12 +159,13 @@ function createWorks(db) {
       type,
       minVotes,
       genre: genre ? `%, ${genre}, %` : null,
+      all: all ? 1 : 0,
       limit: perPage,
       offset: (atual - 1) * perPage,
     };
 
     const list =
-      `${WORK_SELECT} ${WHERE_LISTAVEL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id ` +
+      `${WORK_SELECT} ${WHERE_LISTABLE_ALL} ${genre ? WHERE_GENRE : ''} GROUP BY w.id ` +
       `ORDER BY ${ORDERS[order] ?? ORDER} LIMIT @limit OFFSET @offset`;
 
     const rows = db.prepare(list).all(bind(list, values));
@@ -168,10 +193,13 @@ function createWorks(db) {
 
   const pendingWorks = (staleBefore, retryBefore = 0) => db.prepare(PENDING).all({ staleBefore, retryBefore });
 
+  /** Creates the missing works, still `pending`; returns how many. */
+  const registerWorks = () => db.prepare(REGISTER).run().changes;
+
   /** Grava tambem o fracasso: e o `status` que impede de reconsultar sempre. */
   function saveWork(work, result) {
     const match = result.match ?? {};
-    upsert.run({
+    const values = {
       type: work.type,
       title: work.title,
       year: work.year,
@@ -188,14 +216,15 @@ function createWorks(db) {
       trailerChecked: match.trailerChecked ?? 0,
       status: result.status,
       checkedAt: now(),
-    });
+    };
+    if (!update.run(values).changes) insert.run(values);
   }
 
   /** Only works that still have a torrent: orphans are TMDB cache, not catalog. */
   const workStats = () =>
     db.prepare(WORK_STATS).all();
 
-  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, saveWork, workStats };
+  return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, saveWork, workStats };
 }
 
 module.exports = { createWorks };

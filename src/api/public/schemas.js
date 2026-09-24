@@ -236,6 +236,13 @@ const LIST_QUERY = {
       description: 'Id de `/api/categories`. Muda o filtro e a ordem da listagem.',
       examples: ['novidades', 'genero-terror'],
     },
+    all: {
+      type: 'boolean',
+      default: false,
+      description:
+        'Inclui as obras que não casaram com a TMDB (ou ainda não foram consultadas), no fim da lista: ' +
+        'título e ano do torrent, sem capa e sem nota. Sem `TMDB_API_KEY`, é o único jeito de listar algo.',
+    },
   },
 };
 
@@ -336,7 +343,9 @@ const HEALTH = {
 const STATS = {
   tags: [TAGS.servico],
   summary: 'Números da instância',
-  description: 'Torrents por tracker e o resultado do match com a TMDB.',
+  description:
+    'Torrents por tracker e o resultado do match com a TMDB. `pending` são obras que ainda não passaram pela TMDB; ' +
+    'com `tmdb.configured` falso, a listagem padrão vem vazia (use `all=true`).',
   response: {
     200: {
       type: 'object',
@@ -365,8 +374,14 @@ const STATS = {
             required: ['status', 'total'],
           },
         },
+        tmdb: {
+          type: 'object',
+          description: 'Se o enriquecimento pode rodar.',
+          properties: { configured: { type: 'boolean', examples: [true] } },
+          required: ['configured'],
+        },
       },
-      required: ['sources', 'works'],
+      required: ['sources', 'works', 'tmdb'],
     },
   },
 };

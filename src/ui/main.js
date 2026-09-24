@@ -4,6 +4,7 @@ import { REASONS } from './lib/labels.js';
 import { confirmAction } from './components/confirm.js';
 import { renderHeader } from './views/header.js';
 import { renderOverview } from './views/overview.js';
+import { renderAlerts } from './views/alerts.js';
 import { renderTrackers } from './views/trackers.js';
 import { renderTrackerPage } from './views/trackerPage.js';
 import { openCheckDialog } from './views/checkDialog.js';
@@ -26,6 +27,7 @@ function render() {
   const hasTmdbKey = Boolean(state.settings.secrets.tmdbApiKey.source);
 
   renderHeader({ ...state, hasEnabled, hasTmdbKey }, actions);
+  renderAlerts(state, actions);
   renderOverview(state, actions);
   renderTrackers(state, actions);
   renderActivity(state);

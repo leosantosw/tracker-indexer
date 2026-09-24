@@ -47,13 +47,16 @@ const toTorrent = (row, cachedByHash = {}) => ({
   cached: cachedByHash[normalizeInfohash(row.infohash)] ?? null,
 });
 
+// The TMDB title when there is one; `title` is the match key and never changes.
+const titleOf = (row) => row.tmdb_title || row.title;
+
 // Mesma regra do SQL: sem votacao suficiente, nao ha nota para divulgar.
 const ratingOf = (row, minVotes) => (row.votes >= minVotes ? row.rating : null);
 
 /** O cartao da grade: o minimo para desenhar a capa e o fundo do item em foco. */
 const toWorkCard = (row, minVotes) => ({
   id: row.id,
-  title: row.title,
+  title: titleOf(row),
   year: row.year,
   poster: image(SIZES.card.poster, row.poster_path),
   backdrop: image(SIZES.card.backdrop, row.backdrop_path),
@@ -66,7 +69,7 @@ const toWorkCard = (row, minVotes) => ({
  */
 const toWorkDetail = (row, minVotes, torrents, cachedByHash) => ({
   id: row.id,
-  title: row.title,
+  title: titleOf(row),
   year: row.year,
   genres: row.genres ? row.genres.split(', ') : [],
   poster: image(SIZES.detail.poster, row.poster_path),

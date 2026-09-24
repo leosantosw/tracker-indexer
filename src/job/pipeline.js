@@ -19,6 +19,10 @@ const OUTCOME = {
  * gastar chamada em item que vai embora em seguida.
  */
 async function enrichStep({ repo, config, log, signal, progress }) {
+  // Before the key check: without TMDB the works still exist, just `pending`.
+  const registered = repo.registerWorks();
+  if (registered) log(`catalogo: ${registered} obras novas`);
+
   const tmdb = createTmdbClient(config, { signal });
   if (!tmdb) {
     log('tmdb: sem TMDB_API_KEY, enriquecimento pulado');
