@@ -165,8 +165,8 @@ for salvo no painel vale mais, e os segredos vão cifrados para o banco.
 Em **<http://localhost:3000/admin>** dá para:
 
 - atualizar o catálogo, buscar capas e cancelar uma execução em andamento;
-- acompanhar o log ao vivo (SSE, só em memória, nada vai para o disco);
-- ligar, desligar e ajustar cada tracker;
+- acompanhar cada execução por etapas, com progresso e avisos; os logs técnicos ficam a um clique;
+- ligar, desligar, **testar** e ajustar cada tracker;
 - agendar atualizações diárias ou por intervalo;
 - cadastrar chaves e tokens, cifrados no banco.
 
@@ -207,6 +207,7 @@ Depois, é só registrar o tracker em `src/sources/index.js` e conferir com
 | [docs/api.md](docs/api.md) | rotas, payloads, categorias, ordenação, debrid e erros |
 | [docs/arquitetura.md](docs/arquitetura.md) | sync, enriquecimento, classificador, trackers, estrutura e limitações |
 | [docs/painel.md](docs/painel.md) | painel, agendamento, segredos e a API do admin |
+| [docs/trackers-candidatos.md](docs/trackers-candidatos.md) | sites independentes que valem virar tracker |
 
 ## Contribuindo
 

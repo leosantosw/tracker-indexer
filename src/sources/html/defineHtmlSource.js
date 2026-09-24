@@ -11,19 +11,29 @@ const toCount = (text) => {
   return text && Number.isFinite(value) ? value : null;
 };
 
-/** A card plus its magnet becomes an item; without a usable magnet, null. */
-function toRaw(card, nameOf) {
-  const magnet = readMagnet(card.magnet);
+/**
+ * A card plus one of its magnets becomes an item; without a usable magnet,
+ * null. The size comes from the magnet, then from the text around its link
+ * ("1080p (2.24 GB)"), then from the card.
+ */
+function toRaw(card, link, nameOf) {
+  const magnet = readMagnet(link.magnet);
   if (!magnet.infohash || !magnet.name) return null;
 
   return {
     infohash: magnet.infohash,
     name: nameOf({ card, release: magnet.name }),
-    sizeBytes: magnet.sizeBytes ?? sizeToBytes(card.size),
+    sizeBytes: magnet.sizeBytes ?? sizeToBytes(link.context) ?? sizeToBytes(card.size),
     seeders: toCount(card.seeders),
     leechers: toCount(card.leechers),
   };
 }
+
+/** Every magnet link of a title page, with the text around it. */
+const readMagnets = ($page, selector) =>
+  $page(selector)
+    .toArray()
+    .map((a) => ({ magnet: $page(a).attr('href'), context: $page(a).parent().text() }));
 
 /**
  * Mold for trackers that are an HTML catalog: the tracker declares selectors,
@@ -31,7 +41,9 @@ function toRaw(card, nameOf) {
  * `seeders`, `leechers`; anything else (like `kind`) is there for the hooks.
  *
  *   list    { url(page), rows, fields }  the paginated listing
- *   detail  { fields }                   optional: read from each title's page
+ *   detail  { fields, magnets? }         optional: read from each title's page;
+ *                                        `magnets` is a selector for pages with
+ *                                        several (one per quality), each an item
  *   accept  (card) => boolean            optional: which cards enter
  *   nameOf  ({ card, release }) => name  optional: what the classifier reads
  *   extend  (api, http) => overrides     optional: replace fetchPage/toItem
@@ -43,18 +55,31 @@ function defineHtmlSource({ list, detail, accept = () => true, nameOf = ({ relea
       if (!detail || !accept(card)) return card;
 
       const $page = cheerio.load(await http.getText(card.url));
-      return { ...card, ...readFields($page.root(), detail.fields) };
+      return {
+        ...card,
+        ...readFields($page.root(), detail.fields ?? {}),
+        ...(detail.magnets && { links: readMagnets($page, detail.magnets) }),
+      };
     }
 
-    /** Every row of the page and what became of it: the sync and `check-source` share this. */
+    /**
+     * Every row of the page and what became of it: the sync and `check-source`
+     * share this. A title with several magnets yields one entry per magnet.
+     */
     async function readPage(page) {
       const $ = cheerio.load(await http.getText(list.url(page)));
       const entries = [];
 
       for (const row of $(list.rows).toArray()) {
         const card = await readCard($(row));
-        const item = accept(card) ? toRaw(card, nameOf) : null;
-        entries.push({ card, item, status: !accept(card) ? 'filtered' : item ? 'ok' : 'no-magnet' });
+        if (!accept(card)) {
+          entries.push({ card, item: null, status: 'filtered' });
+          continue;
+        }
+
+        const items = (card.links ?? [{ magnet: card.magnet }]).map((link) => toRaw(card, link, nameOf)).filter(Boolean);
+        if (!items.length) entries.push({ card, item: null, status: 'no-magnet' });
+        for (const item of items) entries.push({ card, item, status: 'ok' });
       }
       return entries;
     }

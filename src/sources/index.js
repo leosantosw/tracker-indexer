@@ -8,7 +8,7 @@ const { createTmdb } = require('./tmdb');
  * Contrato: { name, rps, rules?, create({ getJson, getText }) -> { fetchPage, toItem } }
  * A varredura e por `terms` (busca) ou por `pages` (listagem paginada).
  */
-const SOURCES = [require('./torrentsCsv'), require('./redesTorrents')];
+const SOURCES = [require('./torrentsCsv'), require('./redesTorrents'), require('./comando')];
 
 const MODULES = new Map(SOURCES.map((source) => [source.name, source]));
 

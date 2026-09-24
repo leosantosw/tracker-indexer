@@ -17,7 +17,8 @@ const { classify } = require('../lib/classifier');
  * There is no global page cap: only the tracker's own `pages` limits it. A
  * cursor seen before means the tracker is looping, and ends the term.
  */
-async function syncSource(source, { repo, log, signal }) {
+/** `onPage` and `onWarn` feed the panel's progress; the CLI leaves them out. */
+async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn = () => {} }) {
   const rules = source.rules ?? {};
   const quietLimit = source.stopAfterQuietPages ?? Infinity;
   const total = { pages: 0, inserted: 0, removed: { noYear: 0, duplicate: 0 } };
@@ -26,7 +27,14 @@ async function syncSource(source, { repo, log, signal }) {
   const terms = source.terms ?? [null];
   const maxPages = source.pages ?? Infinity;
 
-  for (const term of terms) {
+  // A tracker's own warnings (like "no magnet on this page") go to both.
+  const prefix = `${source.name}: `;
+  const warn = (message) => {
+    log(message);
+    onWarn(message.startsWith(prefix) ? message.slice(prefix.length) : message);
+  };
+
+  for (const [termIndex, term] of terms.entries()) {
     let cursor = null;
     let pages = 0;
     let quietPages = 0;
@@ -37,10 +45,11 @@ async function syncSource(source, { repo, log, signal }) {
 
       let page;
       try {
-        page = await source.fetchPage({ term, cursor, log });
+        page = await source.fetchPage({ term, cursor, log: warn });
       } catch (err) {
         if (signal?.aborted) throw err;
         log(`${term ?? source.name}: ${err.message}`);
+        onWarn(term ? `o termo "${term}" falhou (${err.message})` : `a página falhou (${err.message})`);
         break;
       }
 
@@ -58,11 +67,13 @@ async function syncSource(source, { repo, log, signal }) {
       total.pages++;
       pages++;
       quietPages = inserted === 0 ? quietPages + 1 : 0;
+      onPage({ termIndex, inserted });
       cursor = page.nextCursor;
 
       if (!cursor || quietPages >= quietLimit) break;
       if (seen.has(cursor)) {
         log(`${term ?? source.name}: o tracker repetiu a pagina ${cursor}, termo encerrado`);
+        onWarn('o tracker repetiu uma página; a varredura parou ali');
         break;
       }
       seen.add(cursor);

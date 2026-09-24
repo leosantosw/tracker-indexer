@@ -15,14 +15,10 @@
         --font-brand: 'Nunito', ui-rounded, ui-sans-serif, system-ui, sans-serif;
         --color-brand: #12b76a;
         --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
-        --animate-drawer-in: drawer-in 0.22s ease-out;
 
         @keyframes indeterminate {
           from { transform: translateX(-100%); }
           to { transform: translateX(400%); }
-        }
-        @keyframes drawer-in {
-          from { transform: translateX(100%); }
         }
       }
 
@@ -94,20 +90,17 @@
             <h2 class="text-lg font-semibold">Trackers</h2>
             <p class="text-sm text-zinc-500">Mudanças valem a partir da próxima execução.</p>
           </div>
+          <span id="trackers-count" class="text-sm text-zinc-500"></span>
         </div>
-        <div id="trackers" class="mt-4 grid gap-4 lg:grid-cols-2"></div>
+        <ul id="trackers" class="card mt-4 divide-y divide-zinc-100 overflow-hidden dark:divide-zinc-800"></ul>
       </section>
 
-      <section id="log-panel"></section>
+      <section id="activity"></section>
       </div>
 
       <div id="page-settings" hidden></div>
+      <div id="page-tracker" hidden></div>
     </main>
-
-    <dialog
-      id="drawer"
-      class="ms-auto me-0 my-0 h-full max-h-full w-full max-w-lg bg-white p-0 text-inherit shadow-2xl open:animate-drawer-in backdrop:bg-zinc-950/40 backdrop:backdrop-blur-sm dark:bg-zinc-900"
-    ></dialog>
 
     <dialog
       id="auth-dialog"

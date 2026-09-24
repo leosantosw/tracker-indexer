@@ -10,7 +10,7 @@ const DAY = 86400;
  * sao uma consulta so. E grava tambem o que nao casou: e o `status` que evita
  * perguntar por "Hexalogia Star Wars" em toda execucao, para sempre.
  */
-async function enrich({ repo, tmdb, config, log, signal }) {
+async function enrich({ repo, tmdb, config, log, signal, onStart = () => {}, onStep = () => {} }) {
   const ts = Math.floor(Date.now() / 1000);
   const staleBefore = ts - config.tmdb.staleDays * DAY;
   const retryBefore = config.tmdb.retryDays ? ts - config.tmdb.retryDays * DAY : 0;
@@ -19,6 +19,7 @@ async function enrich({ repo, tmdb, config, log, signal }) {
 
   if (!pending.length) return total;
   log(`tmdb: ${pending.length} obras para consultar`);
+  onStart(pending.length);
 
   for (const work of pending) {
     signal?.throwIfAborted();
@@ -34,12 +35,14 @@ async function enrich({ repo, tmdb, config, log, signal }) {
 
       total.failed++;
       log(`tmdb: ${work.title} -- ${err.message}`);
+      onStep('failed');
       continue;
     }
 
     repo.saveWork(work, result);
     total.seen++;
     total[{ ok: 'ok', not_found: 'notFound', ambiguous: 'ambiguous', skipped: 'skipped' }[result.status]]++;
+    onStep(result.status);
   }
 
   return total;

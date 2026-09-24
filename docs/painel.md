@@ -8,10 +8,10 @@ Uma página só:
 |---|---|
 | Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícone de configurações |
 | Resumo | torrents indexados, obras casadas, distribuição do match e última execução |
-| Trackers | um card por tracker: liga/desliga na hora, *Buscar torrents* só nele, *Editar* abre o painel lateral |
-| Editar tracker | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
+| Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele; clicar abre a página dele |
+| Página do tracker (`#/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
 | Configurações (`#/configuracoes`) | página inteira, uma seção por assunto e cada chave junto do que ela liga: agendamento; TMDB + `TMDB_API_KEY`; debrid + token do provedor; acesso (`ADMIN_TOKEN`, `API_TOKEN`) |
-| Log | ao vivo, colorido por tipo de linha |
+| Atividade | etapas da execução com progresso real (trackers, depois capas e notas), avisos e o resumo da última; os logs técnicos ficam recolhidos em *Ver logs técnicos* |
 
 Os nomes da tela são para quem usa; código, CLI, API e log continuam com
 `sync` e `enrich`:
@@ -19,7 +19,7 @@ Os nomes da tela são para quem usa; código, CLI, API e log continuam com
 | Na tela | Job | O que faz |
 |---|---|---|
 | Atualizar catálogo | `sync` | busca torrents nos trackers ativos e, no fim, capas e notas |
-| Buscar torrents (no card) | `sync` com `sources: [nome]` | o mesmo, só naquele tracker |
+| Buscar torrents (na lista) | `sync` com `sources: [nome]` | o mesmo, só naquele tracker |
 | Buscar capas e notas | `enrich` | só a TMDB, sem tocar nos trackers |
 
 O estilo é Tailwind v4 pelo CDN (`@tailwindcss/browser`), sem etapa de build —
@@ -70,7 +70,7 @@ mesma do botão *Atualizar catálogo*: busca os torrents e, no fim, capas e nota
 
 ### Apagar resultados
 
-Na zona de perigo do editor do tracker. A confirmação só libera o botão depois
+Na zona de perigo da página do tracker. A confirmação só libera o botão depois
 de digitar o nome do tracker, e o servidor recusa enquanto um job roda — um sync
 em andamento traria parte das linhas de volta na hora.
 
@@ -121,5 +121,6 @@ HTTPS na frente. As rotas do painel ficam fora do Swagger.
 | `POST /api/admin/jobs/enrich` | |
 | `DELETE /api/admin/jobs/current` | cancela |
 | `DELETE /api/admin/sources/:name/items` | apaga os torrents de um tracker |
-| `GET /api/admin/events` | SSE: `status` e `log` |
+| `POST /api/admin/sources/:name/check` | testa o tracker: lê a 1ª página e diz o que entraria, sem gravar |
+| `GET /api/admin/events` | SSE: `status` (com o `progress` da execução), `schedule` e `log` |
 | `GET` `PUT` `DELETE /api/admin/settings` | lê, altera parcialmente (inclusive `secrets`), restaura |

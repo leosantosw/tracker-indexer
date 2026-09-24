@@ -339,6 +339,11 @@ Um source declara `terms` (varre por busca) ou `pages` (varre por página). O
 devolver — foi assim que o redes-torrents buscou o magnet de cada título sem
 mudar o contrato.
 
+No molde `defineHtmlSource`, a página de um título pode ter um magnet só
+(`detail.fields.magnet`, como no redes-torrents) ou um por qualidade
+(`detail.magnets: 'a[href^="magnet:"]'`, como no comando): nesse caso cada
+magnet vira um item, com o tamanho lido do texto ao lado do link.
+
 O resto da aplicação não muda.
 
 ## Estrutura
@@ -399,6 +404,7 @@ src/
 │  ├─ index.js               registry
 │  ├─ torrentsCsv.js         API JSON
 │  ├─ redesTorrents.js       catálogo HTML, declarado por seletores
+│  ├─ comando.js             catálogo HTML, um magnet por qualidade
 │  ├─ html/                  molde para tracker HTML (defineHtmlSource, seletores)
 │  └─ tmdb.js                busca e regra de match
 └─ ui/                       painel: HTML + ES modules + Tailwind (CDN), sem build

@@ -1,42 +1,24 @@
 import { el } from '../../lib/dom.js';
 import { icon } from '../../lib/icons.js';
 import { confirmAction } from '../../components/confirm.js';
+import { pageBar } from '../../components/pageBar.js';
 import { sideNav } from './layout.js';
 import { SECTIONS, tmdbGroup, accessGroup, encryptionNotice } from './groups.js';
 import { debridGroup } from './debrid.js';
 import { scheduleGroup } from './schedule.js';
 
-function actionBar({ onReset }) {
-  return el(
-    'div',
+const resetButton = (onReset) =>
+  el(
+    'button',
     {
-      class:
-        'fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/85 backdrop-blur-md ' +
-        'dark:border-zinc-800 dark:bg-zinc-950/85',
+      type: 'button',
+      class: 'btn btn-ghost text-rose-600 hover:text-rose-700 dark:text-rose-400',
+      title: 'Os segredos são mantidos',
+      onclick: onReset,
     },
-    el(
-      'div',
-      { class: 'mx-auto flex max-w-7xl items-center gap-2 px-5 py-3 sm:px-8 lg:px-10' },
-      el(
-        'button',
-        {
-          type: 'button',
-          class: 'btn btn-ghost text-rose-600 hover:text-rose-700 dark:text-rose-400',
-          title: 'Os segredos são mantidos',
-          onclick: onReset,
-        },
-        icon('undo'),
-        el('span', { class: 'hidden sm:inline' }, 'Restaurar padrões')
-      ),
-      el(
-        'div',
-        { class: 'ml-auto flex gap-2' },
-        el('a', { class: 'btn btn-secondary', href: '#/' }, 'Voltar'),
-        el('button', { class: 'btn btn-primary' }, 'Salvar alterações')
-      )
-    )
+    icon('undo'),
+    el('span', { class: 'hidden sm:inline' }, 'Restaurar padrões')
   );
-}
 
 /**
  * Full-width settings page. Holds its own draft; `save` gets only the
@@ -91,7 +73,7 @@ export function renderSettingsPage(container, view, { save, removeSecret, reset 
         accessGroup(secrets, options)
       )
     ),
-    actionBar({ onReset })
+    pageBar({ extra: resetButton(onReset) })
   );
 
   container.replaceChildren(form);

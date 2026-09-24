@@ -1,16 +1,17 @@
 import { api, openEvents, token, AuthError } from './lib/api.js';
 import { $, attempt, toast, when } from './lib/dom.js';
 import { REASONS } from './lib/labels.js';
-import { bindDrawer, closeDrawer } from './components/drawer.js';
 import { confirmAction } from './components/confirm.js';
 import { renderHeader } from './views/header.js';
 import { renderOverview } from './views/overview.js';
 import { renderTrackers } from './views/trackers.js';
-import { openTrackerEditor } from './views/trackerEditor.js';
+import { renderTrackerPage } from './views/trackerPage.js';
+import { openCheckDialog } from './views/checkDialog.js';
 import { renderSettingsPage, focusSettingsGroup } from './views/settings/index.js';
-import { mountLog, appendLog, clearLog } from './views/log.js';
+import { appendLog, clearLog } from './views/log.js';
+import { mountActivity, renderActivity } from './views/activity.js';
 
-const state = { settings: null, stats: null, job: null, schedule: null, connected: false, page: 'dashboard' };
+const state = { settings: null, stats: null, job: null, schedule: null, connected: false, page: 'dashboard', tracker: null };
 
 const indexedBy = (name) => state.stats.sources.find((row) => row.source === name)?.total ?? 0;
 let events = null;
@@ -27,6 +28,7 @@ function render() {
   renderHeader({ ...state, hasEnabled, hasTmdbKey }, actions);
   renderOverview(state, actions);
   renderTrackers(state, actions);
+  renderActivity(state);
 }
 
 async function refreshStatus() {
@@ -86,21 +88,51 @@ function showSettings() {
   if (state.settings) renderSettingsPage($('#page-settings'), state.settings, settingsActions, { nextRun });
 }
 
-// --- routing: #/ is the dashboard, #/configuracoes[/grupo] the settings ---
+// --- tracker page ---
+
+const findSource = (name) => state.settings?.sources.find((source) => source.name === name) ?? null;
+
+function showTracker(name) {
+  const source = findSource(name);
+  if (!source) return false;
+  renderTrackerPage($('#page-tracker'), source, {
+    indexed: indexedBy(name),
+    running: Boolean(state.job?.running),
+    save: (sourceName, patch) =>
+      actions.saveSource(sourceName, patch, `${sourceName} salvo`).then((ok) => ok && (location.hash = '#/')),
+    sync: actions.sync,
+    check: actions.checkSource,
+    clear: actions.clearSource,
+  });
+  return true;
+}
+
+// --- routing: #/ is the dashboard, #/configuracoes[/grupo] the settings, #/trackers/<nome> one tracker ---
+
+const PAGES = ['dashboard', 'settings', 'tracker'];
 
 function route() {
-  const [, page, group] = location.hash.match(/^#\/(configuracoes)(?:\/([\w-]+))?/) ?? [];
-  state.page = page ? 'settings' : 'dashboard';
+  const settings = location.hash.match(/^#\/configuracoes(?:\/([\w-]+))?/);
+  const [, tracker] = location.hash.match(/^#\/trackers\/([^/]+)/) ?? [];
+  const settingsGroup = settings?.[1];
 
-  $('#page-dashboard').hidden = state.page !== 'dashboard';
-  $('#page-settings').hidden = state.page !== 'settings';
-  closeDrawer();
+  state.page = settings ? 'settings' : tracker ? 'tracker' : 'dashboard';
+  state.tracker = tracker ? decodeURIComponent(tracker) : null;
+
+  if (state.page === 'tracker' && state.settings && !findSource(state.tracker)) {
+    toast(`tracker desconhecido: ${state.tracker}`, 'error');
+    location.hash = '#/';
+    return;
+  }
+
+  for (const page of PAGES) $(`#page-${page}`).hidden = state.page !== page;
   window.scrollTo({ top: 0 });
 
   if (state.page === 'settings') {
     showSettings();
-    if (group) focusSettingsGroup(group);
+    if (settingsGroup) focusSettingsGroup(settingsGroup);
   }
+  if (state.page === 'tracker') showTracker(state.tracker);
   render();
 }
 
@@ -111,18 +143,10 @@ const actions = {
   enrich: () => attempt(() => api.startJob('enrich')),
   cancel: () => attempt(() => api.cancelJob()),
 
+  checkSource: (name) => openCheckDialog(name, api.checkSource),
+
   saveSource: (name, patch, message) =>
     attempt(() => api.saveSettings({ sources: { [name]: patch } }).then(applySettings), message),
-
-  editTracker(name) {
-    const source = state.settings.sources.find((item) => item.name === name);
-    openTrackerEditor(source, {
-      indexed: indexedBy(name),
-      running: Boolean(state.job.running),
-      save: actions.saveSource,
-      clear: actions.clearSource,
-    });
-  },
 
   async clearSource(name) {
     const ok = await confirmAction({
@@ -138,8 +162,8 @@ const actions = {
     const result = await attempt(() => api.clearSource(name));
     if (!result) return;
     toast(`${result.removed.toLocaleString('pt-BR')} torrents de ${name} apagados`);
-    closeDrawer();
     await refreshStatus();
+    if (state.page === 'tracker') showTracker(name);
   },
 
   /** Used by shortcuts like "Cadastrar chave": opens the page on the TMDB key. */
@@ -209,6 +233,5 @@ $('#auth-form').addEventListener('submit', (event) => {
 
 window.addEventListener('hashchange', route);
 
-mountLog();
-bindDrawer();
+mountActivity();
 start();

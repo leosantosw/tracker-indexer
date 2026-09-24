@@ -30,6 +30,7 @@ test('sem nada salvo, vale o que o codigo declara', () => {
     [
       ['torrents-csv', 'terms', true],
       ['redes-torrents', 'pages', true],
+      ['comando', 'pages', true],
     ]
   );
   assert.equal(sourceOf(config, 'redes-torrents').pages, 10);
@@ -41,7 +42,7 @@ test('tracker desativado nao e construido', () => {
   store.save({ sources: { 'redes-torrents': { enabled: false } } });
 
   const names = createSources(store.config()).map((source) => source.name);
-  assert.deepEqual(names, ['torrents-csv']);
+  assert.deepEqual(names, ['torrents-csv', 'comando']);
 });
 
 test('patch parcial preserva o que ja estava salvo', () => {

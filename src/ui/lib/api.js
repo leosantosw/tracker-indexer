@@ -48,6 +48,7 @@ export const api = {
   startJob: (job, options = {}) => request('POST', `/jobs/${job}`, options),
   cancelJob: () => request('DELETE', '/jobs/current'),
   clearSource: (name) => request('DELETE', `/sources/${encodeURIComponent(name)}/items`),
+  checkSource: (name) => request('POST', `/sources/${encodeURIComponent(name)}/check`),
 };
 
 /** EventSource cannot send headers, so the token goes in the query string. */

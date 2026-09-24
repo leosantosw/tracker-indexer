@@ -13,8 +13,8 @@ const { registerUiRoutes } = require('./routes/ui');
 
 /** Each run reads the current config, so what was saved in the panel takes effect. */
 const pipelineJobs = ({ repo, store }, log) => ({
-  sync: ({ signal, sources }) => runSync({ repo, config: store.config(), log, signal, only: sources }),
-  enrich: ({ signal }) => runEnrich({ repo, config: store.config(), log, signal }),
+  sync: ({ signal, sources, report }) => runSync({ repo, config: store.config(), log, signal, only: sources, report }),
+  enrich: ({ signal, report }) => runEnrich({ repo, config: store.config(), log, signal, report }),
 });
 
 /**
