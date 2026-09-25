@@ -20,7 +20,7 @@ function seasonRange(text) {
 
 function singleSeason(text) {
   const match =
-    text.match(/\b(?:season|temporada)\s*(\d{1,2})\b/) ??
+    text.match(/\b(?:season|temporada)\s*(\d{1,2})\b(?!\s*[ao]?\s*episodios?\b(?!\s*\d))/) ??
     text.match(/\b(\d{1,2})\s*[ao]?\s*(?:season|temporada)\b/) ??
     text.match(/\bs(\d{1,2})\b(?!\s?e\d)/);
   return match ? Number(match[1]) : null;
