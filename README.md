@@ -146,7 +146,7 @@ for salvo no painel vale mais, e os segredos vão cifrados para o banco.
 | `DB_FILE` | `./data/catalog.db` | arquivo do SQLite |
 | `API_PORT` / `API_HOST` | `3000` / `0.0.0.0` | onde a API escuta |
 | `SECRETS_KEY` | — | chave AES dos segredos salvos pelo painel (`npm run keygen`) |
-| `ADMIN_TOKEN` | — | exigido pelo painel; opcional no `.env`: o primeiro acesso em localhost cria um |
+| `ADMIN_TOKEN` | — | exigido pelo painel; opcional no `.env`: o primeiro acesso ao painel cria um |
 | `API_TOKEN` | — | exigido por toda a `/api` menos `/api/health`; sem ele, ela não responde |
 | `TMDB_API_KEY` | — | ativa o enriquecimento |
 | `TMDB_LANGUAGE` | `pt-BR` | idioma de títulos, sinopses e gêneros |
@@ -160,7 +160,7 @@ for salvo no painel vale mais, e os segredos vão cifrados para o banco.
 > [!IMPORTANT]
 > Nenhuma rota é aberta, exceto `/api/health`. O painel exige `ADMIN_TOKEN`; o
 > catálogo, a busca, o debrid e a documentação exigem `API_TOKEN`. Sem
-> `ADMIN_TOKEN`, o primeiro acesso ao painel em localhost cria um (precisa de
+> `ADMIN_TOKEN`, o primeiro acesso ao painel cria um (precisa de
 > `SECRETS_KEY`). Para expor o servidor, coloque um proxy com HTTPS na frente.
 
 ## Painel

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS work (
   backdrop_path TEXT,  -- horizontal, para banner e fundo
   trailer_key TEXT,    -- id do video no YouTube; a URL e montada na API
   trailer_checked INTEGER NOT NULL DEFAULT 0,  -- 1 = ja procurou, achando ou nao
+  manual_tmdb_id INTEGER,
   lead_id     INTEGER,         -- obra que representa o grupo com o mesmo tmdb_id
   status      TEXT NOT NULL,   -- ok | not_found | ambiguous | skipped
   checked_at  INTEGER NOT NULL,
@@ -138,6 +139,7 @@ const MIGRATIONS = [
   { table: 'item', column: 'episode_end', ddl: 'ALTER TABLE item ADD COLUMN episode_end INTEGER' },
   { table: 'work', column: 'lead_id', ddl: 'ALTER TABLE work ADD COLUMN lead_id INTEGER', reset: REFRESH_LEADS },
   { table: 'item', column: 'language', ddl: 'ALTER TABLE item ADD COLUMN language TEXT', reset: LANGUAGE_FROM_NAME },
+  { table: 'work', column: 'manual_tmdb_id', ddl: 'ALTER TABLE work ADD COLUMN manual_tmdb_id INTEGER' },
 ];
 
 function migrate(db) {

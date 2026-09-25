@@ -12,8 +12,8 @@ const TYPES = [
 
 const MATCH = [
   { status: 'ok', label: 'casadas', color: 'bg-emerald-500' },
-  { status: 'ambiguous', label: 'ambíguas', color: 'bg-amber-400' },
-  { status: 'not_found', label: 'sem match', color: 'bg-zinc-400' },
+  { status: 'ambiguous', label: 'ambíguas', color: 'bg-amber-400', listed: true },
+  { status: 'not_found', label: 'sem match', color: 'bg-zinc-400', listed: true },
   { status: 'skipped', label: 'ignoradas', color: 'bg-sky-400' },
   { status: 'pending', label: 'aguardando', color: 'bg-zinc-200 dark:bg-zinc-700' },
 ];
@@ -35,7 +35,7 @@ function tile(iconName, label, ...content) {
 const bigNumber = (value) => el('p', { class: 'text-3xl font-semibold tracking-tight tabular-nums' }, formatNumber(value));
 const caption = (text) => el('p', { class: 'mt-1 text-sm text-zinc-500' }, text);
 
-function matchTile(works) {
+function matchTile(works, actions) {
   const count = Object.fromEntries(works.map((row) => [row.status, row.total]));
   const total = works.reduce((sum, row) => sum + row.total, 0);
   const share = (status) => (total ? ((count[status] ?? 0) / total) * 100 : 0);
@@ -53,13 +53,20 @@ function matchTile(works) {
     el(
       'ul',
       { class: 'mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm whitespace-nowrap sm:grid-cols-3' },
-      MATCH.map(({ status, color, label }) =>
+      MATCH.map(({ status, color, label, listed }) =>
         el(
           'li',
-          { class: 'flex items-center gap-1.5' },
-          el('span', { class: `size-2 shrink-0 rounded-full ${color}` }),
-          el('span', { class: 'text-zinc-500' }, label),
-          el('span', { class: 'ml-auto font-medium tabular-nums' }, formatNumber(count[status] ?? 0))
+          {},
+          el(
+            listed && count[status] ? 'button' : 'div',
+            {
+              class: `flex w-full items-center gap-1.5 ${listed && count[status] ? 'rounded hover:underline' : ''}`,
+              ...(listed && count[status] && { type: 'button', title: 'Ver a lista', onclick: () => actions.showUnmatched(status) }),
+            },
+            el('span', { class: `size-2 shrink-0 rounded-full ${color}` }),
+            el('span', { class: 'text-zinc-500' }, label),
+            el('span', { class: 'ml-auto font-medium tabular-nums' }, formatNumber(count[status] ?? 0))
+          )
         )
       )
     )
@@ -150,5 +157,5 @@ export function renderOverview({ stats, job, schedule }, actions) {
     nextRunTile(schedule, actions)
   );
 
-  $('#charts').replaceChildren(typesTile(stats.types ?? []), matchTile(stats.works));
+  $('#charts').replaceChildren(typesTile(stats.types ?? []), matchTile(stats.works, actions));
 }

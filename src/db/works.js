@@ -106,6 +106,7 @@ const REGISTER = `
 const PENDING = `
   SELECT i.type, i.title, ${WORK_YEAR} AS year,
          COALESCE(MAX(w.trailer_checked), 0) AS trailerChecked,
+         MAX(w.manual_tmdb_id) AS manualTmdbId,
          MAX(COALESCE(i.season_end, i.season)) AS maxSeason,
          GROUP_CONCAT(DISTINCT CASE
            WHEN i.season IS NOT NULL AND i.season_end IS NULL AND i.year IS NOT NULL
@@ -283,4 +284,4 @@ function createWorks(db) {
   return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, refreshLeads, saveWork, workStats, typeStats };
 }
 
-module.exports = { createWorks, WITH_TORRENTS, HAS_TORRENTS, IS_LEAD };
+module.exports = { createWorks, WITH_TORRENTS, HAS_TORRENTS, IS_LEAD, ITEM_TO_WORK };

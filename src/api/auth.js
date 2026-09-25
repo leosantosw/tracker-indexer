@@ -2,25 +2,11 @@
 
 const { timingSafeEqual } = require('node:crypto');
 
-const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
-
-// Set by reverse proxies. Behind one on the same host every request comes
-// from 127.0.0.1, so a forwarded request is never treated as local.
-const FORWARDED = ['x-forwarded-for', 'x-real-ip', 'forwarded'];
-
 function sameSecret(given, expected) {
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
-
-const hostnameOf = (request) => (request.headers.host ?? '').replace(/:\d+$/, '').toLowerCase();
-
-const isLocal = (request) =>
-  LOOPBACK_IPS.has(request.ip) &&
-  LOOPBACK_HOSTS.has(hostnameOf(request)) &&
-  !FORWARDED.some((header) => request.headers[header] !== undefined);
 
 /** Header for fetch; query string for EventSource, which cannot send headers. */
 function readToken(request) {
@@ -46,4 +32,4 @@ function authorize(getToken, name, { prompt = false } = {}) {
   };
 }
 
-module.exports = { authorize, isLocal };
+module.exports = { authorize };

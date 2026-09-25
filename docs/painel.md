@@ -8,10 +8,11 @@ Uma página só:
 |---|---|
 | Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícone de configurações |
 | Resumo | torrents indexados, obras casadas, distribuição do match e última execução |
+| Atividade | etapas da execução com progresso real (trackers, depois capas e notas), avisos e o resumo da última; os logs técnicos ficam recolhidos em *Ver logs técnicos* |
 | Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele; clicar abre a página dele |
+| Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, trackers e até 3 nomes crus dos torrents; filtra por status e por tracker, 10 por vez. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
 | Página do tracker (`#/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
 | Configurações (`#/configuracoes`) | página inteira, uma seção por assunto e cada chave junto do que ela liga: agendamento; TMDB + `TMDB_API_KEY`; debrid + token do provedor; acesso (`ADMIN_TOKEN`, `API_TOKEN`) |
-| Atividade | etapas da execução com progresso real (trackers, depois capas e notas), avisos e o resumo da última; os logs técnicos ficam recolhidos em *Ver logs técnicos* |
 
 Os nomes da tela são para quem usa; código, CLI, API e log continuam com
 `sync` e `enrich`:
@@ -108,11 +109,10 @@ a `SECRETS_KEY` — mantenha o `.env` fora do repositório, como já está no
 
 **Acesso:** a API do painel sempre exige o `ADMIN_TOKEN`. Ele não precisa estar
 no `.env`: no primeiro acesso, o painel pede para criar o token (ou gerar um), e
-ele vai cifrado para o banco — por isso a `SECRETS_KEY` é necessária. Só dá para
-criar o primeiro token abrindo o painel em localhost, na máquina do servidor; a
-requisição que chega por proxy (`X-Forwarded-For`, `X-Real-IP`, `Forwarded`) ou
-com outro `Host` não conta como local. Criado o token, esse caminho fecha, e o
-painel recusa removê-lo (só trocar) quando o `.env` não tem um. Com
+ele vai cifrado para o banco — por isso a `SECRETS_KEY` é necessária. Quem abrir
+o painel primeiro define o token, de qualquer lugar: abra-o logo depois de subir
+o servidor. Criado o token, esse caminho fecha, e o painel recusa removê-lo (só
+trocar) quando o `.env` não tem um. Com
 ele, o painel pede o token e o guarda no navegador; trocar o token pelo painel
 vale na hora e o navegador que trocou já passa a usar o novo. O token trafega
 em texto puro no HTTP: para expor o painel fora da máquina, ponha um proxy com

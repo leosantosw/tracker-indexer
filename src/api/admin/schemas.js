@@ -114,6 +114,47 @@ const CLEAR_SOURCE = hidden({
   },
 });
 
+const UNMATCHED = hidden({
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      source: { type: 'string', minLength: 1 },
+      status: { enum: ['not_found', 'ambiguous'] },
+      page: { type: 'integer', minimum: 1, default: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+      token: { type: 'string' },
+    },
+  },
+});
+
+const TMDB_SEARCH = hidden({
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      type: { enum: ['movie', 'series'] },
+      query: { type: 'string', minLength: 1, maxLength: 200 },
+      token: { type: 'string' },
+    },
+    required: ['type', 'query'],
+  },
+});
+
+const MANUAL_MATCH = hidden({
+  params: {
+    type: 'object',
+    properties: { id: { type: 'integer', minimum: 1 } },
+    required: ['id'],
+  },
+  body: {
+    type: 'object',
+    additionalProperties: false,
+    properties: { tmdbId: { type: 'integer', minimum: 1 } },
+    required: ['tmdbId'],
+  },
+});
+
 const SETUP_STATUS = hidden({});
 
 const SETUP = hidden({
@@ -129,4 +170,4 @@ const EVENTS = hidden({
   querystring: { type: 'object', properties: { token: { type: 'string' } } },
 });
 
-module.exports = { hidden, SETTINGS_PATCH, START_JOB, CLEAR_SOURCE, SETUP_STATUS, SETUP, EVENTS };
+module.exports = { hidden, SETTINGS_PATCH, START_JOB, CLEAR_SOURCE, UNMATCHED, TMDB_SEARCH, MANUAL_MATCH, SETUP_STATUS, SETUP, EVENTS };

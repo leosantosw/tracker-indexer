@@ -1,6 +1,6 @@
 'use strict';
 
-const { toCandidate, matchesAny } = require('./candidate');
+const { toCandidate, fromDetails, matchesAny, byPopularity } = require('./candidate');
 const { pickMatch } = require('./movie');
 const { pickSeries, titlesOf, withoutFranchise } = require('./series');
 const { pickTrailer } = require('./trailer');
@@ -92,7 +92,14 @@ function createTmdb({ getJson, apiKey, language }) {
 
   const search = (work) => (work.type === 'series' ? searchSeries(work) : searchMovie(work));
 
-  return { search };
+  async function lookup(type, id) {
+    const raw = await details(type, id);
+    return matched(fromDetails(raw, type), pickTrailer(raw.videos?.results));
+  }
+
+  const candidates = async (type, query) => (await find(type, query)).sort(byPopularity);
+
+  return { search, lookup, candidates };
 }
 
 module.exports = { createTmdb, pickMatch, pickSeries, pickTrailer, toCandidate, COLLECTION_RE };

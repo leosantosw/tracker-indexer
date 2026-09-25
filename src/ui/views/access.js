@@ -16,17 +16,12 @@ const MODES = {
     submit: 'Criar e entrar',
     autocomplete: 'new-password',
   },
-  remote: {
-    title: 'Painel sem token',
-    message: 'Nenhum ADMIN_TOKEN foi criado ainda. Abra o painel em localhost, na máquina do servidor, para criar.',
-  },
 };
 
 async function modeOf(error) {
   if (error.tokenRequired) return 'login';
-  const { required, allowed } = await api.setupStatus();
-  if (!required) return 'login';
-  return allowed ? 'setup' : 'remote';
+  const { required } = await api.setupStatus();
+  return required ? 'setup' : 'login';
 }
 
 function tokenInput(mode) {
@@ -66,7 +61,7 @@ async function submit(mode, value) {
 
 function render(dialog, mode, onReady) {
   const { title, message, submit: label } = MODES[mode];
-  const input = label ? tokenInput(mode) : null;
+  const input = tokenInput(mode);
 
   const form = el(
     'form',
@@ -85,14 +80,13 @@ function render(dialog, mode, onReady) {
       },
     },
     el('div', {}, el('h2', { class: 'text-base font-semibold' }, title), message && el('p', { class: 'mt-1 text-sm text-zinc-500' }, message)),
-    input &&
-      el(
-        'label',
-        { class: 'block space-y-1.5' },
-        el('span', { class: 'label' }, 'ADMIN_TOKEN'),
-        mode === 'setup' ? setupControls(input) : input
-      ),
-    label && el('div', { class: 'flex justify-end' }, el('button', { class: 'btn btn-primary' }, label))
+    el(
+      'label',
+      { class: 'block space-y-1.5' },
+      el('span', { class: 'label' }, 'ADMIN_TOKEN'),
+      mode === 'setup' ? setupControls(input) : input
+    ),
+    el('div', { class: 'flex justify-end' }, el('button', { class: 'btn btn-primary' }, label))
   );
 
   dialog.replaceChildren(form);

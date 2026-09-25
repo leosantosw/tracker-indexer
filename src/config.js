@@ -26,7 +26,7 @@ module.exports = {
   // Encrypts the secrets saved from the panel. Without it they stay env-only.
   secretsKey: process.env.SECRETS_KEY || null,
 
-  // Optional: without it, the first visit to /admin from localhost creates one.
+  // Optional: without it, the first visit to /admin creates one.
   admin: {
     token: process.env.ADMIN_TOKEN || null,
   },

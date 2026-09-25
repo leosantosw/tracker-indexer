@@ -11,6 +11,8 @@ const { registerSourceRoutes } = require('./routes/sources');
 const { registerEventRoutes } = require('./routes/events');
 const { registerUiRoutes } = require('./routes/ui');
 const { registerSetupRoutes } = require('./routes/setup');
+const { registerUnmatchedRoutes } = require('./routes/unmatched');
+const { registerManualMatchRoutes } = require('./routes/manualMatch');
 
 /** Each run reads the current config, so what was saved in the panel takes effect. */
 const pipelineJobs = ({ repo, store }, log) => ({
@@ -57,6 +59,8 @@ async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = co
       registerJobRoutes(api, { repo, runner, scheduler });
       registerSettingsRoutes(api, { store });
       registerSourceRoutes(api, { repo, store, runner, log });
+      registerUnmatchedRoutes(api, { repo });
+      registerManualMatchRoutes(api, { repo, store, log });
       registerEventRoutes(api, { feed, runner, scheduler });
     },
     { prefix: apiPrefix }

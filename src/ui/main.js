@@ -12,6 +12,7 @@ import { renderSettingsPage, focusSettingsGroup } from './views/settings/index.j
 import { appendLog, clearLog } from './views/log.js';
 import { mountActivity, renderActivity } from './views/activity.js';
 import { askForAccess } from './views/access.js';
+import { loadUnmatched, filterUnmatched, mountUnmatched } from './views/unmatched.js';
 
 const state = { settings: null, stats: null, job: null, schedule: null, connected: false, page: 'dashboard', tracker: null };
 
@@ -54,6 +55,7 @@ function onJob(job) {
   if (!finished) return;
 
   refreshStatus().catch((err) => toast(err.message, 'error'));
+  loadUnmatched();
   const reason = REASONS[job.last?.reason];
   if (reason) toast(reason.text, 'warn');
 }
@@ -173,6 +175,11 @@ const actions = {
   openSchedule() {
     location.hash = '#/configuracoes/agendamento';
   },
+
+  showUnmatched(status) {
+    filterUnmatched({ status });
+    $('#unmatched').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
 };
 
 // --- session ---
@@ -211,6 +218,7 @@ async function start() {
     applySettings(settings);
     route();
     connectEvents();
+    loadUnmatched();
   } catch (err) {
     if (err instanceof AuthError) return askForAccess(err, start);
     toast(err.message, 'error');
@@ -220,4 +228,5 @@ async function start() {
 window.addEventListener('hashchange', route);
 
 mountActivity();
+mountUnmatched({ onMatched: () => refreshStatus().catch((err) => toast(err.message, 'error')) });
 start();

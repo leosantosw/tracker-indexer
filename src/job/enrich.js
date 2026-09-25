@@ -26,7 +26,7 @@ async function enrich({ repo, tmdb, config, log, signal, onStart = () => {}, onS
 
     let result;
     try {
-      result = await tmdb.search(work);
+      result = work.manualTmdbId ? await tmdb.lookup(work.type, work.manualTmdbId) : await tmdb.search(work);
     } catch (err) {
       if (signal?.aborted) throw err;
       // Chave invalida erra em toda obra: para na primeira em vez de gravar

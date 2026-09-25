@@ -30,4 +30,9 @@ function toCandidate(raw, type, genreNames = new Map()) {
   };
 }
 
-module.exports = { toCandidate, sameTitle, matchesAny, byPopularity, yearOf };
+const fromDetails = (raw, type) => {
+  const genres = raw.genres ?? [];
+  return toCandidate({ ...raw, genre_ids: genres.map((genre) => genre.id) }, type, new Map(genres.map((genre) => [genre.id, genre.name])));
+};
+
+module.exports = { toCandidate, fromDetails, sameTitle, matchesAny, byPopularity, yearOf };

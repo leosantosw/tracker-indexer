@@ -49,6 +49,9 @@ export const api = {
   cancelJob: () => request('DELETE', '/jobs/current'),
   clearSource: (name) => request('DELETE', `/sources/${encodeURIComponent(name)}/items`),
   checkSource: (name) => request('POST', `/sources/${encodeURIComponent(name)}/check`),
+  unmatched: (params) => request('GET', `/unmatched?${new URLSearchParams(params)}`),
+  tmdbSearch: (type, query) => request('GET', `/tmdb/search?${new URLSearchParams({ type, query })}`),
+  manualMatch: (id, tmdbId) => request('POST', `/works/${id}/match`, { tmdbId }),
   setupStatus: () => request('GET', '/setup'),
   createAdminToken: (value) => request('POST', '/setup', { token: value }),
 };
