@@ -4,6 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const torbox = require('../src/debrid/torbox');
+const { createRecent } = require('../src/debrid/torbox/recent');
 const { videosOf, pickVideo } = require('../src/debrid/torbox/files');
 const { normalizeInfohash } = require('../src/lib/infohash');
 const { openDb } = require('../src/db');
@@ -52,7 +53,7 @@ function fakeTorbox(routes) {
 
 const provider = (routes) => {
   const fake = fakeTorbox(routes);
-  return { debrid: torbox.create({ token: TOKEN, fetch: fake.fetch, wait: async () => {} }), ...fake };
+  return { debrid: torbox.create({ token: TOKEN, fetch: fake.fetch, wait: async () => {}, recent: createRecent() }), ...fake };
 };
 
 test('hash em hex ou base32 vira hex minusculo; o resto e recusado', () => {

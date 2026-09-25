@@ -4,6 +4,7 @@ const { DebridError } = require('../errors');
 const { magnetOf } = require('../../lib/infohash');
 const { createTorboxApi } = require('./api');
 const { videosOf, pickVideo, toFile, listed, isReady, hasFailed, progressOf } = require('./files');
+const recentlyAdded = require('./recent');
 
 // A cached torrent becomes ready within a second of being added; wait that
 // long before answering "downloading", so the TV gets the link on the first call.
@@ -14,8 +15,19 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const notInDebrid = () => new DebridError('torrent nao esta no TorBox', 404, 'not_found');
 
-function create({ token, timeoutMs, fetch, wait = sleep }) {
+function create({ token, timeoutMs, fetch, wait = sleep, recent = recentlyAdded.shared }) {
   const api = createTorboxApi({ token, timeoutMs, fetch });
+
+  async function findTorrent(hash) {
+    const listed = await api.findByHash(hash);
+    if (listed) return listed;
+
+    const id = recent.idOf(hash);
+    if (id === null) return null;
+    const torrent = await api.getTorrent(id).catch(() => null);
+    if (!torrent) recent.forget(hash);
+    return torrent;
+  }
 
   async function describe(torrent, want) {
     if (hasFailed(torrent)) return { status: 'failed', reason: 'provider_failed', state: torrent.download_state };
@@ -48,7 +60,7 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
      * one is added -- instantly ready when TorBox has it cached.
      */
     async resolve(hash, want = {}) {
-      const existing = await api.findByHash(hash);
+      const existing = await findTorrent(hash);
       if (existing) return describe(existing, want);
 
       const cached = (await api.cachedHashes([hash])).has(hash);
@@ -56,6 +68,7 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
 
       // All download slots busy: TorBox queues it and there is no torrent id yet.
       if (created?.torrent_id === undefined) return { status: 'queued', cached };
+      recent.remember(hash, created.torrent_id);
 
       const torrent = cached ? await waitUntilReady(created.torrent_id) : await api.getTorrent(created.torrent_id);
       if (!torrent) return { ...progressOf({}), cached };
@@ -70,15 +83,16 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
 
     /** Read only: never adds anything, so the TV can poll it freely. */
     async status(hash, want = {}) {
-      const torrent = await api.findByHash(hash);
+      const torrent = await findTorrent(hash);
       if (!torrent) throw notInDebrid();
       return describe(torrent, want);
     },
 
     async remove(hash) {
-      const torrent = await api.findByHash(hash);
+      const torrent = await findTorrent(hash);
       if (!torrent) throw notInDebrid();
       await api.control(torrent.id, 'delete');
+      recent.forget(hash);
       return { removed: true };
     },
   };
