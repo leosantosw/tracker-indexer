@@ -3,11 +3,11 @@
 const { DebridError } = require('../errors');
 const { magnetOf } = require('../../lib/infohash');
 const { createTorboxApi } = require('./api');
-const { videosOf, pickVideo, toFile, listed, isFinished, hasFailed, progressOf } = require('./files');
+const { videosOf, pickVideo, toFile, listed, isReady, hasFailed, progressOf } = require('./files');
 
 // A cached torrent becomes ready within a second of being added; wait that
 // long before answering "downloading", so the TV gets the link on the first call.
-const CACHED_READY_TRIES = 3;
+const CACHED_READY_TRIES = 5;
 const CACHED_READY_WAIT_MS = 700;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,7 +19,7 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
 
   async function describe(torrent, want) {
     if (hasFailed(torrent)) return { status: 'failed', reason: 'provider_failed', state: torrent.download_state };
-    if (!isFinished(torrent)) return progressOf(torrent);
+    if (!isReady(torrent)) return progressOf(torrent);
 
     const videos = videosOf(torrent.files);
     if (!videos.length) return { status: 'failed', reason: 'no_video' };
@@ -36,7 +36,7 @@ function create({ token, timeoutMs, fetch, wait = sleep }) {
     let torrent = null;
     for (let attempt = 0; attempt < CACHED_READY_TRIES; attempt++) {
       torrent = await api.getTorrent(torrentId);
-      if (torrent && isFinished(torrent)) break;
+      if (torrent && isReady(torrent)) break;
       await wait(CACHED_READY_WAIT_MS);
     }
     return torrent;

@@ -62,6 +62,7 @@ const listed = (videos) =>
     .sort((a, b) => (a.season ?? 0) - (b.season ?? 0) || (a.episode ?? 0) - (b.episode ?? 0) || a.name.localeCompare(b.name));
 
 const isFinished = (torrent) => Boolean(torrent.download_finished && torrent.download_present);
+const isReady = (torrent) => isFinished(torrent) && (torrent.files ?? []).length > 0;
 const hasFailed = (torrent) => FAILED_STATE.test(String(torrent.download_state ?? ''));
 
 const progressOf = (torrent) => ({
@@ -71,4 +72,4 @@ const progressOf = (torrent) => ({
   state: torrent.download_state ?? null,
 });
 
-module.exports = { videosOf, pickVideo, toFile, listed, isFinished, hasFailed, progressOf };
+module.exports = { videosOf, pickVideo, toFile, listed, isFinished, isReady, hasFailed, progressOf };
