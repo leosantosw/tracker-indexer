@@ -1,11 +1,11 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from 'next-themes'
 import { RouterProvider } from 'react-router/dom'
 import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAccessStore } from '@/features/access/access-store'
+import { AppThemeProvider } from '@/layout/theme-provider'
 import { AuthError } from '@/lib/api'
 import { router } from '@/router'
 
@@ -22,13 +22,13 @@ const queryClient = new QueryClient({
 
 export function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <AppThemeProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <RouterProvider router={router} />
           <Toaster position="bottom-right" />
         </TooltipProvider>
       </QueryClientProvider>
-    </ThemeProvider>
+    </AppThemeProvider>
   )
 }

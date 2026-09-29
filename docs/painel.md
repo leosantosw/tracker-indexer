@@ -6,7 +6,7 @@ Uma página só:
 
 | Onde | O quê |
 |---|---|
-| Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (claro, escuro ou o do sistema, guardado no navegador) |
+| Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (escuro por padrão; claro, escuro ou o do sistema, guardado no navegador) |
 | Resumo | torrents indexados, obras casadas, última e próxima execução; o card *Catálogo* traz filmes e séries e a distribuição do match com a TMDB |
 | Atividade | parada, vira uma linha com o resumo da última execução; rodando, mostra as etapas com progresso real (trackers, depois capas e notas) e os avisos; os logs técnicos ficam recolhidos em *Ver logs* |
 | Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele, e as regras ativas como ícones; clicar abre a página dele |
