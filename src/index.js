@@ -5,7 +5,7 @@ const { openDb } = require('./db');
 const { createRepo } = require('./db/repo');
 const { createSettingsStore } = require('./settings');
 const { generateKey } = require('./lib/secrets');
-const { runSync, runEnrich } = require('./job/pipeline');
+const { runSync, runEnrich, runCacheCheck } = require('./job/pipeline');
 const { checkSource } = require('./job/checkSource');
 const { createSources } = require('./sources');
 const { buildServer } = require('./api/server');
@@ -16,6 +16,7 @@ const log = createLogger(consoleSink({ minLevel: process.env.LOG_LEVEL || 'info'
 const USAGE = `
   npm run sync                    sincroniza os trackers e enriquece pela TMDB
   npm run enrich                  so o enriquecimento, sem tocar nos trackers
+  npm run check-cache             verifica no debrid quais torrents estao em cache
   npm run stats                   quantos itens por tracker
   npm run serve                   sobe a API e a interface em /admin
   npm run query "SELECT ..."      consulta o banco (somente leitura)
@@ -37,6 +38,10 @@ const commands = {
 
   async enrich(repo) {
     await runEnrich({ repo, config: createSettingsStore(repo).config(), log });
+  },
+
+  async 'check-cache'(repo) {
+    await runCacheCheck({ repo, config: createSettingsStore(repo).config(), log });
   },
 
   async 'check-source'(repo, name) {

@@ -6,6 +6,7 @@ const { createSettings } = require('./settings');
 const { createSearch } = require('./search');
 const { createUnmatched } = require('./unmatched');
 const { createState } = require('./state');
+const { createDebridCache } = require('./debridCache');
 
 /**
  * Uma fachada sobre as duas entidades: `item` e a copia que veio do tracker,
@@ -18,6 +19,7 @@ const createRepo = (db) => ({
   ...createSearch(db),
   ...createUnmatched(db),
   ...createState(db),
+  ...createDebridCache(db),
 });
 
 module.exports = { createRepo };

@@ -18,6 +18,7 @@
     "query": "node --env-file-if-exists=.env src/index.js query",
     "keygen": "node src/index.js keygen",
     "check-source": "node --env-file-if-exists=.env src/index.js check-source",
+    "check-cache": "node --env-file-if-exists=.env src/index.js check-cache",
     "test": "node --test \"tests/**/*.test.js\"",
     "test:web": "npm --prefix web test"
   },

@@ -4,7 +4,9 @@ const { createSources, createTmdbClient } = require('../sources');
 const { syncSource } = require('./sync');
 const { enrich } = require('./enrich');
 const { createProgress } = require('./progress');
-const { describeSourceRun, describeTmdbRun } = require('./summary');
+const { checkCache } = require('./cacheCheck');
+const { createDebrid, providerOf } = require('../debrid');
+const { describeSourceRun, describeTmdbRun, describeCacheRun } = require('./summary');
 
 /**
  * What a job hands back to the runner. `skipped` means nothing was done;
@@ -12,7 +14,48 @@ const { describeSourceRun, describeTmdbRun } = require('./summary');
  */
 const OUTCOME = {
   noTmdbKey: { skipped: true, reason: 'no-tmdb-key' },
+  noDebrid: { skipped: true, reason: 'no-debrid' },
+  noCacheLookup: { skipped: true, reason: 'no-cache-lookup' },
 };
+
+const UNCONFIGURED = new Set(['not_configured', 'missing_token']);
+
+function debridFor(config) {
+  const provider = providerOf(config);
+  if (!provider) return { outcome: OUTCOME.noDebrid };
+  if (!provider.cacheBatch) return { outcome: OUTCOME.noCacheLookup };
+
+  try {
+    return { provider, debrid: createDebrid(config, { timeoutMs: 60000 }) };
+  } catch (err) {
+    if (UNCONFIGURED.has(err.code)) return { outcome: OUTCOME.noDebrid };
+    throw err;
+  }
+}
+
+async function cacheStep({ repo, config, log, signal, progress }) {
+  const { provider, debrid, outcome } = debridFor(config);
+  if (outcome) {
+    log.warn('debrid', outcome === OUTCOME.noDebrid ? 'sem debrid configurado: o cache não foi verificado' : 'o debrid escolhido não tem consulta de cache');
+    progress.endCache('skipped', outcome.reason);
+    return outcome;
+  }
+
+  const startedAt = Date.now();
+  const total = await checkCache({
+    repo,
+    debrid,
+    providerId: provider.id,
+    batchSize: provider.cacheBatch,
+    log,
+    signal,
+    onStart: progress.startCache,
+    onBatch: progress.cacheBatch,
+  });
+  progress.endCache('done');
+  log.info('debrid', total.checked ? describeCacheRun(total, Date.now() - startedAt) : 'nada novo para verificar no cache');
+  return {};
+}
 
 /**
  * Segundo passo, compartilhado por `sync` e `enrich`. Roda depois das regras
@@ -64,6 +107,26 @@ async function runEnrich({ repo, config, log, signal, report }) {
   return outcome;
 }
 
+async function runCacheCheck({ repo, config, log, signal, report }) {
+  const progress = createProgress(report, { tmdb: false, cache: true });
+  try {
+    return await cacheStep({ repo, config, log, signal, progress });
+  } finally {
+    progress.finish();
+  }
+}
+
+async function cacheAfterSync({ repo, config, log, signal, progress }) {
+  try {
+    await cacheStep({ repo, config, log, signal, progress });
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    log.error('debrid', `a verificação de cache falhou: ${err.message}`);
+    progress.endCache('failed', 'cache-failed');
+    progress.warn(null, `a verificação de cache falhou: ${err.message}`);
+  }
+}
+
 /**
  * `only` narrows the run to some trackers; disabled ones never run. The
  * trackers' work stands on its own, so an enrich that could not run only
@@ -74,7 +137,8 @@ async function runSync({ repo, config, log, signal, only, report }) {
     (source) => !only?.length || only.includes(source.name)
   );
   if (!sources.length) log.warn('catálogo', 'nenhum tracker adicionado: não há o que atualizar');
-  const progress = createProgress(report, { sources });
+  const checksCache = Boolean(config.debrid.checkCache);
+  const progress = createProgress(report, { sources, cache: checksCache });
 
   for (const source of sources) {
     signal?.throwIfAborted();
@@ -95,18 +159,23 @@ async function runSync({ repo, config, log, signal, only, report }) {
 
   // A TMDB fora do ar nao pode derrubar o sync: o dado do tracker ja esta
   // gravado, e torrent que some nao volta -- capa, sim, na proxima run.
+  let reason = null;
   try {
-    const { reason } = await enrichStep({ repo, config, log, signal, progress });
-    return reason ? { reason } : {};
+    ({ reason = null } = await enrichStep({ repo, config, log, signal, progress }));
   } catch (err) {
     if (signal?.aborted) throw err;
     log.error('tmdb', `a TMDB falhou: ${err.message}`);
     progress.endTmdb('failed', 'tmdb-failed');
     progress.warn(null, `a TMDB falhou: ${err.message}`);
-    return { reason: 'tmdb-failed' };
+    reason = 'tmdb-failed';
+  }
+
+  try {
+    if (checksCache) await cacheAfterSync({ repo, config, log, signal, progress });
   } finally {
     progress.finish();
   }
+  return reason ? { reason } : {};
 }
 
-module.exports = { runSync, runEnrich };
+module.exports = { runSync, runEnrich, runCacheCheck };

@@ -48,6 +48,7 @@ module.exports = {
   // `provider` picks one of src/debrid; each provider reads its own token.
   debrid: {
     provider: process.env.DEBRID_PROVIDER || null,
+    checkCache: false,
     tokens: {
       torbox: process.env.TORBOX_API_KEY || null,
     },

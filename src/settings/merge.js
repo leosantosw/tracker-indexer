@@ -6,7 +6,7 @@ const { SettingsError } = require('./errors');
 
 const EDITABLE_TMDB = ['language', 'rps', 'staleDays', 'minVotes'];
 const EDITABLE_SOURCE = ['enabled', 'rps', 'pages', 'stopAfterQuietPages', 'content', 'freeleechOnly'];
-const EDITABLE_DEBRID = ['provider'];
+const EDITABLE_DEBRID = ['provider', 'checkCache'];
 const EDITABLE_SCHEDULE = ['enabled', 'mode', 'time', 'days', 'everyMinutes'];
 
 const pick = (obj = {}, keys) =>
@@ -37,7 +37,7 @@ function buildConfig(base, saved) {
 const editableView = (config) => ({
   tmdb: pick(config.tmdb, EDITABLE_TMDB),
   sources: config.sources.map(({ credentials, ...source }) => source),
-  debrid: { provider: config.debrid.provider, providers: providerOptions() },
+  debrid: { provider: config.debrid.provider, checkCache: config.debrid.checkCache, providers: providerOptions() },
   schedule: config.schedule,
 });
 

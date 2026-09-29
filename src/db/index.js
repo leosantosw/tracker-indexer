@@ -74,6 +74,15 @@ CREATE TABLE IF NOT EXISTS setting (
   updated_at INTEGER NOT NULL
 );
 
+-- Whether a debrid provider has a torrent cached: one row per (provider, infohash), overwritten on each check.
+CREATE TABLE IF NOT EXISTS debrid_cache (
+  provider   TEXT NOT NULL,
+  infohash   TEXT NOT NULL,
+  cached     INTEGER NOT NULL,
+  checked_at INTEGER NOT NULL,
+  PRIMARY KEY (provider, infohash)
+);
+
 CREATE INDEX IF NOT EXISTS ix_item_created ON item (created_unix DESC);
 CREATE INDEX IF NOT EXISTS ix_item_seeders ON item (seeders DESC);
 CREATE INDEX IF NOT EXISTS ix_item_title   ON item (title);
@@ -82,6 +91,7 @@ CREATE INDEX IF NOT EXISTS ix_item_added   ON item (created_at DESC);
 CREATE INDEX IF NOT EXISTS ix_item_work    ON item (type, title, year);
 CREATE INDEX IF NOT EXISTS ix_work_status  ON work (status, checked_at);
 CREATE INDEX IF NOT EXISTS ix_work_tmdb    ON work (type, tmdb_id);
+CREATE INDEX IF NOT EXISTS ix_item_infohash ON item (infohash);
 `;
 
 /**

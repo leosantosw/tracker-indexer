@@ -2,12 +2,16 @@
 
 const { formatDuration } = require('../lib/duration');
 
-const JOB_LABEL = { sync: 'Atualização do catálogo', enrich: 'Busca de capas e notas' };
+const JOB_LABEL = { sync: 'Atualização do catálogo', enrich: 'Busca de capas e notas', cache: 'Verificação de cache' };
 
 const REASON_TEXT = {
   'no-tmdb-key': 'sem TMDB_API_KEY: capas e notas não foram buscadas',
   'tmdb-failed': 'a TMDB falhou: capas e notas ficam para a próxima',
+  'no-debrid': 'sem debrid configurado: o cache não foi verificado',
+  'no-cache-lookup': 'o debrid escolhido não tem consulta de cache',
 };
+
+const percentOf = (part, whole) => `${Math.round((part / whole) * 100)}%`;
 
 const count = (n) => n.toLocaleString('pt-BR');
 const plural = (n, one, many) => `${count(n)} ${n === 1 ? one : many}`;
@@ -45,6 +49,14 @@ function describeTmdbRun(total, ms) {
   ]);
 }
 
+function describeCacheRun(total, ms) {
+  return joined([
+    plural(total.checked, 'torrent verificado', 'torrents verificados'),
+    `${count(total.cached)} no cache (${percentOf(total.cached, total.checked)})`,
+    formatDuration(ms),
+  ]);
+}
+
 function describeStart(job, { sources } = {}) {
   return joined([`${JOB_LABEL[job]} iniciada`, sources?.length && `só ${sources.join(', ')}`]);
 }
@@ -55,7 +67,8 @@ function outcomeFacts(progress) {
   const { tmdb } = progress;
   return [
     progress.sources.length > 0 && (inserted ? `+${plural(inserted, 'torrent novo', 'torrents novos')}` : 'nenhum torrent novo'),
-    tmdb.state === 'done' && tmdb.ok > 0 && plural(tmdb.ok, 'obra casada', 'obras casadas'),
+    tmdb?.state === 'done' && tmdb.ok > 0 && plural(tmdb.ok, 'obra casada', 'obras casadas'),
+    progress.cache?.state === 'done' && progress.cache.done > 0 && `${count(progress.cache.cached)} de ${count(progress.cache.done)} no cache`,
   ];
 }
 
@@ -72,4 +85,4 @@ function describeOutcome({ job, result, reason, error, startedAt, finishedAt, pr
   };
 }
 
-module.exports = { describeSourceRun, describeTmdbRun, describeStart, describeOutcome };
+module.exports = { describeSourceRun, describeTmdbRun, describeCacheRun, describeStart, describeOutcome };

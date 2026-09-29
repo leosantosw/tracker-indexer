@@ -36,7 +36,8 @@ async function buildServer(repo, options = {}) {
     feed.log(entry);
     echo(entry);
   });
-  const deps = { repo, store, feed, log, cacheStatus: createCacheStatus({ store, log }) };
+  const cacheStatus = createCacheStatus({ store, log, onAnswers: (provider, answers) => repo.saveCacheAnswers(provider, answers) });
+  const deps = { repo, store, feed, log, cacheStatus };
 
   await app.register(compress);
   await app.register(etag);

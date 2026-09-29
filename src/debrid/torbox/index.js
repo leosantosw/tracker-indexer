@@ -107,5 +107,6 @@ module.exports = {
   id: 'torbox',
   label: 'TorBox',
   secret: 'torboxToken',
+  cacheBatch: 1000,
   create,
 };

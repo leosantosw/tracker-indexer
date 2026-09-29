@@ -272,6 +272,13 @@ const LIST_QUERY = {
         'Inclui as obras que não casaram com a TMDB (ou ainda não foram consultadas), no fim da lista: ' +
         'título e ano do torrent, sem capa e sem nota. Sem `TMDB_API_KEY`, é o único jeito de listar algo.',
     },
+    cached: {
+      type: 'boolean',
+      default: false,
+      description:
+        'Só obras com ao menos uma cópia em cache no debrid configurado — tocam na hora. Vale o que a ' +
+        'verificação de cache já gravou; sem debrid configurado, a lista vem vazia.',
+    },
   },
 };
 

@@ -2,11 +2,16 @@
 
 const { hidden, START_JOB } = require('../schemas');
 
-function registerJobRoutes(api, { repo, runner, scheduler }) {
+function registerJobRoutes(api, { repo, store, runner, scheduler }) {
   api.get('/status', { schema: hidden({}) }, async () => ({
     job: runner.status(),
     schedule: scheduler.status(),
-    stats: { sources: repo.stats(), works: repo.workStats(), types: repo.typeStats() },
+    stats: {
+      sources: repo.stats(),
+      works: repo.workStats(),
+      types: repo.typeStats(),
+      cache: repo.cacheStats(store.config().debrid.provider),
+    },
   }));
 
   api.post('/jobs/:job', { schema: START_JOB }, async (request, reply) => {

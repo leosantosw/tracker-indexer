@@ -11,6 +11,8 @@ const { DebridError } = require('./errors');
  *   { status: 'ready', url, file } | { status: 'downloading', progress, eta, state }
  *   | { status: 'queued' } | { status: 'failed', reason }
  * and checkCached(hashes) returns { [hash]: boolean } without adding anything.
+ * `cacheBatch` is how many hashes one checkCached call takes; a provider
+ * without a cache lookup leaves it out and the cache check is skipped.
  */
 const PROVIDERS = [require('./torbox')];
 
@@ -19,7 +21,9 @@ const BY_ID = new Map(PROVIDERS.map((provider) => [provider.id, provider]));
 const PROVIDER_IDS = PROVIDERS.map((provider) => provider.id);
 
 /** What the panel needs to draw the select and the token field. */
-const providerOptions = () => PROVIDERS.map(({ id, label, secret }) => ({ id, label, secret }));
+const providerOptions = () => PROVIDERS.map(({ id, label, secret, cacheBatch }) => ({ id, label, secret, cacheBatch: cacheBatch ?? null }));
+
+const providerOf = (config) => BY_ID.get(config.debrid.provider) ?? null;
 
 function createDebrid(config, options = {}) {
   const provider = BY_ID.get(config.debrid.provider);
@@ -31,4 +35,4 @@ function createDebrid(config, options = {}) {
   return provider.create({ token, timeoutMs: config.http.timeoutMs, ...options });
 }
 
-module.exports = { PROVIDERS, PROVIDER_IDS, providerOptions, createDebrid, DebridError };
+module.exports = { PROVIDERS, PROVIDER_IDS, providerOptions, providerOf, createDebrid, DebridError };

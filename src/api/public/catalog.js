@@ -27,10 +27,11 @@ const CATALOGS = [
 function registerCatalog(app, { repo, store, cacheStatus }, { path, type, key, schema }) {
   const notFound = (reply) => reply.code(404).send({ error: 'obra nao encontrada' });
   const minVotes = () => store.config().tmdb.minVotes;
+  const provider = () => store.config().debrid.provider;
 
   app.get(path, { schema: schema.list }, async (request, reply) => {
     const votes = minVotes();
-    const { category: id, ...query } = request.query;
+    const { category: id, cached, ...query } = request.query;
 
     // A category is a saved filter: it decides what enters the list and in which order.
     const category = id ? findCategory(repo, type, id) : null;
@@ -41,6 +42,7 @@ function registerCatalog(app, { repo, store, cacheStatus }, { path, type, key, s
       minVotes: votes,
       genre: category?.genre ?? null,
       order: category?.order ?? 'default',
+      cachedBy: cached ? (provider() ?? '') : null,
     });
 
     return {
@@ -57,7 +59,9 @@ function registerCatalog(app, { repo, store, cacheStatus }, { path, type, key, s
     if (!found) return notFound(reply);
     const torrents = repo.listTorrents(found.id);
     const hashes = torrents.map((torrent) => normalizeInfohash(torrent.infohash)).filter(Boolean);
-    const cachedByHash = hashes.length ? await cacheStatus.lookup(hashes) : {};
+    const stored = repo.cachedByHash(provider(), hashes);
+    const live = hashes.length ? await cacheStatus.lookup(hashes) : {};
+    const cachedByHash = { ...stored, ...Object.fromEntries(Object.entries(live).filter(([, cached]) => cached !== null)) };
     return toWorkDetail(found, minVotes(), torrents, cachedByHash);
   });
 }

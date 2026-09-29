@@ -60,7 +60,7 @@ const SETTINGS_PATCH = hidden({
       debrid: {
         type: 'object',
         additionalProperties: false,
-        properties: { provider: { enum: [null, ...PROVIDER_IDS] } },
+        properties: { provider: { enum: [null, ...PROVIDER_IDS] }, checkCache: { type: 'boolean' } },
       },
       schedule: {
         type: 'object',
@@ -97,7 +97,7 @@ const SETTINGS_PATCH = hidden({
 const START_JOB = hidden({
   params: {
     type: 'object',
-    properties: { job: { type: 'string', enum: ['sync', 'enrich'] } },
+    properties: { job: { type: 'string', enum: ['sync', 'enrich', 'cache'] } },
     required: ['job'],
   },
   body: {

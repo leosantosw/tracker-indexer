@@ -2,7 +2,7 @@
 
 const { createRunner } = require('../../job/runner');
 const { createScheduler } = require('../../job/scheduler');
-const { runSync, runEnrich } = require('../../job/pipeline');
+const { runSync, runEnrich, runCacheCheck } = require('../../job/pipeline');
 const { authorize } = require('../auth');
 const { registerJobRoutes } = require('./routes/jobs');
 const { registerSettingsRoutes } = require('./routes/settings');
@@ -19,6 +19,7 @@ const LAST_RUN = 'lastRun';
 const pipelineJobs = ({ repo, store }, log) => ({
   sync: ({ signal, sources, report }) => runSync({ repo, config: store.config(), log, signal, only: sources, report }),
   enrich: ({ signal, report }) => runEnrich({ repo, config: store.config(), log, signal, report }),
+  cache: ({ signal, report }) => runCacheCheck({ repo, config: store.config(), log, signal, report }),
 });
 
 /**
@@ -57,7 +58,7 @@ async function registerAdmin(app, { repo, store, feed, log }, { apiPrefix, token
   await app.register(
     async (api) => {
       api.addHook('onRequest', authorize(currentToken, 'ADMIN_TOKEN'));
-      registerJobRoutes(api, { repo, runner, scheduler });
+      registerJobRoutes(api, { repo, store, runner, scheduler });
       registerSettingsRoutes(api, { store });
       registerSourceRoutes(api, { repo, store, runner, log });
       registerUnmatchedRoutes(api, { repo, runner, log });

@@ -24,6 +24,7 @@ function createCacheStatus({
   backoffMs = BACKOFF_MS,
   now = Date.now,
   log = silentLogger,
+  onAnswers = () => {},
 }) {
   const known = new Map(); // hash -> { cached, at }
   let quietUntil = 0;
@@ -59,6 +60,7 @@ function createCacheStatus({
         known.set(hash, { cached: answers[hash], at: now() });
         result[hash] = answers[hash];
       }
+      onAnswers(store.config().debrid.provider, answers);
     } catch (err) {
       // Slow, down or refusing the token: null for these, and a pause before asking again.
       quietUntil = now() + backoffMs;
