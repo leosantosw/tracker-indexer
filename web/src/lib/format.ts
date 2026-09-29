@@ -12,6 +12,7 @@ export const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('pt-B
 
 export function ago(iso: string, now = Date.now()) {
   const seconds = Math.round((new Date(iso).getTime() - now) / 1000)
+  if (seconds > -10) return 'agora'
   if (Math.abs(seconds) < 60) return relative.format(seconds, 'second')
   if (Math.abs(seconds) < 3600) return relative.format(Math.round(seconds / 60), 'minute')
   if (Math.abs(seconds) < 86400) return relative.format(Math.round(seconds / 3600), 'hour')
@@ -36,7 +37,9 @@ export function elapsed(iso: string, now = Date.now()) {
 }
 
 export function duration(startedAt: string, finishedAt: string) {
-  const seconds = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000)
+  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime()
+  if (ms < 1000) return '<1s'
+  const seconds = Math.round(ms / 1000)
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${pad(seconds % 60)}s`
 }
 

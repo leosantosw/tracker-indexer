@@ -161,7 +161,9 @@ export const tmdbCandidateSchema = z.object({
   poster: z.string().nullish(),
 })
 
-export const logEntrySchema = z.object({ at: z.string(), message: z.string() })
+export const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error'])
+
+export const logEntrySchema = z.object({ at: z.string(), level: logLevelSchema, scope: z.string(), message: z.string() })
 
 export type JobName = z.infer<typeof jobNameSchema>
 export type Content = z.infer<typeof contentSchema>
@@ -186,4 +188,5 @@ export type UnmatchedStatus = z.infer<typeof unmatchedStatusSchema>
 export type UnmatchedWork = z.infer<typeof unmatchedWorkSchema>
 export type UnmatchedPage = z.infer<typeof unmatchedPageSchema>
 export type TmdbCandidate = z.infer<typeof tmdbCandidateSchema>
+export type LogLevel = z.infer<typeof logLevelSchema>
 export type LogEntry = z.infer<typeof logEntrySchema>

@@ -37,7 +37,7 @@ test('início e fim viram uma linha cada, com o resumo e o nível certo', async 
   await runner.idle();
 
   assert.deepEqual(
-    entries.map(({ level, scope, message }) => [level, scope, message.replace(/em [\d,]+s|após [\d,]+s/, 'em Xs')]),
+    entries.map(({ level, scope, message }) => [level, scope, message.replace(/(em|após) (<1s|[\d,]+s)/, 'em Xs')]),
     [
       ['info', 'execução', 'Atualização do catálogo iniciada · só comando'],
       ['info', 'execução', 'Atualização do catálogo concluída em Xs'],

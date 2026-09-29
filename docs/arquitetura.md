@@ -408,6 +408,7 @@ src/
 │  ├─ checkSource.js         confere a 1ª página de um tracker, sem gravar
 │  ├─ pipeline.js            sync + enrich, usado pela CLI e pelo painel
 │  ├─ runner.js              um job por vez, com cancelamento
+│  ├─ summary.js             textos do log: resumo por tracker, da TMDB e do fim da execução
 │  ├─ scheduler.js           dispara a atualização no horário salvo no painel
 │  ├─ schedule.js            próxima execução e descrição (funções puras)
 │  ├─ sync.js                paginação e critério de parada
@@ -423,6 +424,8 @@ src/
 │  ├─ classifier/            ver acima
 │  ├─ http.js                fetch com throttle, retry e cancelamento
 │  ├─ feed.js                log e status ao vivo, só em memória
+│  ├─ logger.js              linhas com nível e origem; formato alinhado do terminal
+│  ├─ duration.js            duração legível: <1s, 1,8s, 42s, 1m05s
 │  ├─ infohash.js            hex/base32 -> hex, magnet
 │  └─ secrets.js             AES-256-GCM e geração de chave
 ├─ sources/

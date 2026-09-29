@@ -160,6 +160,7 @@ for salvo no painel vale mais, e os segredos vão cifrados para o banco.
 | `TMDB_MIN_VOTES` | `150` | abaixo disso a nota não é exibida |
 | `DEBRID_PROVIDER` / `TORBOX_API_KEY` | — | provedor de debrid e o token dele |
 | `HTTP_TIMEOUT_MS` / `HTTP_RETRIES` | `20000` / `3` | cliente HTTP dos trackers |
+| `LOG_LEVEL` | `info` | o que o terminal mostra: `debug`, `info`, `warn` ou `error` |
 
 > [!IMPORTANT]
 > Nenhuma rota é aberta, exceto `/api/health`. O painel exige `ADMIN_TOKEN`; o

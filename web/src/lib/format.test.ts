@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { countdown, duration, elapsed, formatShare, percent, plural, when } from '@/lib/format'
+import { ago, countdown, duration, elapsed, formatShare, percent, plural, when } from '@/lib/format'
 
 describe('format', () => {
   it('conta regressivamente em horas, e em dias depois de 24h', () => {
@@ -15,8 +15,16 @@ describe('format', () => {
   })
 
   it('mostra a duração em segundos ou minutos', () => {
+    expect(duration('2026-09-28T10:00:00.000Z', '2026-09-28T10:00:00.300Z')).toBe('<1s')
     expect(duration('2026-09-28T10:00:00Z', '2026-09-28T10:00:42Z')).toBe('42s')
     expect(duration('2026-09-28T10:00:00Z', '2026-09-28T10:02:05Z')).toBe('2m05s')
+  })
+
+  it('trata relógio adiantado e os primeiros segundos como agora', () => {
+    const now = new Date('2026-09-28T10:00:00Z').getTime()
+    expect(ago('2026-09-28T10:00:01Z', now)).toBe('agora')
+    expect(ago('2026-09-28T09:59:55Z', now)).toBe('agora')
+    expect(ago('2026-09-28T09:58:00Z', now)).toBe('há 2 minutos')
   })
 
   it('flexiona o plural pelo número', () => {

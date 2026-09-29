@@ -41,6 +41,7 @@ test('o terminal esconde o debug, a menos que peçam', (t) => {
 });
 
 test('duração curta com décimo, média em segundos e longa em minutos', () => {
+  assert.equal(formatDuration(30), '<1s');
   assert.equal(formatDuration(1830), '1,8s');
   assert.equal(formatDuration(42_400), '42s');
   assert.equal(formatDuration(65_000), '1m05s');

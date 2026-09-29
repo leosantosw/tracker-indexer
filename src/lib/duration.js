@@ -1,6 +1,7 @@
 'use strict';
 
 function formatDuration(ms) {
+  if (ms < 1000) return '<1s';
   const seconds = ms / 1000;
   if (seconds < 10) return `${seconds.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}s`;
   if (seconds < 60) return `${Math.round(seconds)}s`;

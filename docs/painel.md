@@ -8,7 +8,7 @@ Uma página só:
 |---|---|
 | Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (escuro por padrão; claro, escuro ou o do sistema, guardado no navegador) |
 | Resumo | torrents indexados, obras casadas, última e próxima execução; os cards *Filmes e séries* e *Match com a TMDB* trazem a divisão do catálogo e a distribuição do match |
-| Atividade | parada, vira uma linha com o resumo da última execução; rodando, mostra as etapas com progresso real (trackers, depois capas e notas) e os avisos; os logs técnicos ficam recolhidos em *Ver logs* |
+| Atividade | parada, vira uma linha com o resumo da última execução; rodando, mostra as etapas com progresso real (trackers, depois capas e notas) e os avisos; os logs técnicos ficam recolhidos em *Ver logs*, com filtro *Normal*, *Detalhado* (inclui o debug) e *Problemas* (só avisos e erros) |
 | Trackers | só os trackers adicionados, uma linha por tracker: *Testar*, *Buscar torrents* só nele e as regras ativas como ícones; clicar abre a página dele. *Adicionar tracker* lista os que faltam e leva para a configuração antes de adicionar |
 | Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, e os nomes crus dos torrents ao passar o mouse no título; filtra por status e por tracker, 5 por vez. *Apagar resultados* apaga os torrents das obras que o filtro mostra (com tracker escolhido, só os daquele tracker); as obras voltam se o tracker publicar os torrents de novo. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
 | Página do tracker (`/admin/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*, *Remover tracker*). Para um tracker ainda não adicionado, a mesma página abre em `/admin/trackers/<nome>/adicionar` com o botão *Adicionar tracker* |
@@ -36,6 +36,22 @@ dá para compartilhar ou recarregar sem perder a visão.
 
 Para mexer no painel, `npm run dev:web` sobe o Vite em :5173 com hot reload e
 repassa `/api` para o `serve` em :3000.
+
+**Log.** Cada linha tem hora, nível (`DEBUG`, `INFO`, `AVISO`, `ERRO`), origem
+(o tracker, `tmdb`, `execução`, `agendamento`, `servidor`...) e a mensagem. É um
+evento por linha: início e fim de cada execução, um resumo por tracker (páginas,
+novos, por que parou e quanto levou) e um da TMDB. O detalhe de cada termo de
+busca fica em `DEBUG`. No terminal as colunas saem alinhadas e coloridas, e o
+`DEBUG` só aparece com `LOG_LEVEL=debug`. Nada é gravado em disco: o painel
+guarda as últimas 500 linhas em memória.
+
+```
+01:02:03  INFO   execução          Atualização do catálogo iniciada
+01:02:05  INFO   redes-torrents    2 páginas · nenhum novo · parou após 2 páginas sem novidade · 1,8s
+01:02:08  INFO   comando           2 páginas · +3 novos · 2,9s
+01:02:12  INFO   tmdb              3 obras consultadas · 3 casadas · 3,8s
+01:02:12  INFO   execução          Atualização do catálogo concluída em 9s · +3 torrents novos · 3 obras casadas
+```
 
 **Um job por vez.** Pedir outro com um rodando dá 409. Cancelar interrompe até a
 requisição em andamento; as regras do tracker ficam para a próxima run.
