@@ -59,6 +59,7 @@ export function AppHeader({ job, settings }: { job?: JobStatus; settings?: Setti
         {job && <JobPill job={job} />}
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <ThemeToggle />
           <Hint label="Documentação da API">
             <Button variant="ghost" size="icon-lg" asChild>
               <a href="/api/docs" target="_blank" rel="noopener" aria-label="Documentação da API">
@@ -73,7 +74,6 @@ export function AppHeader({ job, settings }: { job?: JobStatus; settings?: Setti
               </NavLink>
             </Button>
           </Hint>
-          <ThemeToggle />
           <Separator orientation="vertical" className="mx-1 h-6!" />
           {job && settings && <JobButtons job={job} settings={settings} />}
         </div>
