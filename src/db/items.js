@@ -186,7 +186,10 @@ function createItems(db) {
     return db.prepare(sql).all();
   };
 
-  return { savePage, applyRules, clearSource, stats, query, knownSourceIds: knownIds };
+  const itemsByInfohash = (infohash) =>
+    db.prepare('SELECT source, source_id AS sourceId FROM item WHERE infohash = ? ORDER BY id').all(infohash);
+
+  return { savePage, applyRules, clearSource, stats, query, knownSourceIds: knownIds, itemsByInfohash };
 }
 
 module.exports = { createItems, now };

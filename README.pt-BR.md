@@ -5,7 +5,7 @@
 # tracker-indexer
 
 **Indexa trackers de torrent, casa cada título com a TMDB e entrega um catálogo
-de filmes e séries pronto para um app de TV.**
+de filmes e séries pronto para qualquer app — um app de TV, por exemplo.**
 
 [English](README.md) · **Português**
 
@@ -24,7 +24,7 @@ de filmes e séries pronto para um app de TV.**
   temporada, resolução, áudio e HDR.
 - **Enriquecimento pela TMDB:** capa, sinopse, gêneros, nota e trailer, com
   match conservador e match manual pelo painel.
-- **API REST para TV:** listas enxutas, detalhe completo, busca, categorias,
+- **API REST para qualquer cliente:** listas enxutas, detalhe completo, busca, categorias,
   compressão e ETag. Documentação em Swagger.
 - **Debrid (TorBox):** entrega um link direto do vídeo sem expor o token da conta.
 - **Painel web:** adiciona e configura trackers, agenda atualizações, acompanha

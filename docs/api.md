@@ -36,7 +36,7 @@ GET /api/search/genres   genre shortcuts for the search screen
 
 **Two requests per screen, each one sized to the screen.** The listing
 brings only what the grid draws; the detail brings the rest and the copies. Designed
-for TV: measured with 50 movies per page,
+for a TV-sized grid: measured with 50 movies per page,
 
 | | Before | Now |
 |---|---|---|
@@ -90,7 +90,7 @@ Movies by default. Series have the same categories, built only from series:
 }
 ```
 
-With `preview`, each category already comes with its first movies: the whole TV home
+With `preview`, each category already comes with its first movies: the whole home screen of a client
 screen in **one request**. To continue a row, `/api/movies?category=<id>`
 paginates as usual. An empty category is left out of the list, and an unknown `category`
 gives 404.
@@ -130,7 +130,7 @@ between two queries.
 ### Search
 
 `/api/search` returns movies and series in a single list, in `results`, each one with
-`type` (`movie` or `series`) so the TV knows which detail to open.
+`type` (`movie` or `series`) so the client knows which detail to open.
 
 - `q` searches the TMDB title and the torrent title, ignoring accents,
   case and punctuation: `homem aranha` finds *Homem-Aranha*, `acao` finds *Ação*.
@@ -182,11 +182,11 @@ The listing and the detail do not carry the same thing. **In the listing, only t
 }
 ```
 
-`backdrop` stays in the listing because the TV grid usually swaps the background according to
+`backdrop` stays in the listing because a client's grid usually swaps the background according to
 the item in focus — it costs ~65 bytes per movie, and the image is only downloaded for the one that
 gets focus.
 
-**In the detail, everything at once**, copies included — when opening an item the TV makes
+**In the detail, everything at once**, copies included — when opening an item the client makes
 a single request:
 
 ```json
@@ -226,7 +226,7 @@ a single request:
 
 The copies come from most seeded to least. Today there are 1 to 3 per title (average
 1.02), so embedding them costs little; they are left out of the listing — they would bloat the
-page with what the TV only uses when opening the item.
+page with what the client only uses when opening the item.
 
 The payload is lean on purpose. `release_date`, `last_added`, `tmdb_id` and
 `status` exist in the database and are used for sorting and filtering, but **do not go out in the
@@ -275,7 +275,7 @@ Adding a filter is one line in `LIST_QUERY`, plus the `WHERE` in
 
 ## Debrid (TorBox)
 
-Delivers to the TV the **direct video link** of a torrent, through the debrid provider
+Delivers to the client the **direct video link** of a torrent, through the debrid provider
 configured under *Configurações → Debrid* (Settings → Debrid). Today the only provider is
 [TorBox](https://torbox.app); the structure already supports others.
 
@@ -288,12 +288,12 @@ DELETE /api/debrid/torrents/:hash    cancels the download / removes from the acc
 The `hash` is the `infohash` of a copy, which comes in the title's detail (40-character hex or
 32-character base32).
 
-### The flow on the TV
+### The flow on the client
 
-1. When a copy is chosen, the TV makes the `POST`.
+1. When a copy is chosen, the client makes the `POST`.
    - **Cached on TorBox:** responds `200` and `ready` with the `url`, on the very first call.
    - **Not cached:** TorBox starts downloading and the response is `202` `downloading`, with `progress` (0–100) and `eta`.
-2. While it is not `ready` or `failed`, the TV polls the `GET` every ~5 s.
+2. While it is not `ready` or `failed`, the client polls the `GET` every ~5 s.
    It is read-only, so repeating it costs nothing beyond the lookup.
 3. On `ready`, play the `url`. If the person gives up, `DELETE`.
 
@@ -313,7 +313,7 @@ With a single video in the torrent — a movie or a standalone episode —, it i
 `season`/`episode`. In a **pack** (a whole season, several seasons,
 `S01E01-E02`), the response carries `files`: all the videos, by season and
 episode, read from the file name (`S02E05`, `2x05`, `Episódio 05`, or `05.mkv`
-in a `Temporada 2` folder). The TV chooses like this:
+in a `Temporada 2` folder). The client chooses like this:
 
 | Request | Video |
 |---|---|
@@ -328,16 +328,16 @@ On `GET`, `season` and `episode` go in the query: `/api/debrid/torrents/:hash?se
 
 The TorBox link expires. It goes neither to the database nor to any cache: **each
 `ready` generates a new link** on the spot (`requestdl`), and the routes respond with
-`Cache-Control: no-store`. The TV should request the link right before playing, and not
+`Cache-Control: no-store`. The client should request the link right before playing, and not
 store it.
 
 ### Security
 
 - **`API_TOKEN`:** the routes require `Authorization: Bearer <API_TOKEN>`, like
   the rest of the API. Without `API_TOKEN` set, they do not respond. It is a token
-  separate from `ADMIN_TOKEN`: the TV does not get access to the panel.
+  separate from `ADMIN_TOKEN`: the client does not get access to the panel.
 - **The TorBox token stays on the server.** Saved through the panel, it goes encrypted into the
-  database, like the other secrets. The TV never receives it, and it does not appear in
+  database, like the other secrets. The client never receives it, and it does not appear in
   any error.
 - **Validation:** a malformed hash gives `400` before any call to TorBox.
 
@@ -352,6 +352,28 @@ Always `{ "error": "...", "code": "..." }`:
 | 502 | `provider_auth` | TorBox rejected the token |
 | 429 | `provider_rate_limit` | TorBox limit (300/min; 60/h for adding uncached) |
 | 502 / 504 | `provider_error` / `provider_unavailable` | TorBox errored, went down or was slow |
+| 409 | `private_not_freeleech` | private torrent not cached and no longer freeleech: *Este torrent não está mais em freeleech e ainda não está no cache.* |
+| 409 | `private_download_blocked` | the private tracker refused the download, with its reason |
+| 404 | `private_torrent_gone` | the torrent was removed from the private tracker |
+| 502 | `private_login_failed` | the private tracker refused the account saved in the panel |
+| 503 | `private_unavailable` | the private tracker did not answer |
+
+### Private trackers
+
+A copy that comes only from a private tracker (`amigos-share-club`) plays the same way,
+with no extra field in the request:
+
+1. **Cached on the provider:** added by hash, like any other — no passkey, no ratio spent.
+2. **Not cached:** the server logs into the tracker, opens the torrent's page and, when
+   *Apenas freeleech* (freeleech only) is on for that tracker, checks that it is **still**
+   freeleech. If it is, it downloads the `.torrent` and hands it to the provider, never
+   writing it to disk; if not, it answers `409 private_not_freeleech` and nothing reaches the
+   provider. With the option off, it downloads the `.torrent` regardless, which spends ratio.
+
+The freeleech flag is read from the site at that moment, not from the database: it changes,
+and a stored one would be stale exactly when it matters. The `.torrent` carries the account's
+passkey to the provider, as a regular torrent client would. A hash that also comes from a
+public tracker always goes by magnet.
 
 ### Cache check
 

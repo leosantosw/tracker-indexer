@@ -1,6 +1,7 @@
 'use strict';
 
 const { createDebrid, DebridError } = require('../../debrid');
+const { createPrivateTorrents } = require('../../debrid/privateTorrents');
 const { normalizeInfohash } = require('../../lib/infohash');
 const { authorize } = require('../auth');
 const { allowApps } = require('../cors');
@@ -13,8 +14,9 @@ const FINAL = new Set(['ready', 'failed']);
  * account and delete torrents), and never cached: a `ready` link expires, so
  * every call asks the provider for a fresh one.
  */
-async function registerDebridApi(api, { store }) {
+async function registerDebridApi(api, { repo, store, log }) {
   const debrid = () => createDebrid(store.config());
+  const torrentFileFor = createPrivateTorrents({ repo, store, log });
   const hashOf = (request) => normalizeInfohash(request.body?.hash ?? request.params.hash);
   const wantOf = (request) => {
     const source = request.body ?? request.query ?? {};
@@ -34,7 +36,8 @@ async function registerDebridApi(api, { store }) {
   });
 
   api.post('/torrents', { schema: RESOLVE }, async (request, reply) => {
-    const result = await debrid().resolve(hashOf(request), wantOf(request));
+    const hash = hashOf(request);
+    const result = await debrid().resolve(hash, wantOf(request), { torrentFile: torrentFileFor(hash) });
     return reply.code(FINAL.has(result.status) ? 200 : 202).send(result);
   });
 

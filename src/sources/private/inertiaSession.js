@@ -1,12 +1,14 @@
 'use strict';
 
+const { PrivateSourceError } = require('./errors');
+
 const PAGE_DATA = /<script[^>]*data-page="app"[^>]*>([\s\S]*?)<\/script>/i;
 
-class SessionError extends Error {}
+const TORRENT_FILE = /bittorrent|octet-stream/i;
 
 function pageFromHtml(html) {
   const match = html.match(PAGE_DATA);
-  if (!match) throw new SessionError('a página do tracker não trouxe os dados esperados: o layout do site pode ter mudado');
+  if (!match) throw new PrivateSourceError('unavailable', 'a página do tracker não trouxe os dados esperados: o layout do site pode ter mudado');
   return JSON.parse(match[1]);
 }
 
@@ -44,7 +46,7 @@ function createInertiaSession({ baseUrl, http, credentials = {}, loginPath = '/l
 
   async function login() {
     if (!credentials.username || !credentials.password) {
-      throw new SessionError('cadastre o usuário e a senha do tracker na página dele');
+      throw new PrivateSourceError('login', 'cadastre o usuário e a senha do tracker na página dele');
     }
     jar.clear();
     const form = await send(loginPath);
@@ -62,30 +64,44 @@ function createInertiaSession({ baseUrl, http, credentials = {}, loginPath = '/l
       },
       body: JSON.stringify({ username: credentials.username, password: credentials.password, remember: false }),
     });
-    if (isLogin(res) || res.status >= 400) throw new SessionError('o tracker recusou o usuário ou a senha');
+    if (isLogin(res) || res.status >= 400) throw new PrivateSourceError('login', 'o tracker recusou o usuário ou a senha');
     loggedIn = true;
   }
 
-  async function fetchPage(path) {
-    const res = await send(path);
-    if (isLogin(res)) return null;
-    if (!res.ok) throw new SessionError(`o tracker respondeu HTTP ${res.status} em ${new URL(path, baseUrl).pathname}`);
-    return pageFromHtml(await res.text());
+  function refused(res, path) {
+    const where = new URL(path, baseUrl).pathname;
+    if (res.status === 404) return new PrivateSourceError('gone', `o tracker não tem mais ${where}`);
+    return new PrivateSourceError('unavailable', `o tracker respondeu HTTP ${res.status} em ${where}`);
   }
 
-  async function page(path) {
+  async function loggedGet(path) {
     if (!loggedIn) await login();
-    const first = await fetchPage(path);
-    if (first) return first;
+    const first = await send(path);
+    if (!isLogin(first)) return first;
 
     loggedIn = false;
     await login();
-    const retried = await fetchPage(path);
-    if (!retried) throw new SessionError('o tracker recusou a sessão logo depois do login');
+    const retried = await send(path);
+    if (isLogin(retried)) throw new PrivateSourceError('login', 'o tracker recusou a sessão logo depois do login');
     return retried;
   }
 
-  return { page };
+  async function page(path) {
+    const res = await loggedGet(path);
+    if (!res.ok) throw refused(res, path);
+    return pageFromHtml(await res.text());
+  }
+
+  async function file(path) {
+    const res = await loggedGet(path);
+    if (!res.ok) throw refused(res, path);
+    if (!TORRENT_FILE.test(res.headers.get('content-type') ?? '')) {
+      throw new PrivateSourceError('unavailable', 'o tracker não entregou um arquivo .torrent');
+    }
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  return { page, file };
 }
 
-module.exports = { createInertiaSession, SessionError, pageFromHtml };
+module.exports = { createInertiaSession, pageFromHtml };

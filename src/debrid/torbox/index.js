@@ -64,12 +64,13 @@ function create({ token, timeoutMs, fetch, wait = sleep, recent = recentlyAdded.
      * Idempotent: a torrent already in the account is only described. A new
      * one is added -- instantly ready when TorBox has it cached.
      */
-    async resolve(hash, want = {}) {
+    async resolve(hash, want = {}, { torrentFile = null } = {}) {
       const existing = await findTorrent(hash);
       if (existing) return describe(existing, want);
 
       const cached = (await api.cachedHashes([hash])).has(hash);
-      const created = await api.createTorrent(magnetOf(hash));
+      const created =
+        cached || !torrentFile ? await api.createTorrent(magnetOf(hash)) : await api.createTorrentFromFile(await torrentFile(), hash);
 
       // All download slots busy: TorBox queues it and there is no torrent id yet.
       if (created?.torrent_id === undefined) return { status: 'queued', cached };

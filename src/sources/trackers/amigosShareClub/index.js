@@ -1,6 +1,7 @@
 'use strict';
 
 const { createInertiaSession } = require('../../private/inertiaSession');
+const { PrivateSourceError } = require('../../private/errors');
 const { releaseName } = require('./releaseName');
 
 const BASE_URL = 'https://amigos-share.club';
@@ -83,6 +84,16 @@ function create(http, settings = {}) {
     return { items, nextCursor: listing.current_page < listing.last_page ? String(page + 1) : null };
   }
 
+  async function torrentFile(sourceId) {
+    const { props } = await session.page(`/torrents/${sourceId}`);
+    const blocked = props.download?.unavailableReason;
+    if (blocked) throw new PrivateSourceError('blocked', blocked);
+    if (settings.freeleechOnly && !props.torrent?.freeleech) {
+      throw new PrivateSourceError('not_freeleech', 'o torrent não está mais em freeleech');
+    }
+    return session.file(props.download?.url ?? `/torrents/${sourceId}/download`);
+  }
+
   const toItem = (raw) => ({
     sourceId: String(raw.id),
     infohash: raw.infohash,
@@ -95,7 +106,7 @@ function create(http, settings = {}) {
     language: raw.language,
   });
 
-  return { terms: CONTENT_CATEGORIES[settings.content] ?? CONTENT_CATEGORIES.both, fetchPage, toItem };
+  return { terms: CONTENT_CATEGORIES[settings.content] ?? CONTENT_CATEGORIES.both, fetchPage, toItem, torrentFile };
 }
 
 module.exports = {

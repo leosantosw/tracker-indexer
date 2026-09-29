@@ -3,7 +3,7 @@
 const cors = require('@fastify/cors');
 
 /**
- * CORS for the routes apps call from another origin: the TV app runs from
+ * CORS for the routes apps call from another origin: a client app may run from
  * file:// (origin "null") and the desktop dev server from localhost. No
  * cookies are involved -- auth is a Bearer header -- so any origin is fine.
  * The admin API does not get this: the panel is served by this same server.

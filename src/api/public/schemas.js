@@ -73,7 +73,7 @@ const WORK_FIELDS = {
 };
 
 /**
- * O que a grade de uma TV precisa para desenhar o cartão e o fundo do item em
+ * O que a grade de um cliente precisa para desenhar o cartão e o fundo do item em
  * foco -- nada mais. A sinopse sozinha era metade do peso da listagem.
  */
 const CARD_FIELDS = ['id', 'title', 'year', 'poster', 'backdrop', 'rating'];
@@ -310,7 +310,7 @@ const catalogRoutes = (kind, singular, plural) => ({
     summary: `Busca ${singular} por id`,
     description:
       'Tudo de uma vez: os dados da TMDB, o trailer e as cópias, da mais semeada para a ' +
-      'menos. Ao abrir um item, a TV faz esta requisição e nenhuma outra.\n\n' +
+      'menos. Ao abrir um item, o cliente faz esta requisição e nenhuma outra.\n\n' +
       `Responde 404 quando o id não existe ou quando não é ${singular}.`,
     params: ID_PARAM,
     response: { 200: { $ref: `${kind}#` }, 404: { $ref: 'NotFound#' } },

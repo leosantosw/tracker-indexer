@@ -186,7 +186,7 @@ limit:
 | `poster` | vertical cover | `w185` | `w342` |
 | `backdrop` | horizontal, for background and banner | `w780` | `w1280` |
 
-The TV grid calls for a small image; the open item screen, a larger one. On the TV, the
+A client's grid calls for a small image; the open item screen, a larger one. On a client, the
 images weigh much more than the JSON: 50 covers add up to around a megabyte, against
 ~3.6 KB for the compressed page. Load the covers as they come into view.
 
@@ -426,7 +426,7 @@ src/
 │  │  ├─ dto.js              database row -> payload
 │  │  ├─ schemas.js          JSON schemas (validation + serialization + Swagger)
 │  │  └─ docs.js             Swagger UI at /api/docs
-│  ├─ debrid/                TV routes: request, check and remove
+│  ├─ debrid/                client routes: request, check and remove
 │  │  ├─ index.js            auth, no-store and errors with code
 │  │  └─ schemas.js          hash validation + Swagger
 │  └─ admin/                 panel API

@@ -4,7 +4,7 @@ const { SEARCH, SEARCH_GENRES } = require('./schemas');
 const { toWorkCard } = require('./dto');
 
 /**
- * Ready-made searches for the TV keyboard. TMDB names TV genres differently
+ * Ready-made searches for a client's search screen. TMDB names TV genres differently
  * ("Action & Adventure"), so one shortcut can stand for several genres.
  */
 const SHORTCUTS = [

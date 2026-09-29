@@ -35,7 +35,7 @@ function createTorboxApi({ token, timeoutMs = 20000, fetch = globalThis.fetch })
       body = JSON.stringify(json);
     } else if (form) {
       body = new FormData();
-      for (const [key, value] of Object.entries(form)) body.append(key, String(value));
+      for (const [key, value] of Object.entries(form)) body.append(key, value instanceof Blob ? value : String(value));
     }
 
     let res;
@@ -66,6 +66,9 @@ function createTorboxApi({ token, timeoutMs = 20000, fetch = globalThis.fetch })
     },
 
     createTorrent: (magnet) => call('POST', '/torrents/createtorrent', { form: { magnet, allow_zip: false } }),
+
+    createTorrentFromFile: (bytes, hash) =>
+      call('POST', '/torrents/createtorrent', { form: { file: new File([bytes], `${hash}.torrent`), allow_zip: false } }),
 
     /** A fresh CDN link. It expires, so it is requested on every call and never stored. */
     requestLink: (torrentId, fileId) =>

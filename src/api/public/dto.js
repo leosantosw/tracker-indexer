@@ -5,7 +5,7 @@ const { normalizeInfohash } = require('../../lib/infohash');
 const KB = 1024;
 
 // O banco guarda so o caminho; o tamanho e escolhido aqui, sem reprocessar
-// nada. A grade da TV usa imagens menores que a tela do item aberto.
+// nada. A grade de um cliente usa imagens menores que a tela do item aberto.
 const TMDB_IMAGES = 'https://image.tmdb.org/t/p/';
 const SIZES = {
   card: { poster: 'w185', backdrop: 'w780' },

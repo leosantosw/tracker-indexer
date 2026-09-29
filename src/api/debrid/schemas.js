@@ -58,7 +58,8 @@ const ERROR = {
       type: 'string',
       description:
         '`not_configured`, `missing_token`, `not_found`, `provider_auth`, `provider_rate_limit`, ' +
-        '`provider_error` ou `provider_unavailable`.',
+        '`provider_error` ou `provider_unavailable`. De tracker privado: `private_not_freeleech`, ' +
+        '`private_download_blocked`, `private_torrent_gone`, `private_login_failed` ou `private_unavailable`.',
     },
   },
 };
@@ -70,7 +71,7 @@ const common = {
 
 const HASH_PARAM = { type: 'object', properties: { hash: HASH }, required: ['hash'] };
 
-const errors = { 401: ERROR, 404: ERROR, 429: ERROR, 502: ERROR, 503: ERROR, 504: ERROR };
+const errors = { 401: ERROR, 404: ERROR, 409: ERROR, 429: ERROR, 502: ERROR, 503: ERROR, 504: ERROR };
 
 const RESOLVE = {
   ...common,
@@ -78,6 +79,9 @@ const RESOLVE = {
   description:
     'Se o provedor já tem o torrent em cache, responde **200 `ready`** com o link. Se não, manda ' +
     'baixar e responde **202 `downloading`** (ou `queued`, com todas as vagas ocupadas).\n\n' +
+    'Torrent de tracker privado fora do cache vai pelo `.torrent`, baixado do tracker na hora. Com ' +
+    '"Apenas freeleech" ligado no tracker, só se ele ainda estiver em freeleech; se não estiver, ' +
+    'responde **409 `private_not_freeleech`** e nada chega ao provedor.\n\n' +
     'Pode chamar de novo sem medo: um torrent que já está na conta não é adicionado outra vez. ' +
     'Para acompanhar o download, prefira o `GET`, que nunca adiciona nada.',
   body: {
@@ -93,7 +97,7 @@ const STATUS_ROUTE = {
   ...common,
   summary: 'Consulta o status de um torrent',
   description:
-    'Só leitura. A TV consulta a cada ~5 s depois do `POST`, até vir `ready` ou `failed`. ' +
+    'Só leitura. O cliente consulta a cada ~5 s depois do `POST`, até vir `ready` ou `failed`. ' +
     'Em `ready`, cada chamada gera um link novo.',
   params: HASH_PARAM,
   querystring: { type: 'object', properties: { season: SEASON, episode: EPISODE }, additionalProperties: false },

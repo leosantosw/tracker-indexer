@@ -11,6 +11,8 @@ const { DebridError } = require('./errors');
  *   { status: 'ready', url, file } | { status: 'downloading', progress, eta, state }
  *   | { status: 'queued' } | { status: 'failed', reason }
  * and checkCached(hashes) returns { [hash]: boolean } without adding anything.
+ * resolve also takes `{ torrentFile }`: for a private torrent, an async function
+ * giving the .torrent bytes, called only when the hash is not cached.
  * `cacheBatch` is how many hashes one checkCached call takes; a provider
  * without a cache lookup leaves it out and the cache check is skipped.
  */

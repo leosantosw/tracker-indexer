@@ -139,3 +139,51 @@ test('o tracker se declara privado, com login e com a opção de freeleech', () 
   assert.equal(tracker.freeleechOnly, false);
   assert.ok(tracker.rps <= 1, 'uma requisição por segundo, no máximo, para não pesar no site');
 });
+
+const TORRENT_BYTES = Buffer.from('d8:announce3:urle');
+
+function fakeDownloadSite({ freeleech = true, unavailableReason = null, status = 200 } = {}) {
+  const requests = [];
+  async function send(url, init = {}) {
+    const { pathname } = new URL(url);
+    requests.push(pathname);
+    if (pathname === '/login' && !init.method) return new Response(pageHtml({ version: 'v1', props: {} }), { headers: { 'set-cookie': 'XSRF-TOKEN=t; path=/' } });
+    if (pathname === '/login') return new Response(null, { status: 302, headers: { location: 'https://amigos-share.club/dashboard' } });
+    if (pathname === '/torrents/101/download') return new Response(TORRENT_BYTES, { headers: { 'content-type': 'application/x-bittorrent' } });
+    if (status !== 200) return new Response('nao achei', { status });
+    return new Response(pageHtml({ props: { torrent: { freeleech }, download: { url: '/torrents/101/download', unavailableReason } } }));
+  }
+  return { send, requests };
+}
+
+test('o .torrent só é baixado depois de conferir o freeleech na página', async () => {
+  const site = fakeDownloadSite();
+  const source = tracker.create(site, { credentials, freeleechOnly: true });
+
+  const file = await source.torrentFile('101');
+
+  assert.deepEqual(file, TORRENT_BYTES);
+  assert.deepEqual(site.requests.slice(-2), ['/torrents/101', '/torrents/101/download']);
+});
+
+test('torrent que deixou de ser freeleech é recusado sem baixar o .torrent', async () => {
+  const site = fakeDownloadSite({ freeleech: false });
+  const source = tracker.create(site, { credentials, freeleechOnly: true });
+
+  await assert.rejects(() => source.torrentFile('101'), { code: 'not_freeleech' });
+  assert.ok(!site.requests.includes('/torrents/101/download'));
+});
+
+test('com a opção de freeleech desligada, baixa mesmo fora do freeleech', async () => {
+  const source = tracker.create(fakeDownloadSite({ freeleech: false }), { credentials, freeleechOnly: false });
+
+  assert.deepEqual(await source.torrentFile('101'), TORRENT_BYTES);
+});
+
+test('download bloqueado pelo site e torrent removido viram erros com código', async () => {
+  const blocked = tracker.create(fakeDownloadSite({ unavailableReason: 'Você atingiu o limite de downloads' }), { credentials });
+  const gone = tracker.create(fakeDownloadSite({ status: 404 }), { credentials });
+
+  await assert.rejects(() => blocked.torrentFile('101'), { code: 'blocked', message: 'Você atingiu o limite de downloads' });
+  await assert.rejects(() => gone.torrentFile('101'), { code: 'gone' });
+});
