@@ -56,13 +56,13 @@ function LastRunCard({ last }: { last: LastJob | null }) {
   const result = RESULTS[last.result]
   return (
     <StatCard icon={ClockIcon} label="Última execução">
-      <div className="flex flex-wrap items-center gap-2">
-        <BigNumber>{ago(last.finishedAt, now)}</BigNumber>
+      <BigNumber>{ago(last.finishedAt, now)}</BigNumber>
+      <div className="mt-1 flex items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
         <Badge variant={result.variant}>{result.label}</Badge>
+        <span className="truncate">
+          {duration(last.startedAt, last.finishedAt)} · {JOBS[last.job].short}
+        </span>
       </div>
-      <Caption>
-        {JOBS[last.job].title} · levou {duration(last.startedAt, last.finishedAt)}
-      </Caption>
       {last.error && <p className="mt-2 line-clamp-2 text-xs text-destructive">{last.error}</p>}
     </StatCard>
   )

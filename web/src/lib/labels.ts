@@ -1,17 +1,19 @@
 import type { BadgeVariant } from '@/components/ui/badge'
 import type { CheckStatus, Content, JobName, JobResult, UnmatchedStatus, WorkType } from '@/lib/schemas'
 
-export const JOBS: Record<JobName, { action: string; running: string; title: string; hint: string }> = {
+export const JOBS: Record<JobName, { action: string; running: string; title: string; short: string; hint: string }> = {
   sync: {
     action: 'Atualizar catálogo',
     running: 'atualizando catálogo',
     title: 'Atualização do catálogo',
+    short: 'Atualização',
     hint: 'Busca torrents novos nos trackers ativos e depois capas e notas na TMDB',
   },
   enrich: {
     action: 'Buscar capas e notas',
     running: 'buscando capas e notas',
     title: 'Busca de capas e notas',
+    short: 'Capas e notas',
     hint: 'Consulta a TMDB só para as obras novas ou com nota vencida, sem tocar nos trackers',
   },
 }
