@@ -28,7 +28,7 @@ const API_PREFIX = '/api';
 async function buildServer(repo, options = {}) {
   const app = fastify();
   const store = options.store ?? createSettingsStore(repo);
-  const deps = { repo, store, cacheStatus: createCacheStatus({ store }) };
+  const deps = { repo, store, cacheStatus: createCacheStatus({ store, log: options.log }) };
 
   await app.register(compress);
   await app.register(etag);

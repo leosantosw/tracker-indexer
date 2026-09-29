@@ -63,7 +63,7 @@ const commands = {
     if (!admin.token) log('painel sem token: o primeiro acesso a /admin cria o ADMIN_TOKEN');
     if (!apps.token) log('aviso: sem API_TOKEN a API (menos /api/health) nao responde; defina no painel ou no .env');
 
-    const app = await buildServer(repo);
+    const app = await buildServer(repo, { log });
     await app.listen(baseConfig.api);
     log(`API em http://localhost:${baseConfig.api.port} (docs em /api/docs, painel em /admin)`);
     return 'keep-alive';

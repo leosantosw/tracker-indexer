@@ -8,13 +8,22 @@ const LOOKUP_TIMEOUT_MS = 1500;
 // After a failure (provider down, token refused), stop asking for a while.
 const BACKOFF_MS = 60 * 1000;
 
+const UNCONFIGURED = new Set(['not_configured', 'missing_token']);
+
 /**
  * "Is this torrent already cached on the debrid?" for the public movie detail.
  * Answers are kept in memory for a while: the detail is open to anyone, and
  * without this every visit would spend the account's rate limit. Only the
  * yes/no is kept -- never a link. Failures are not kept, so they are retried.
  */
-function createCacheStatus({ store, ttlMs = TTL_MS, timeoutMs = LOOKUP_TIMEOUT_MS, backoffMs = BACKOFF_MS, now = Date.now }) {
+function createCacheStatus({
+  store,
+  ttlMs = TTL_MS,
+  timeoutMs = LOOKUP_TIMEOUT_MS,
+  backoffMs = BACKOFF_MS,
+  now = Date.now,
+  log = console.log,
+}) {
   const known = new Map(); // hash -> { cached, at }
   let quietUntil = 0;
 
@@ -38,7 +47,8 @@ function createCacheStatus({ store, ttlMs = TTL_MS, timeoutMs = LOOKUP_TIMEOUT_M
     let debrid;
     try {
       debrid = createDebrid(store.config(), { timeoutMs });
-    } catch {
+    } catch (err) {
+      if (!UNCONFIGURED.has(err.code)) throw err;
       return result; // debrid off or without a token: nothing to ask
     }
 
@@ -48,9 +58,10 @@ function createCacheStatus({ store, ttlMs = TTL_MS, timeoutMs = LOOKUP_TIMEOUT_M
         known.set(hash, { cached: answers[hash], at: now() });
         result[hash] = answers[hash];
       }
-    } catch {
+    } catch (err) {
       // Slow, down or refusing the token: null for these, and a pause before asking again.
       quietUntil = now() + backoffMs;
+      log(`debrid: selo de cache pausado por ${Math.round(backoffMs / 1000)}s -- ${err.message}`);
     }
     return result;
   }
