@@ -1,5 +1,5 @@
 import { ActivityCard } from '@/features/activity/activity-card'
-import { CatalogCard } from '@/features/dashboard/catalog-card'
+import { CatalogCards } from '@/features/dashboard/catalog-cards'
 import { OverviewCards } from '@/features/dashboard/overview-cards'
 import { ReasonAlert } from '@/features/dashboard/reason-alert'
 import { TrackersList } from '@/features/trackers/trackers-list'
@@ -14,7 +14,7 @@ export function DashboardPage() {
       <div className="space-y-4">
         <ReasonAlert job={status.job} />
         <OverviewCards status={status} />
-        <CatalogCard stats={status.stats} />
+        <CatalogCards stats={status.stats} />
       </div>
       <ActivityCard job={status.job} />
       <TrackersList sources={settings.sources} status={status} />
