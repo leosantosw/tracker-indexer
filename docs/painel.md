@@ -9,10 +9,14 @@ Uma página só:
 | Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (escuro por padrão; claro, escuro ou o do sistema, guardado no navegador) |
 | Resumo | torrents indexados, obras casadas, última e próxima execução; o card *Catálogo* traz filmes e séries e a distribuição do match com a TMDB |
 | Atividade | parada, vira uma linha com o resumo da última execução; rodando, mostra as etapas com progresso real (trackers, depois capas e notas) e os avisos; os logs técnicos ficam recolhidos em *Ver logs* |
-| Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele, e as regras ativas como ícones; clicar abre a página dele |
+| Trackers | só os trackers adicionados, uma linha por tracker: *Testar*, *Buscar torrents* só nele e as regras ativas como ícones; clicar abre a página dele. *Adicionar tracker* lista os que faltam e leva para a configuração antes de adicionar |
 | Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, e os nomes crus dos torrents ao passar o mouse no título; filtra por status e por tracker, 5 por vez. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
-| Página do tracker (`/admin/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
+| Página do tracker (`/admin/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*, *Remover tracker*). Para um tracker ainda não adicionado, a mesma página abre em `/admin/trackers/<nome>/adicionar` com o botão *Adicionar tracker* |
 | Configurações (`/admin/configuracoes`, `?secao=tmdb` abre direto numa seção) | página inteira, uma seção por assunto e cada chave junto do que ela liga: agendamento; TMDB + `TMDB_API_KEY`; debrid + token do provedor; acesso (`ADMIN_TOKEN`, `API_TOKEN`) |
+
+Adicionar e remover um tracker é o mesmo `enabled` da configuração: adicionado é
+`enabled: true`, removido é `enabled: false`. Remover não apaga os torrents já
+indexados; para isso existe *Apagar resultados*.
 
 Os nomes da tela são para quem usa; código, CLI, API e log continuam com
 `sync` e `enrich`:

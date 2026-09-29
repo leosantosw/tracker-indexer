@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toFormValues, toPatch, trackerFormFor } from '@/features/trackers/tracker-form'
+import { toAddPatch, toFormValues, toPatch, trackerFormFor } from '@/features/trackers/tracker-form'
 import type { Source } from '@/lib/schemas'
 
 const bySearch: Source = {
@@ -22,7 +22,6 @@ describe('formulário do tracker', () => {
     const values = { ...toFormValues(bySearch), dedupeBySeeders: false }
 
     expect(toPatch(values)).toEqual({
-      enabled: true,
       content: 'both',
       rps: 1,
       pages: 3,
@@ -30,6 +29,10 @@ describe('formulário do tracker', () => {
       rules: { requireYear: true, dedupe: null },
       terms: ['dublado', 'dual'],
     })
+  })
+
+  it('adicionar um tracker liga ele junto com a configuração', () => {
+    expect(toAddPatch(toFormValues({ ...byPages, enabled: false }))).toMatchObject({ enabled: true, content: 'both', rps: 1 })
   })
 
   it('tracker por catálogo não manda termos', () => {

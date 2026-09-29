@@ -1,21 +1,21 @@
-import { CalendarCheckIcon, ChevronRightIcon, CopyMinusIcon, FlaskConicalIcon, PlayIcon } from 'lucide-react'
+import { CalendarCheckIcon, ChevronRightIcon, CopyMinusIcon, FlaskConicalIcon, PlayIcon, PlusIcon } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { toast } from 'sonner'
 
 import { Hint } from '@/components/app/hint'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { useJobActions } from '@/features/jobs/use-job-actions'
+import { AddTrackerDialog } from '@/features/trackers/add-tracker-dialog'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
-import { formatNumber } from '@/lib/format'
+import { addedTrackers, availableTrackers } from '@/features/trackers/tracker-lists'
+import { formatNumber, plural } from '@/lib/format'
 import { CONTENT, MODE_LABEL, SOURCE_SYNC } from '@/lib/labels'
 import { paths } from '@/lib/paths'
-import { useSaveSettings } from '@/lib/queries'
 import type { Source, Status } from '@/lib/schemas'
-import { cn } from '@/lib/utils'
 
 function summary(source: Source, indexed: number) {
   return [
@@ -31,15 +31,7 @@ function summary(source: Source, indexed: number) {
 function TrackerRow({ source, indexed, running }: { source: Source; indexed: number; running: boolean }) {
   const navigate = useNavigate()
   const actions = useJobActions()
-  const save = useSaveSettings()
-  const { name, enabled } = source
-
-  function toggle(next: boolean) {
-    save.mutate(
-      { sources: { [name]: { enabled: next } } },
-      { onSuccess: () => toast.success(`${name} ${next ? 'ativado' : 'desativado'}`) }
-    )
-  }
+  const { name } = source
 
   return (
     <li
@@ -48,8 +40,8 @@ function TrackerRow({ source, indexed, running }: { source: Source; indexed: num
         if (!(event.target as HTMLElement).closest('button, a')) navigate(paths.tracker(name))
       }}
     >
-      <TrackerAvatar source={source} />
-      <div className={cn('min-w-0 flex-1', !enabled && 'opacity-60')}>
+      <TrackerAvatar name={name} />
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <Link to={paths.tracker(name)} className="truncate font-semibold hover:underline">
             {name}
@@ -78,23 +70,11 @@ function TrackerRow({ source, indexed, running }: { source: Source; indexed: num
             <FlaskConicalIcon />
           </Button>
         </Hint>
-        <Hint label={enabled ? SOURCE_SYNC.hint(name) : 'Ative o tracker para buscar torrents'}>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`${SOURCE_SYNC.action} em ${name}`}
-            disabled={!enabled || running}
-            onClick={() => actions.sync([name])}
-          >
+        <Hint label={SOURCE_SYNC.hint(name)}>
+          <Button variant="ghost" size="icon" aria-label={`${SOURCE_SYNC.action} em ${name}`} disabled={running} onClick={() => actions.sync([name])}>
             <PlayIcon />
           </Button>
         </Hint>
-        <Switch
-          checked={enabled}
-          disabled={save.isPending}
-          aria-label={`${enabled ? 'Desativar' : 'Ativar'} ${name}`}
-          onCheckedChange={toggle}
-        />
       </div>
       <ChevronRightIcon className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
     </li>
@@ -102,27 +82,47 @@ function TrackerRow({ source, indexed, running }: { source: Source; indexed: num
 }
 
 export function TrackersList({ sources, status }: { sources: Source[]; status: Status }) {
+  const [adding, setAdding] = useState(false)
+  const added = addedTrackers(sources)
+  const available = availableTrackers(sources)
   const indexed = (name: string) => status.stats.sources.find((row) => row.source === name)?.total ?? 0
-  const active = sources.filter((source) => source.enabled).length
+
+  const addButton = (
+    <Button variant="outline" disabled={!available.length} onClick={() => setAdding(true)}>
+      <PlusIcon data-icon="inline-start" />
+      Adicionar tracker
+    </Button>
+  )
 
   return (
     <section>
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Trackers</h2>
-          <p className="text-sm text-muted-foreground">Mudanças valem a partir da próxima execução.</p>
+          <p className="text-sm text-muted-foreground">
+            {added.length ? `${plural(added.length, 'tracker adicionado', 'trackers adicionados')} · mudanças valem a partir da próxima execução` : 'Nenhum tracker adicionado ainda.'}
+          </p>
         </div>
-        <span className="text-sm text-muted-foreground">
-          {active} de {sources.length} ativos
-        </span>
+        <Hint label={available.length ? null : 'Todos os trackers disponíveis já foram adicionados'}>{addButton}</Hint>
       </div>
       <Card className="mt-4 gap-0 rounded-2xl py-0">
-        <ul className="divide-y">
-          {sources.map((source) => (
-            <TrackerRow key={source.name} source={source} indexed={indexed(source.name)} running={Boolean(status.job.running)} />
-          ))}
-        </ul>
+        {added.length ? (
+          <ul className="divide-y">
+            {added.map((source) => (
+              <TrackerRow key={source.name} source={source} indexed={indexed(source.name)} running={Boolean(status.job.running)} />
+            ))}
+          </ul>
+        ) : (
+          <Empty className="py-10">
+            <EmptyHeader>
+              <EmptyTitle>Nenhum tracker adicionado</EmptyTitle>
+              <EmptyDescription>Adicione um tracker para o catálogo começar a receber torrents.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>{addButton}</EmptyContent>
+          </Empty>
+        )}
       </Card>
+      <AddTrackerDialog open={adding} onOpenChange={setAdding} available={available} />
     </section>
   )
 }

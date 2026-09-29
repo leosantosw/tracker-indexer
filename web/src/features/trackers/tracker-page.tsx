@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FlaskConicalIcon, PlayIcon, Trash2Icon } from 'lucide-react'
-import { useEffect } from 'react'
+import { FlaskConicalIcon, MinusCircleIcon, PlayIcon, Trash2Icon } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Controller, FormProvider, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useJobActions } from '@/features/jobs/use-job-actions'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
-import { toFormValues, toPatch, trackerFormFor, type TrackerForm } from '@/features/trackers/tracker-form'
+import { toAddPatch, toFormValues, toPatch, trackerFormFor, type TrackerForm } from '@/features/trackers/tracker-form'
 import { warnInvalid } from '@/lib/form-errors'
 import { formatNumber } from '@/lib/format'
 import { CONTENT, MODE_LABEL, SOURCE_SYNC } from '@/lib/labels'
@@ -33,24 +33,26 @@ const SUBTITLE = {
   pages: 'Varre a listagem do catálogo · mais novo primeiro',
 }
 
+type Mode = 'edit' | 'add'
+
 type TrackerViewProps = { source: Source; indexed: number; running: boolean }
 
-function TrackerHeader({ source, indexed, running }: TrackerViewProps) {
+function TrackerHeader({ source, indexed, running, mode }: TrackerViewProps & { mode: Mode }) {
   const actions = useJobActions()
+  const adding = mode === 'add'
 
   return (
     <header className="mb-8">
       <BackLink />
       <div className="mt-3 flex flex-wrap items-center gap-4">
-        <TrackerAvatar source={source} className="size-12" />
+        <TrackerAvatar name={source.name} className="size-12" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-2xl font-semibold tracking-tight">{source.name}</h2>
+            <h2 className="truncate text-2xl font-semibold tracking-tight">{adding ? `Adicionar ${source.name}` : source.name}</h2>
             <Badge variant="secondary">{MODE_LABEL[source.mode]}</Badge>
-            {source.enabled ? <Badge variant="success">ativo</Badge> : <Badge variant="secondary">inativo</Badge>}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {SUBTITLE[source.mode]} · {formatNumber(indexed)} torrents indexados
+            {SUBTITLE[source.mode]} · {adding ? 'revise a configuração e adicione' : `${formatNumber(indexed)} torrents indexados`}
           </p>
         </div>
         <Hint label="Lê a primeira página e mostra o que entraria, sem gravar">
@@ -59,19 +61,53 @@ function TrackerHeader({ source, indexed, running }: TrackerViewProps) {
             Testar
           </Button>
         </Hint>
-        <Hint label={source.enabled ? SOURCE_SYNC.hint(source.name) : 'Ative o tracker para buscar torrents'}>
-          <Button type="button" variant="outline" disabled={!source.enabled || running} onClick={() => actions.sync([source.name])}>
-            <PlayIcon data-icon="inline-start" />
-            {SOURCE_SYNC.action}
-          </Button>
-        </Hint>
+        {!adding && (
+          <Hint label={SOURCE_SYNC.hint(source.name)}>
+            <Button type="button" variant="outline" disabled={running} onClick={() => actions.sync([source.name])}>
+              <PlayIcon data-icon="inline-start" />
+              {SOURCE_SYNC.action}
+            </Button>
+          </Hint>
+        )}
       </div>
     </header>
   )
 }
 
+function DangerRow({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+      <div>
+        <p className="text-sm font-medium">{title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 function DangerZone({ source, indexed, running }: TrackerViewProps) {
+  const navigate = useNavigate()
   const clear = useClearSource()
+  const save = useSaveSettings()
+
+  async function onRemove() {
+    const ok = await confirmAction({
+      title: `Remover ${source.name}?`,
+      description: `Ele sai das atualizações do catálogo. Os ${formatNumber(indexed)} torrents já indexados continuam; para apagá-los, use Apagar resultados antes.`,
+      confirmLabel: 'Remover',
+    })
+    if (!ok) return
+    save.mutate(
+      { sources: { [source.name]: { enabled: false } } },
+      {
+        onSuccess: () => {
+          toast.success(`${source.name} removido`)
+          navigate(paths.dashboard)
+        },
+      }
+    )
+  }
 
   async function onClear() {
     const ok = await confirmAction({ title: `Tem certeza que quer apagar os torrents de ${source.name}?`, confirmLabel: 'Apagar' })
@@ -83,36 +119,39 @@ function DangerZone({ source, indexed, running }: TrackerViewProps) {
 
   return (
     <FormSection id="perigo" title="Zona de perigo" description="Ações que não dá para desfazer.">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-destructive/30 p-4">
-        <div>
-          <p className="text-sm font-medium">Apagar resultados</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Remove os {formatNumber(indexed)} torrents deste tracker. Capas e notas da TMDB ficam.
-          </p>
-        </div>
-        <Hint label={running ? 'Espere o job atual terminar' : null}>
-          <Button type="button" variant="destructive" disabled={!indexed || running || clear.isPending} onClick={onClear}>
-            <Trash2Icon data-icon="inline-start" />
-            Apagar
+      <div className="divide-y divide-destructive/20 rounded-xl border border-destructive/30">
+        <DangerRow title="Apagar resultados" description={`Remove os ${formatNumber(indexed)} torrents deste tracker. Capas e notas da TMDB ficam.`}>
+          <Hint label={running ? 'Espere o job atual terminar' : null}>
+            <Button type="button" variant="destructive" disabled={!indexed || running || clear.isPending} onClick={onClear}>
+              <Trash2Icon data-icon="inline-start" />
+              Apagar
+            </Button>
+          </Hint>
+        </DangerRow>
+        <DangerRow title="Remover tracker" description="Tira o tracker das atualizações do catálogo. Dá para adicionar de novo depois.">
+          <Button type="button" variant="destructive" disabled={save.isPending} onClick={onRemove}>
+            <MinusCircleIcon data-icon="inline-start" />
+            Remover
           </Button>
-        </Hint>
+        </DangerRow>
       </div>
     </FormSection>
   )
 }
 
-function TrackerFormView({ source, indexed, running }: TrackerViewProps) {
+function TrackerFormView({ source, indexed, running, mode }: TrackerViewProps & { mode: Mode }) {
   const navigate = useNavigate()
   const save = useSaveSettings()
   const form = useForm<TrackerForm>({ resolver: zodResolver(trackerFormFor(source)), defaultValues: toFormValues(source) })
   const byTerms = source.mode === 'terms'
+  const adding = mode === 'add'
 
   function onSubmit(values: TrackerForm) {
     save.mutate(
-      { sources: { [source.name]: toPatch(values) } },
+      { sources: { [source.name]: adding ? toAddPatch(values) : toPatch(values) } },
       {
         onSuccess: () => {
-          toast.success(`${source.name} salvo`)
+          toast.success(adding ? `${source.name} adicionado` : `${source.name} salvo`)
           navigate(paths.dashboard)
         },
       }
@@ -122,21 +161,9 @@ function TrackerFormView({ source, indexed, running }: TrackerViewProps) {
   return (
     <FormProvider {...form}>
       <form className="pb-28" onSubmit={form.handleSubmit(onSubmit, warnInvalid)}>
-        <TrackerHeader source={source} indexed={indexed} running={running} />
+        <TrackerHeader source={source} indexed={indexed} running={running} mode={mode} />
         <div className="space-y-6">
-          <FormSection id="geral" title="Geral" description="Se o tracker entra na atualização do catálogo e em que ritmo.">
-            <Controller
-              control={form.control}
-              name="enabled"
-              render={({ field }) => (
-                <SwitchField
-                  label="Tracker ativo"
-                  description="Inativo, ele fica fora de toda atualização do catálogo — pela CLI também."
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
+          <FormSection id="geral" title="Geral" description="O que o tracker traz para o catálogo e em que ritmo.">
             <FormField<TrackerForm, 'content'> name="content" label="Conteúdo" description="O que este tracker traz para o catálogo.">
               {({ value, onChange, id }) => (
                 <Select value={value} onValueChange={onChange}>
@@ -222,27 +249,43 @@ function TrackerFormView({ source, indexed, running }: TrackerViewProps) {
             </FormSection>
           )}
 
-          <DangerZone source={source} indexed={indexed} running={running} />
+          {!adding && <DangerZone source={source} indexed={indexed} running={running} />}
         </div>
-        <PageBar saving={save.isPending} />
+        <PageBar saving={save.isPending} submitLabel={adding ? 'Adicionar tracker' : undefined} />
       </form>
     </FormProvider>
   )
 }
 
-export function TrackerPage() {
-  const { name = '' } = useParams()
+function redirectFor(source: Source | undefined, mode: Mode) {
+  if (!source) return paths.dashboard
+  if (mode === 'edit' && !source.enabled) return paths.addTracker(source.name)
+  if (mode === 'add' && source.enabled) return paths.tracker(source.name)
+  return null
+}
+
+function TrackerRoute({ name, mode }: { name: string; mode: Mode }) {
   const navigate = useNavigate()
   const { status, settings } = useLoaded()
   const source = settings.sources.find((item) => item.name === name)
   const indexed = status.stats.sources.find((row) => row.source === name)?.total ?? 0
+  const [redirect] = useState(() => redirectFor(source, mode))
 
   useEffect(() => {
-    if (source) return
-    toast.error(`tracker desconhecido: ${name}`)
-    navigate(paths.dashboard, { replace: true })
-  }, [source, name, navigate])
+    if (!redirect) return
+    if (!source) toast.error(`tracker desconhecido: ${name}`)
+    navigate(redirect, { replace: true })
+  }, [redirect, source, name, navigate])
 
-  if (!source) return null
-  return <TrackerFormView key={JSON.stringify(source)} source={source} indexed={indexed} running={Boolean(status.job.running)} />
+  if (!source || redirect) return null
+  return <TrackerFormView key={JSON.stringify(source)} source={source} indexed={indexed} running={Boolean(status.job.running)} mode={mode} />
 }
+
+function TrackerRouteByParam({ mode }: { mode: Mode }) {
+  const { name = '' } = useParams()
+  return <TrackerRoute key={`${mode}:${name}`} name={name} mode={mode} />
+}
+
+export const TrackerPage = () => <TrackerRouteByParam mode="edit" />
+
+export const AddTrackerPage = () => <TrackerRouteByParam mode="add" />

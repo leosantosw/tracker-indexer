@@ -6,7 +6,6 @@ import { contentSchema, type Source } from '@/lib/schemas'
 const optionalCount = z.number().int('número inteiro').min(1, 'no mínimo 1').nullable()
 
 export const trackerFormSchema = z.object({
-  enabled: z.boolean(),
   content: contentSchema,
   rps: z.number({ error: 'obrigatório' }).positive('maior que zero').max(50, 'no máximo 50'),
   pages: optionalCount,
@@ -24,7 +23,6 @@ export const trackerFormFor = (source: Source) =>
     : trackerFormSchema
 
 export const toFormValues = (source: Source): TrackerForm => ({
-  enabled: source.enabled,
   content: source.content,
   rps: source.rps,
   pages: source.pages,
@@ -39,3 +37,5 @@ export const toPatch = ({ requireYear, dedupeBySeeders, terms, ...values }: Trac
   rules: { requireYear, dedupe: dedupeBySeeders ? 'seeders' : null },
   ...(terms && { terms }),
 })
+
+export const toAddPatch = (values: TrackerForm): SourcePatch => ({ ...toPatch(values), enabled: true })

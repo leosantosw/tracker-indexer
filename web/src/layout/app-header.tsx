@@ -34,7 +34,7 @@ function JobButtons({ job, settings }: { job: JobStatus; settings: Settings }) {
           {!hasTmdbKey && <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-amber-500 ring-2 ring-background" />}
         </Button>
       </Hint>
-      <Hint label={hasEnabled ? JOBS.sync.hint : 'Nenhum tracker ativo'}>
+      <Hint label={hasEnabled ? JOBS.sync.hint : 'Nenhum tracker adicionado'}>
         <Button disabled={!hasEnabled || actions.starting} onClick={() => actions.sync()}>
           <RefreshCwIcon data-icon="inline-start" />
           <span className="hidden sm:inline">{JOBS.sync.action}</span>
