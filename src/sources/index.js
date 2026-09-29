@@ -13,23 +13,28 @@ const SOURCES = [
   require('./trackers/redesTorrents'),
   require('./trackers/comando'),
   require('./trackers/torrentDosFilmes'),
+  require('./trackers/amigosShareClub'),
 ];
 
 const MODULES = new Map(SOURCES.map((source) => [source.name, source]));
 
+const loginSources = () => SOURCES.filter((source) => source.requiresLogin).map((source) => source.name);
+
 /** What each tracker declares in code: the baseline the admin UI overrides. */
 const sourceDefaults = () =>
-  SOURCES.map(({ name, site, access, rps, terms, pages, stopAfterQuietPages, content, rules }) => ({
+  SOURCES.map(({ name, site, access, requiresLogin, rps, terms, pages, stopAfterQuietPages, content, freeleechOnly, rules }) => ({
     name,
     site,
     access,
+    requiresLogin: Boolean(requiresLogin),
     mode: terms ? 'terms' : 'pages',
-    enabled: true,
+    enabled: !requiresLogin,
     rps,
     terms: terms ? [...terms] : null,
     pages: pages ?? null,
     stopAfterQuietPages: stopAfterQuietPages ?? null,
     content: content ?? 'movies',
+    ...(freeleechOnly !== undefined && { freeleechOnly }),
     rules: { requireYear: false, dedupe: null, ...rules },
   }));
 
@@ -59,4 +64,4 @@ function createTmdbClient(config, { signal } = {}) {
   });
 }
 
-module.exports = { createSources, createTmdbClient, sourceDefaults };
+module.exports = { createSources, createTmdbClient, sourceDefaults, loginSources };

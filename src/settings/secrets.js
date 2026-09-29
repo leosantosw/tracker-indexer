@@ -1,6 +1,7 @@
 'use strict';
 
 const { PROVIDERS } = require('../debrid');
+const { loginSources } = require('../sources');
 const { SettingsError } = require('./errors');
 
 /** One token per debrid provider, named by the provider itself (e.g. `torboxToken`). */
@@ -15,6 +16,21 @@ const debridSlots = Object.fromEntries(
       }),
     },
   ])
+);
+
+const withCredential = (sources, name, field, value) =>
+  sources.map((source) => (source.name === name ? { ...source, credentials: { ...source.credentials, [field]: value } } : source));
+
+const trackerSlots = Object.fromEntries(
+  loginSources().flatMap((name) =>
+    ['username', 'password'].map((field) => [
+      `${name}:${field}`,
+      {
+        read: (config) => config.sources?.find((source) => source.name === name)?.credentials?.[field],
+        apply: (config, value) => ({ ...config, sources: withCredential(config.sources ?? [], name, field, value) }),
+      },
+    ])
+  )
 );
 
 /** Secrets the panel may set, and where each one lands in the config. */
@@ -32,6 +48,7 @@ const SLOTS = {
     apply: (config, value) => ({ ...config, apps: { ...config.apps, token: value } }),
   },
   ...debridSlots,
+  ...trackerSlots,
 };
 
 const NAMES = Object.keys(SLOTS);
@@ -86,4 +103,6 @@ function sealSecrets(stored = {}, patch, cipher) {
   return next;
 }
 
-module.exports = { openSecrets, applySecrets, secretsStatus, sealSecrets };
+const trackerSecretNames = () => Object.keys(trackerSlots);
+
+module.exports = { openSecrets, applySecrets, secretsStatus, sealSecrets, trackerSecretNames };

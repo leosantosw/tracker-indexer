@@ -5,17 +5,19 @@ const { providerOptions } = require('../debrid');
 const { SettingsError } = require('./errors');
 
 const EDITABLE_TMDB = ['language', 'rps', 'staleDays', 'minVotes'];
-const EDITABLE_SOURCE = ['enabled', 'rps', 'pages', 'stopAfterQuietPages', 'content'];
+const EDITABLE_SOURCE = ['enabled', 'rps', 'pages', 'stopAfterQuietPages', 'content', 'freeleechOnly'];
 const EDITABLE_DEBRID = ['provider'];
 const EDITABLE_SCHEDULE = ['enabled', 'mode', 'time', 'days', 'everyMinutes'];
 
 const pick = (obj = {}, keys) =>
   Object.fromEntries(keys.filter((key) => key in obj).map((key) => [key, obj[key]]));
 
+const editableFor = (defaults) => EDITABLE_SOURCE.filter((key) => key !== 'freeleechOnly' || 'freeleechOnly' in defaults);
+
 function mergeSource(defaults, saved = {}) {
   return {
     ...defaults,
-    ...pick(saved, EDITABLE_SOURCE),
+    ...pick(saved, editableFor(defaults)),
     terms: defaults.mode === 'terms' && saved.terms ? saved.terms : defaults.terms,
     rules: { ...defaults.rules, ...saved.rules },
   };
@@ -34,7 +36,7 @@ function buildConfig(base, saved) {
 
 const editableView = (config) => ({
   tmdb: pick(config.tmdb, EDITABLE_TMDB),
-  sources: config.sources,
+  sources: config.sources.map(({ credentials, ...source }) => source),
   debrid: { provider: config.debrid.provider, providers: providerOptions() },
   schedule: config.schedule,
 });

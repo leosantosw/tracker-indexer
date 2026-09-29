@@ -2,6 +2,7 @@
 
 const { PROVIDERS, PROVIDER_IDS } = require('../../debrid');
 const { CONTENT_IDS } = require('../../sources/content');
+const { trackerSecretNames } = require('../../settings/secrets');
 
 /** Admin routes stay out of the public Swagger: they drive the job, not the catalog. */
 const hidden = (schema) => ({ hide: true, ...schema });
@@ -22,6 +23,7 @@ const SOURCE_PATCH = {
     pages: optionalPositiveInt,
     stopAfterQuietPages: optionalPositiveInt,
     content: { enum: CONTENT_IDS },
+    freeleechOnly: { type: 'boolean' },
     terms: {
       type: 'array',
       minItems: 1,
@@ -85,6 +87,7 @@ const SETTINGS_PATCH = hidden({
           adminToken: secret(1, 256),
           apiToken: secret(1, 256),
           ...Object.fromEntries(PROVIDERS.map(({ secret: name }) => [name, secret(8, 512)])),
+          ...Object.fromEntries(trackerSecretNames().map((name) => [name, { type: ['string', 'null'], minLength: 1, maxLength: 256 }])),
         },
       },
     },

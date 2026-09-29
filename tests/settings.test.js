@@ -32,6 +32,7 @@ test('sem nada salvo, vale o que o codigo declara', () => {
       ['redes-torrents', 'pages', true],
       ['comando', 'pages', true],
       ['torrent-dos-filmes', 'pages', true],
+      ['amigos-share-club', 'pages', false],
     ]
   );
   assert.equal(sourceOf(config, 'redes-torrents').pages, 10);
@@ -96,6 +97,8 @@ test('a view diz de onde vem o segredo, nunca o valor', () => {
     adminToken: { source: 'env', error: null },
     apiToken: { source: null, error: null },
     torboxToken: { source: null, error: null },
+    'amigos-share-club:username': { source: null, error: null },
+    'amigos-share-club:password': { source: null, error: null },
   });
   assert.ok(!JSON.stringify(view).includes('chave-do-painel-123'));
   assert.ok(!JSON.stringify(view).includes('token-do-env-000000'));
@@ -146,4 +149,37 @@ test('reset volta aos padroes mas mantem os segredos', () => {
 
   assert.equal(store.config().tmdb.staleDays, baseConfig.tmdb.staleDays);
   assert.equal(store.config().tmdb.apiKey, 'chave-do-painel-123');
+});
+
+test('tracker privado nasce fora das atualizações, até alguém adicionar', () => {
+  const { store } = setup();
+
+  const source = sourceOf(store.config(), 'amigos-share-club');
+
+  assert.equal(source.enabled, false);
+  assert.equal(source.requiresLogin, true);
+  assert.equal(source.access, 'private');
+});
+
+test('usuário e senha do tracker são gravados cifrados e só chegam ao tracker', () => {
+  const { repo, store } = setup();
+
+  store.save({ secrets: { 'amigos-share-club:username': 'leo', 'amigos-share-club:password': 's3nha secreta' } });
+
+  assert.deepEqual(sourceOf(store.config(), 'amigos-share-club').credentials, { username: 'leo', password: 's3nha secreta' });
+  assert.ok(!JSON.stringify(rawSecrets(repo)).includes('s3nha'), 'no banco só vai o texto cifrado');
+
+  const view = store.view();
+  assert.equal(view.secrets['amigos-share-club:password'].source, 'panel');
+  assert.ok(view.sources.every((source) => !('credentials' in source)), 'a lista de trackers do painel nunca leva as credenciais');
+  assert.ok(!JSON.stringify(view).includes('s3nha'));
+});
+
+test('apenas freeleech só vale para o tracker que suporta', () => {
+  const { store } = setup();
+
+  store.save({ sources: { 'amigos-share-club': { freeleechOnly: true }, comando: { freeleechOnly: true } } });
+
+  assert.equal(sourceOf(store.config(), 'amigos-share-club').freeleechOnly, true);
+  assert.equal('freeleechOnly' in sourceOf(store.config(), 'comando'), false);
 });

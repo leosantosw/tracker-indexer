@@ -367,11 +367,33 @@ test('cada tracker vem com o endereço do site para o painel abrir', async () =>
   await app.close();
 });
 
-test('cada tracker diz se é público ou privado; os atuais são públicos', async () => {
+test('cada tracker diz se é público ou privado', async () => {
   const { app } = await setup();
 
   const { sources } = json(await app.inject({ url: '/api/admin/settings' }));
 
-  assert.deepEqual([...new Set(sources.map((source) => source.access))], ['public']);
+  assert.deepEqual(Object.fromEntries(sources.map((source) => [source.name, source.access])), {
+    'torrents-csv': 'public',
+    'redes-torrents': 'public',
+    comando: 'public',
+    'torrent-dos-filmes': 'public',
+    'amigos-share-club': 'private',
+  });
+  await app.close();
+});
+
+test('o painel grava usuário e senha do tracker e nunca os devolve', async () => {
+  const { app } = await setupWithSecrets();
+
+  const saved = await app.inject({
+    method: 'PUT',
+    url: '/api/admin/settings',
+    payload: { secrets: { 'amigos-share-club:username': 'leo', 'amigos-share-club:password': 'senha com espaço' } },
+  });
+
+  assert.equal(saved.statusCode, 200);
+  assert.equal(json(saved).secrets['amigos-share-club:password'].source, 'panel');
+  assert.ok(!saved.body.includes('senha com espaço'));
+  assert.ok(!saved.body.includes('"credentials"'));
   await app.close();
 });
