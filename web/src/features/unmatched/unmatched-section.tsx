@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { SparklesIcon } from 'lucide-react'
 
 import { Hint } from '@/components/app/hint'
@@ -17,6 +17,7 @@ import { ago, formatNumber, plural } from '@/lib/format'
 import { UNMATCHED_STATUS, WORK_TYPE } from '@/lib/labels'
 import { queryKeys } from '@/lib/queries'
 import { unmatchedStatusSchema, type UnmatchedPage, type UnmatchedWork } from '@/lib/schemas'
+import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 5
 const ALL = 'all'
@@ -108,6 +109,7 @@ export function UnmatchedSection() {
     queryFn: ({ pageParam }) => api.unmatched({ page: pageParam, limit: PAGE_SIZE, source: filters.tracker, status: filters.status }),
     initialPageParam: 1,
     getNextPageParam: (last, pages) => (pages.length * PAGE_SIZE < last.total ? pages.length + 1 : undefined),
+    placeholderData: keepPreviousData,
   })
 
   const pages = list.data?.pages ?? []
@@ -137,7 +139,7 @@ export function UnmatchedSection() {
             <Spinner className="size-5 text-primary" />
           </div>
         ) : works.length ? (
-          <ul className="divide-y">
+          <ul className={cn('divide-y transition-opacity', list.isPlaceholderData && 'opacity-60')}>
             {works.map((work) => (
               <WorkRow key={work.id} work={work} />
             ))}
