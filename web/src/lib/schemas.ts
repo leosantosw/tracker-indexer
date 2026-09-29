@@ -149,6 +149,8 @@ export const unmatchedPageSchema = z.object({
   }),
 })
 
+export const clearUnmatchedResultSchema = z.object({ works: z.number(), removed: z.number() })
+
 export const tmdbCandidateSchema = z.object({
   tmdbId: z.number(),
   title: z.string(),

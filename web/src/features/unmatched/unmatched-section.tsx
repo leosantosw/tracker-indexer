@@ -9,6 +9,7 @@ import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ClearUnmatchedButton } from '@/features/unmatched/clear-unmatched-button'
 import { openMatchDialog } from '@/features/unmatched/match-store'
 import { UNMATCHED_SECTION_ID, useUnmatchedFilters } from '@/features/unmatched/use-unmatched-filters'
 import { api } from '@/lib/api'
@@ -123,7 +124,12 @@ export function UnmatchedSection() {
             Obras com torrent que a TMDB não reconheceu, com o nome que veio de cada tracker.
           </p>
         </div>
-        {latest && <Filters counts={latest.counts} />}
+        {latest && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Filters counts={latest.counts} />
+            <ClearUnmatchedButton total={latest.total} />
+          </div>
+        )}
       </div>
       <Card className="mt-4 gap-0 rounded-2xl py-0">
         {list.isPending ? (

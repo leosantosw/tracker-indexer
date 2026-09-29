@@ -2,6 +2,7 @@ import type { z } from 'zod'
 
 import {
   checkResultSchema,
+  clearUnmatchedResultSchema,
   jobStatusSchema,
   logEntrySchema,
   scheduleStatusSchema,
@@ -91,6 +92,8 @@ export const api = {
     request('DELETE', `/sources/${encodeURIComponent(name)}/items`) as Promise<{ source: string; removed: number }>,
   checkSource: (name: string) => parsed(checkResultSchema)(request('POST', `/sources/${encodeURIComponent(name)}/check`)),
   unmatched: (params: UnmatchedQuery) => parsed(unmatchedPageSchema)(request('GET', `/unmatched?${query(params)}`)),
+  clearUnmatched: (filters: Pick<UnmatchedQuery, 'source' | 'status'>) =>
+    parsed(clearUnmatchedResultSchema)(request('DELETE', `/unmatched?${query(filters)}`)),
   tmdbSearch: async (type: WorkType, text: string) => {
     const { results } = (await request('GET', `/tmdb/search?${query({ type, query: text })}`)) as { results: unknown[] }
     return results.map((result) => tmdbCandidateSchema.parse(result))

@@ -30,6 +30,17 @@ export const useStartJob = () =>
 
 export const useCancelJob = () => useMutation({ mutationFn: api.cancelJob })
 
+export function useClearUnmatched() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.clearUnmatched,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.unmatched })
+      queryClient.invalidateQueries({ queryKey: queryKeys.status })
+    },
+  })
+}
+
 export function useClearSource() {
   const queryClient = useQueryClient()
   return useMutation({

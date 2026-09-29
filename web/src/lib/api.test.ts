@@ -36,6 +36,13 @@ describe('cliente da API do painel', () => {
     await expect(api.clearSource('comando')).rejects.toThrow('espere o job atual terminar')
   })
 
+  it('apagar sem match manda os filtros na query', async () => {
+    const fetch = respond(200, { works: 2, removed: 5 })
+
+    expect(await api.clearUnmatched({ status: 'ambiguous', source: 'comando' })).toEqual({ works: 2, removed: 5 })
+    expect(fetch).toHaveBeenCalledWith('/api/admin/unmatched?status=ambiguous&source=comando', expect.objectContaining({ method: 'DELETE' }))
+  })
+
   it('resposta fora do formato esperado é recusada', async () => {
     respond(200, { job: null })
 
