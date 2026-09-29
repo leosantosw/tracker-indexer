@@ -162,6 +162,42 @@ test('status de torrent que nao esta na conta da 404', async () => {
   await assert.rejects(() => debrid.status(HASH), (err) => err.statusCode === 404 && err.code === 'not_found');
 });
 
+test('limite da TorBox ao buscar pelo id nao vira 404 nem esquece o torrent', async () => {
+  let limited = true;
+  const { debrid } = provider({
+    '/torrents/mylist': (call) => {
+      if (!call.url.searchParams.has('id')) return { data: [] };
+      return limited ? { status: 429, body: { detail: 'slow down' } } : { data: torrent({ id: 8, download_finished: false, download_present: false, download_state: 'downloading' }) };
+    },
+    '/torrents/checkcached': {},
+    '/torrents/createtorrent': { torrent_id: 8, hash: HASH },
+  });
+  limited = false;
+  await debrid.resolve(HASH);
+  limited = true;
+
+  await assert.rejects(() => debrid.status(HASH), (err) => err.code === 'provider_rate_limit');
+
+  limited = false;
+  assert.equal((await debrid.status(HASH)).status, 'downloading');
+});
+
+test('torrent adicionado e depois apagado da conta da 404', async () => {
+  let gone = false;
+  const { debrid } = provider({
+    '/torrents/mylist': (call) => {
+      if (!call.url.searchParams.has('id')) return { data: [] };
+      return gone ? { status: 404, body: { success: false, detail: 'not found' } } : { data: torrent({ id: 8, download_finished: false, download_present: false, download_state: 'downloading' }) };
+    },
+    '/torrents/checkcached': {},
+    '/torrents/createtorrent': { torrent_id: 8, hash: HASH },
+  });
+  await debrid.resolve(HASH);
+  gone = true;
+
+  await assert.rejects(() => debrid.status(HASH), (err) => err.code === 'not_found');
+});
+
 test('remover manda delete com o id do torrent', async () => {
   const { debrid, called } = provider({
     '/torrents/mylist': [torrent({ id: 42 })],

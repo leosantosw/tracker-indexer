@@ -15,6 +15,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const notInDebrid = () => new DebridError('torrent nao esta no TorBox', 404, 'not_found');
 
+function refusedAsMissing(err) {
+  if (err.code === 'provider_error') return null;
+  throw err;
+}
+
 function create({ token, timeoutMs, fetch, wait = sleep, recent = recentlyAdded.shared }) {
   const api = createTorboxApi({ token, timeoutMs, fetch });
 
@@ -24,7 +29,7 @@ function create({ token, timeoutMs, fetch, wait = sleep, recent = recentlyAdded.
 
     const id = recent.idOf(hash);
     if (id === null) return null;
-    const torrent = await api.getTorrent(id).catch(() => null);
+    const torrent = await api.getTorrent(id).catch(refusedAsMissing);
     if (!torrent) recent.forget(hash);
     return torrent;
   }
