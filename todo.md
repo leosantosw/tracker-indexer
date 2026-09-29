@@ -2,7 +2,6 @@
 
 ## Corrigir primeiro
 
-- [ ] **Setup do admin aberto** — `src/api/admin/routes/setup.js:8` aceita `POST /setup` sem auth enquanto não há token, e o servidor escuta em `0.0.0.0` (`src/config.js:23`). Permitir setup só de loopback (ou código de uso único impresso no stdout) e exigir token com tamanho mínimo (~24).
 - [ ] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
 - [ ] **SSRF via HTML do tracker** — `src/sources/html/defineHtmlSource.js:68` busca `card.url` vindo da página sem checar o domínio. Exigir mesma origem da listagem.
 - [ ] **Dois syncs simultâneos** — o runner só é single-flight dentro do `serve`; `npm run sync` pela CLI roda junto com o agendado. Lock no banco (linha com pid + heartbeat).
