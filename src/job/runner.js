@@ -24,9 +24,9 @@ const PROGRESS_EVERY_MS = 250;
  * Jobs also get `report(progress)`: the latest snapshot rides along in the
  * status while running and stays in `last` as the run's summary.
  */
-function createRunner({ jobs, log, onChange = () => {} }) {
+function createRunner({ jobs, log, onChange = () => {}, last: saved = null, onSettle = () => {} }) {
   let current = null;
-  let last = null;
+  let last = saved;
   let pendingNotify = null;
 
   const status = () => ({
@@ -67,6 +67,7 @@ function createRunner({ jobs, log, onChange = () => {} }) {
 
     log(`${job.job}: ${OUTCOME_LABEL[outcome.result]}${outcome.error ? ` -- ${outcome.error}` : ''}`);
     last = { job: job.job, startedAt: iso(job.startedAt), finishedAt: iso(Date.now()), ...outcome, progress: job.progress };
+    onSettle(last);
     current = null;
     notify();
   }

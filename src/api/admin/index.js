@@ -14,6 +14,8 @@ const { registerSetupRoutes } = require('./routes/setup');
 const { registerUnmatchedRoutes } = require('./routes/unmatched');
 const { registerManualMatchRoutes } = require('./routes/manualMatch');
 
+const LAST_RUN = 'lastRun';
+
 /** Each run reads the current config, so what was saved in the panel takes effect. */
 const pipelineJobs = ({ repo, store }, log) => ({
   sync: ({ signal, sources, report }) => runSync({ repo, config: store.config(), log, signal, only: sources, report }),
@@ -34,6 +36,8 @@ async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = co
     jobs: jobs ?? pipelineJobs({ repo, store }, log),
     log,
     onChange: (status) => feed.publish('status', status),
+    last: repo.readState(LAST_RUN),
+    onSettle: (last) => repo.writeState(LAST_RUN, last),
   });
 
   const scheduler = createScheduler({

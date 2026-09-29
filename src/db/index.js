@@ -60,6 +60,12 @@ CREATE TABLE IF NOT EXISTS work (
   UNIQUE (type, title, year)
 );
 
+CREATE TABLE IF NOT EXISTS app_state (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 -- Overrides saved from the admin UI; a missing key falls back to code/env defaults.
 CREATE TABLE IF NOT EXISTS setting (
   key        TEXT PRIMARY KEY,

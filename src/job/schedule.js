@@ -34,14 +34,14 @@ function describeInterval(minutes) {
   return minutes === 1 ? 'a cada 1 minuto' : `a cada ${minutes} minutos`;
 }
 
-/** "todo dia as 23:00", "seg, qua as 08:30", "a cada 2 horas". */
+/** "todo dia às 23:00", "seg, qua às 08:30", "a cada 2 horas". */
 function describeSchedule(schedule) {
   if (!schedule?.enabled) return 'desligado';
   if (schedule.mode === 'interval') return describeInterval(schedule.everyMinutes);
 
   const days = [...(schedule.days?.length ? schedule.days : ALL_DAYS)].sort();
   const when = days.length === 7 ? 'todo dia' : days.map((day) => DAY_NAMES[day]).join(', ');
-  return `${when} as ${schedule.time}`;
+  return `${when} às ${schedule.time}`;
 }
 
 module.exports = { nextRun, describeSchedule, ALL_DAYS };

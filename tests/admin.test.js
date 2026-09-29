@@ -325,3 +325,18 @@ test('rotas de admin ficam fora do Swagger', async () => {
   assert.ok(!Object.keys(spec.paths).some((path) => path.startsWith('/api/admin')));
   await app.close();
 });
+
+test('a última execução continua no painel depois de reiniciar o servidor', async () => {
+  const repo = createRepo(openDb(':memory:'));
+  const admin = { token: 'admin-token', echo: () => {}, jobs: { sync: async () => {}, enrich: async () => ({ skipped: true, reason: 'no-tmdb-key' }) } };
+
+  const before = await buildAuthedServer(repo, { admin });
+  await before.inject({ method: 'POST', url: '/api/admin/jobs/enrich', payload: {} });
+  await before.close();
+
+  const after = await buildAuthedServer(repo, { admin });
+  const { last } = json(await after.inject({ url: '/api/admin/status' })).job;
+
+  assert.deepEqual({ job: last.job, result: last.result, reason: last.reason }, { job: 'enrich', result: 'skipped', reason: 'no-tmdb-key' });
+  await after.close();
+});

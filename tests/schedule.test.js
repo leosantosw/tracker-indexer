@@ -34,8 +34,8 @@ test('intervalo: conta a partir de agora', () => {
 });
 
 test('descricao legivel', () => {
-  assert.equal(describeSchedule(daily('23:00')), 'todo dia as 23:00');
-  assert.equal(describeSchedule(daily('08:30', [3, 1])), 'seg, qua as 08:30');
+  assert.equal(describeSchedule(daily('23:00')), 'todo dia às 23:00');
+  assert.equal(describeSchedule(daily('08:30', [3, 1])), 'seg, qua às 08:30');
   assert.equal(describeSchedule(every(1)), 'a cada 1 minuto');
   assert.equal(describeSchedule(every(120)), 'a cada 2 horas');
   assert.equal(describeSchedule({ enabled: false }), 'desligado');
