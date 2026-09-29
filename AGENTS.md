@@ -62,9 +62,11 @@ module.exports = { sizeToBytes };
 
 ## Tests and validation
 
-- Do not write new tests unless asked.
-- Validate by actually running things: start `serve`, call the API, open the panel.
-- Run `npm test` before finishing to make sure existing tests still pass.
+- Every change gets tests: new behavior, bug fixes (a test that reproduces the bug) and new routes.
+- `node:test` + `node:assert`, files in `tests/` named `<module>.test.js`, Arrange-Act-Assert pattern.
+- No test touches the network or a real tracker: use an in-memory database (`openDb(':memory:')`), fixtures and stubs.
+- Also validate by actually running things: start `serve`, call the API, open the panel.
+- Run `npm test` before finishing; every test must pass.
 
 ## Docs
 
@@ -80,7 +82,7 @@ module.exports = { sizeToBytes };
 ## Boundaries
 
 **Always:**
-- Run `npm test` and check the change running before calling a task done.
+- Write tests for the change, run `npm test` and check the change running before calling a task done.
 - Commit when the change is done.
 
 **Ask first:**
