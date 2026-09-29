@@ -160,6 +160,28 @@ const MIGRATIONS = [
   { table: 'item', column: 'imdb_id', ddl: 'ALTER TABLE item ADD COLUMN imdb_id TEXT' },
 ];
 
+const RENAMED_SOURCES = { comando: 'comando1' };
+
+function renameSavedSource(db, from, to) {
+  const row = db.prepare("SELECT value FROM setting WHERE key = 'sources'").get();
+  if (!row) return;
+
+  const sources = JSON.parse(row.value);
+  if (!(from in sources)) return;
+
+  const { [from]: saved, ...rest } = sources;
+  const renamed = { ...rest, [to]: rest[to] ?? saved };
+  db.prepare("UPDATE setting SET value = ? WHERE key = 'sources'").run(JSON.stringify(renamed));
+}
+
+function renameSources(db) {
+  for (const [from, to] of Object.entries(RENAMED_SOURCES)) {
+    db.prepare('UPDATE OR IGNORE item SET source = ? WHERE source = ?').run(to, from);
+    db.prepare('DELETE FROM item WHERE source = ?').run(from);
+    renameSavedSource(db, from, to);
+  }
+}
+
 function migrate(db) {
   for (const { table, column, ddl, reset } of MIGRATIONS) {
     const columns = db.prepare(`PRAGMA table_info(${table})`).all();
@@ -169,6 +191,7 @@ function migrate(db) {
     if (reset) db.exec(reset);
   }
   db.exec('CREATE INDEX IF NOT EXISTS ix_work_lead ON work (lead_id)');
+  renameSources(db);
 }
 
 function openDb(file) {

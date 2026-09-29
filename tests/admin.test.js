@@ -91,7 +91,7 @@ test('a pagina do painel abre sem autenticar, a API nao', async () => {
 test('rota do painel devolve o index.html; arquivo que falta da 404', async () => {
   const { app } = await setup({ uiDir: builtPanel() });
 
-  const route = await app.inject({ url: '/admin/trackers/comando' });
+  const route = await app.inject({ url: '/admin/trackers/comando1' });
   const missing = await app.inject({ url: '/admin/assets/nao-existe.js' });
 
   assert.equal(route.statusCode, 200);
@@ -375,7 +375,7 @@ test('cada tracker diz se é público ou privado', async () => {
   assert.deepEqual(Object.fromEntries(sources.map((source) => [source.name, source.access])), {
     'torrents-csv': 'public',
     'redes-torrents': 'public',
-    comando: 'public',
+    comando1: 'public',
     'torrent-dos-filmes': 'public',
     'amigos-share-club': 'private',
   });

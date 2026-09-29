@@ -14,7 +14,7 @@ function kindOf(card) {
 }
 
 module.exports = defineHtmlSource({
-  name: 'comando',
+  name: 'comando1',
   site: BASE_URL,
   access: 'public',
   rps: 1,

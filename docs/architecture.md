@@ -401,7 +401,7 @@ changing the contract.
 
 In the `defineHtmlSource` template, a title's page can have a single magnet
 (`detail.fields.magnet`, as in redes-torrents) or one per quality
-(`detail.magnets: 'a[href^="magnet:"]'`, as in comando): in that case each
+(`detail.magnets: 'a[href^="magnet:"]'`, as in comando1): in that case each
 magnet becomes an item, with the size read from the text next to the link.
 
 The rest of the application doesn't change.

@@ -2,6 +2,9 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
+const { mkdtempSync, rmSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { dirname, join } = require('node:path');
 
 const baseConfig = require('../src/config');
 const { openDb } = require('../src/db');
@@ -30,7 +33,7 @@ test('sem nada salvo, vale o que o codigo declara', () => {
     [
       ['torrents-csv', 'terms', true],
       ['redes-torrents', 'pages', true],
-      ['comando', 'pages', true],
+      ['comando1', 'pages', true],
       ['torrent-dos-filmes', 'pages', true],
       ['amigos-share-club', 'pages', false],
     ]
@@ -44,7 +47,7 @@ test('tracker desativado nao e construido', () => {
   store.save({ sources: { 'redes-torrents': { enabled: false } } });
 
   const names = createSources(store.config()).map((source) => source.name);
-  assert.deepEqual(names, ['torrents-csv', 'comando', 'torrent-dos-filmes']);
+  assert.deepEqual(names, ['torrents-csv', 'comando1', 'torrent-dos-filmes']);
 });
 
 test('patch parcial preserva o que ja estava salvo', () => {
@@ -178,8 +181,25 @@ test('usuário e senha do tracker são gravados cifrados e só chegam ao tracker
 test('apenas freeleech só vale para o tracker que suporta', () => {
   const { store } = setup();
 
-  store.save({ sources: { 'amigos-share-club': { freeleechOnly: true }, comando: { freeleechOnly: true } } });
+  store.save({ sources: { 'amigos-share-club': { freeleechOnly: true }, comando1: { freeleechOnly: true } } });
 
   assert.equal(sourceOf(store.config(), 'amigos-share-club').freeleechOnly, true);
-  assert.equal('freeleechOnly' in sourceOf(store.config(), 'comando'), false);
+  assert.equal('freeleechOnly' in sourceOf(store.config(), 'comando1'), false);
+});
+
+test('tracker renomeado leva junto os torrents e a configuração salva', (t) => {
+  const file = join(mkdtempSync(join(tmpdir(), 'tracker-indexer-')), 'catalog.db');
+  t.after(() => rmSync(dirname(file), { recursive: true, force: true }));
+  const old = openDb(file);
+  old.exec(`INSERT INTO item (source, source_id, name, raw_name, created_at, updated_at) VALUES ('comando', 'a', 'Filme', 'Filme', 1, 1)`);
+  old.exec(`INSERT INTO setting (key, value, updated_at) VALUES ('sources', '{"comando":{"pages":4},"redes-torrents":{"pages":2}}', 1)`);
+  old.close();
+
+  const db = openDb(file);
+  const store = createSettingsStore(createRepo(db), { base: env() });
+
+  assert.deepEqual(db.prepare('SELECT DISTINCT source FROM item').all().map((row) => row.source), ['comando1']);
+  assert.equal(sourceOf(store.config(), 'comando1').pages, 4);
+  assert.equal(sourceOf(store.config(), 'redes-torrents').pages, 2);
+  db.close();
 });

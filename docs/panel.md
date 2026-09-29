@@ -31,7 +31,7 @@ The panel is a React app in `web/` (Vite, TypeScript, Tailwind v4 and shadcn/ui
 components). `npm run build` generates `web/dist`, which `serve` itself serves at
 `/admin`; any panel route returns `index.html` and React Router decides
 the screen. Without the build, `/admin` responds 503 asking for `npm run build`. The filters
-of the *Sem match* list live in the URL (`?status=ambiguous&tracker=comando`), so
+of the *Sem match* list live in the URL (`?status=ambiguous&tracker=comando1`), so
 you can share or reload without losing the view.
 
 To work on the panel, `npm run dev:web` starts Vite on :5173 with hot reload and
@@ -48,7 +48,7 @@ keeps the last 500 lines in memory.
 ```
 01:02:03  INFO   execução          Atualização do catálogo iniciada
 01:02:05  INFO   redes-torrents    2 páginas · nenhum novo · parou após 2 páginas sem novidade · 1,8s
-01:02:08  INFO   comando           2 páginas · +3 novos · 2,9s
+01:02:08  INFO   comando1          2 páginas · +3 novos · 2,9s
 01:02:12  INFO   tmdb              3 obras consultadas · 3 casadas · 3,8s
 01:02:12  INFO   execução          Atualização do catálogo concluída em 9s · +3 torrents novos · 3 obras casadas
 ```
