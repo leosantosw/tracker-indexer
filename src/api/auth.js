@@ -12,14 +12,10 @@ function sameSecret(given, expected) {
 function readToken(request) {
   const header = request.headers.authorization ?? '';
   if (header.startsWith('Bearer ')) return header.slice('Bearer '.length);
-  if (header.startsWith('Basic ')) {
-    const decoded = Buffer.from(header.slice('Basic '.length), 'base64').toString('utf8');
-    return decoded.slice(decoded.indexOf(':') + 1);
-  }
   return request.query?.token ?? '';
 }
 
-function authorize(getToken, name, { prompt = false } = {}) {
+function authorize(getToken, name) {
   return async (request, reply) => {
     // CORS preflight carries no token and runs nothing: let it through.
     if (request.method === 'OPTIONS') return;
@@ -27,7 +23,6 @@ function authorize(getToken, name, { prompt = false } = {}) {
     if (token && sameSecret(readToken(request), token)) return;
 
     if (!token) return reply.code(401).send({ error: `${name} nao configurado`, tokenRequired: false });
-    if (prompt) reply.header('www-authenticate', 'Basic realm="tracker-indexer", charset="UTF-8"');
     return reply.code(401).send({ error: 'token invalido', tokenRequired: true });
   };
 }

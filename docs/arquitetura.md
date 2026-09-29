@@ -382,7 +382,7 @@ src/
 │  └─ errors.js
 ├─ api/
 │  ├─ server.js              monta o app: /api, /api/debrid, /api/admin e /admin
-│  ├─ auth.js                token obrigatório (painel, API e docs)
+│  ├─ auth.js                token obrigatório (painel e API)
 │  ├─ public/                API de leitura
 │  │  ├─ index.js            /health, /stats e os catálogos
 │  │  ├─ catalog.js          rotas de filmes e séries

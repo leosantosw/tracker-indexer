@@ -5,12 +5,12 @@ Com a API no ar, a referência completa e navegável fica em
 cru está em `/api/docs/json` — serve para gerar cliente:
 
 ```bash
-curl -s -H "Authorization: Bearer $API_TOKEN" http://localhost:3000/api/docs/json > openapi.json
+curl -s http://localhost:3000/api/docs/json > openapi.json
 ```
 
-Tudo exige o `API_TOKEN`, menos `/api/health`: `Authorization: Bearer <API_TOKEN>`
-nas chamadas; na página da documentação o navegador pede usuário e senha — o
-usuário é qualquer um, a senha é o token.
+Tudo exige o `API_TOKEN`, menos `/api/health` e a documentação:
+`Authorization: Bearer <API_TOKEN>` nas chamadas. A página da documentação é
+pública; para usar o _try it out_, informe o token em **Authorize**.
 
 **A API tem duas entidades, e elas não se misturam:**
 

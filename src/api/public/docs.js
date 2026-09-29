@@ -5,7 +5,6 @@ const swaggerUi = require('@fastify/swagger-ui');
 
 const { version } = require('../../../package.json');
 const { TAGS } = require('./schemas');
-const { authorize } = require('../auth');
 
 const DESCRIPTION = `
 Consulta ao catálogo indexado a partir dos trackers.
@@ -23,12 +22,12 @@ As rotas de **Debrid** entregam o vídeo pelo provedor configurado no painel
 (hoje, TorBox).
 
 Toda rota, menos \`/api/health\`, exige \`Authorization: Bearer <API_TOKEN>\`;
-sem \`API_TOKEN\` definido, elas não respondem. Esta página também: o navegador
-pede usuário e senha — o usuário é qualquer um, a senha é o \`API_TOKEN\`.
+sem \`API_TOKEN\` definido, elas não respondem. Esta página é pública: para usar o
+_try it out_, informe o token em **Authorize**.
 `.trim();
 
 /** Swagger UI at `routePrefix`, JSON at `routePrefix`/json. Must come before the routes. */
-async function registerDocs(app, routePrefix, getToken) {
+async function registerDocs(app, routePrefix) {
   await app.register(swagger, {
     openapi: {
       openapi: '3.1.0',
@@ -56,7 +55,6 @@ async function registerDocs(app, routePrefix, getToken) {
   await app.register(swaggerUi, {
     routePrefix,
     staticCSP: true,
-    uiHooks: { onRequest: authorize(getToken, 'API_TOKEN', { prompt: true }) },
     uiConfig: {
       docExpansion: 'list',
       deepLinking: true,
