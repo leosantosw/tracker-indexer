@@ -19,6 +19,15 @@ describe('formulário de configurações', () => {
     expect(toPatch(toFormValues(settings))).not.toHaveProperty('secrets')
   })
 
+  it('segredo que ninguém editou não bloqueia o salvar', () => {
+    const values = { ...toFormValues(settings), secrets: { tmdbApiKey: undefined, apiToken: undefined } }
+
+    const result = settingsFormSchema.safeParse(values)
+
+    expect(result.error?.issues).toBeUndefined()
+    expect(toPatch(result.data!)).not.toHaveProperty('secrets')
+  })
+
   it('recusa idioma fora do padrão, intervalo vazio e agenda sem dias', () => {
     const values = toFormValues(settings)
     const result = settingsFormSchema.safeParse({

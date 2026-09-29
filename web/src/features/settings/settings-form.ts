@@ -20,7 +20,7 @@ export const settingsFormSchema = z.object({
     days: z.array(z.number().int().min(0).max(6)).min(1, 'marque ao menos um dia'),
     everyMinutes: z.number(required).int('número inteiro').min(1, 'no mínimo 1 minuto').max(10080, 'no máximo uma semana'),
   }),
-  secrets: z.record(z.string(), z.string()),
+  secrets: z.record(z.string(), z.string().optional()),
 })
 
 export type SettingsForm = z.infer<typeof settingsFormSchema>
@@ -33,6 +33,6 @@ export const toFormValues = ({ tmdb, debrid, schedule }: Settings): SettingsForm
 })
 
 export function toPatch({ tmdb, debrid, schedule, secrets }: SettingsForm): SettingsPatch {
-  const typed = Object.fromEntries(Object.entries(secrets).filter(([, value]) => value))
+  const typed = Object.fromEntries(Object.entries(secrets).filter((entry): entry is [string, string] => Boolean(entry[1])))
   return { tmdb, debrid, schedule, ...(Object.keys(typed).length > 0 && { secrets: typed }) }
 }

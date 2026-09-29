@@ -21,6 +21,7 @@ import { useJobActions } from '@/features/jobs/use-job-actions'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
 import { toFormValues, toPatch, trackerFormFor, type TrackerForm } from '@/features/trackers/tracker-form'
+import { warnInvalid } from '@/lib/form-errors'
 import { formatNumber } from '@/lib/format'
 import { CONTENT, MODE_LABEL, SOURCE_SYNC } from '@/lib/labels'
 import { paths } from '@/lib/paths'
@@ -120,7 +121,7 @@ function TrackerFormView({ source, indexed, running }: TrackerViewProps) {
 
   return (
     <FormProvider {...form}>
-      <form className="pb-28" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="pb-28" onSubmit={form.handleSubmit(onSubmit, warnInvalid)}>
         <TrackerHeader source={source} indexed={indexed} running={running} />
         <div className="space-y-6">
           <FormSection id="geral" title="Geral" description="Se o tracker entra na atualização do catálogo e em que ritmo.">

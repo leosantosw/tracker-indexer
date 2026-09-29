@@ -23,6 +23,7 @@ import { paths } from '@/lib/paths'
 import { sectionAnchor } from '@/lib/section-anchor'
 import { useLoaded, useResetSettings, useSaveSettings } from '@/lib/queries'
 import type { Settings } from '@/lib/schemas'
+import { warnInvalid } from '@/lib/form-errors'
 import { adminToken } from '@/lib/token'
 
 const scrollToSection = (id: string, behavior: ScrollBehavior = 'smooth') =>
@@ -104,7 +105,7 @@ function SettingsFormView({ settings, nextRun }: { settings: Settings; nextRun: 
 
   return (
     <FormProvider {...form}>
-      <form className="pb-28" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="pb-28" onSubmit={form.handleSubmit(onSubmit, warnInvalid)}>
         <header className="mb-8">
           <BackLink />
           <h2 className="mt-2 text-2xl font-semibold tracking-tight">Configurações</h2>
