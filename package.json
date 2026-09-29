@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Job de indexacao incremental de trackers + API de consulta",
+  "license": "GPL-3.0-or-later",
   "main": "src/index.js",
   "engines": {
     "node": ">=22"

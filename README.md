@@ -7,226 +7,83 @@
 **Indexa trackers de torrent, casa cada título com a TMDB e entrega um catálogo
 de filmes e séries pronto para um app de TV.**
 
+[![Licença: GPL-3.0](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-blue)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)
 ![Fastify](https://img.shields.io/badge/fastify-5-000000?logo=fastify&logoColor=white)
-![SQLite](https://img.shields.io/badge/sqlite-node%3Asqlite-003B57?logo=sqlite&logoColor=white)
-
-[Começando](#começando) ·
-[Como funciona](#como-funciona) ·
-[API](#api) ·
-[Configuração](#configuração) ·
-[Documentação](#documentação)
+![React](https://img.shields.io/badge/painel-react-61DAFB?logo=react&logoColor=black)
 
 </div>
 
----
-
 ## Recursos
 
-- **Sincronização incremental** de trackers por API JSON ou por HTML, com
-  throttle, retry e cancelamento.
-- **Classificador de releases:** filtra o que não é filme ou série e extrai
-  título, ano, resolução, codec, áudio e HDR.
-- **Enriquecimento pela TMDB:** capa, backdrop, sinopse, gêneros, nota e
-  trailer, com uma regra de match conservadora: na dúvida, fica sem capa.
-- **API REST para TV:** listagem enxuta e detalhe completo, gzip/brotli, ETag e
-  categorias prontas (novidades, melhores notas, gêneros).
-- **Debrid (TorBox):** pede o vídeo e devolve um link direto, sem expor o token
-  da conta.
-- **Painel web em `/admin`:** jobs, log ao vivo, agendamento, configuração por
-  tracker e segredos cifrados com AES-256-GCM.
-- **Poucas dependências:** Fastify e cheerio, com o SQLite embutido do Node.
-  Sem build nem banco externo.
+- **Indexação incremental** de trackers por API JSON ou por HTML, com throttle,
+  retry e cancelamento.
+- **Classificador de releases:** separa filmes e séries e extrai título, ano,
+  temporada, resolução, áudio e HDR.
+- **Enriquecimento pela TMDB:** capa, sinopse, gêneros, nota e trailer, com
+  match conservador e match manual pelo painel.
+- **API REST para TV:** listas enxutas, detalhe completo, busca, categorias,
+  compressão e ETag. Documentação em Swagger.
+- **Debrid (TorBox):** entrega um link direto do vídeo sem expor o token da conta.
+- **Painel web:** adiciona e configura trackers, agenda atualizações, acompanha
+  cada execução com log ao vivo e guarda segredos cifrados.
+- **Sem banco externo:** usa o SQLite embutido do Node.
 
 ## Começando
 
-Requer **Node.js 22+**, por causa do `node:sqlite`.
+Requer **Node.js 22+**.
 
 ```bash
 git clone https://github.com/leosantosw/tracker-indexer.git
 cd tracker-indexer
 npm install
-npm run build             # compila o painel (web/) para web/dist
+npm run build             # compila o painel
 
 cp .env.example .env
 npm run keygen            # cole a SECRETS_KEY gerada no .env
 
-npm run sync              # indexa os trackers e enriquece pela TMDB
 npm run serve             # API em :3000/api, painel em :3000/admin
 ```
 
-Para ter capa, sinopse e nota, cadastre uma `TMDB_API_KEY` (gratuita em
-[themoviedb.org](https://www.themoviedb.org/settings/api)) no `.env` ou no
-painel. Sem ela, o sync funciona normalmente e só pula o enriquecimento.
+No primeiro acesso a **<http://localhost:3000/admin>** você cria o token do
+painel. De lá dá para adicionar trackers, cadastrar a `TMDB_API_KEY` (gratuita
+em [themoviedb.org](https://www.themoviedb.org/settings/api)) e rodar a
+primeira atualização. A API fica documentada em
+**<http://localhost:3000/api/docs>**.
 
 ### Comandos
 
 | Comando | O que faz |
 |---|---|
-| `npm run sync` | sincroniza os trackers ativos e, no fim, enriquece pela TMDB |
-| `npm run enrich` | só o enriquecimento, sem tocar nos trackers |
-| `npm run serve` | sobe a API, o Swagger e o painel |
-| `npm run stats` | itens por tracker e resultado do match |
-| `npm run check-source <tracker>` | confere a 1ª página de um tracker, sem gravar |
-| `npm run query "SELECT ..."` | consulta o banco (somente leitura) |
-| `npm run keygen` | gera uma `SECRETS_KEY` |
-| `npm run build` | instala as dependências do painel e compila `web/` para `web/dist` |
-| `npm run dev:web` | painel com hot reload em :5173, repassando `/api` para o `serve` em :3000 |
-| `npm test` | roda a suíte de testes do backend |
-| `npm run test:web` | roda os testes do painel (Vitest) |
-
-## Como funciona
-
-```
- trackers ──► sync ──► classificador ──► item ──► regras ──► enrich ──► work ──► API
- (JSON/HTML)   paginação   aceita/rejeita    (torrent)  requireYear   TMDB     (obra)   /api
-               throttle    título, ano,                 dedupe        match
-               retry       resolução...
-```
-
-A base tem **duas entidades**, que não se misturam:
-
-| | O que é | De onde vem |
-|---|---|---|
-| **obra** (`work`) | o filme ou a série: capa, sinopse, nota | TMDB |
-| **torrent** (`item`) | uma cópia dela: seeders, tamanho, resolução | tracker |
-
-Os quatro releases de *Divertida Mente* são **uma** obra com quatro cópias. A
-TMDB é consultada uma vez por obra, e até o fracasso fica gravado: o que não
-casou não custa uma requisição a cada execução.
-
-Os detalhes estão em [docs/arquitetura.md](docs/arquitetura.md).
-
-## API
-
-Com o `serve` no ar, a referência navegável fica em
-**<http://localhost:3000/api/docs>** (Swagger UI), e o OpenAPI 3.1 cru em
-`/api/docs/json`.
-
-```
-GET /api/categories?preview=12    linhas da tela inicial (?type=series para as séries)
-GET /api/movies?page=1&limit=50   grade de filmes (só o cartão)
-GET /api/movies/:id               um filme completo, com as cópias
-GET /api/series                   grade de séries
-GET /api/series/:id               uma série, com os episódios
-GET /api/search?q=batman          busca filmes e séries juntos (?genre=terror)
-GET /api/search/genres            atalhos de gênero para a tela de busca
-
-POST   /api/debrid/torrents       { "hash": "..." }  pede o vídeo ao debrid
-GET    /api/debrid/torrents/:hash acompanha o download
-DELETE /api/debrid/torrents/:hash remove da conta
-```
-
-```jsonc
-// GET /api/movies
-{
-  "movies": [
-    {
-      "id": 362,
-      "title": "Interestelar",
-      "year": 2014,
-      "poster": "https://image.tmdb.org/t/p/w185/...jpg",
-      "backdrop": "https://image.tmdb.org/t/p/w780/...jpg",
-      "rating": 8.487
-    }
-  ],
-  "page": 1, "limit": 50, "total": 773, "pages": 16
-}
-```
-
-Pensada para TV: são duas requisições por tela, cada uma do tamanho da tela. A
-página de 50 filmes pesa **~3,6 KB** comprimida, e recarregar sem mudança
-devolve um `304` vazio.
-
-A referência completa está em [docs/api.md](docs/api.md).
-
-## Configuração
-
-A configuração vem em camadas: **padrões do código → `.env` → painel**. O que
-for salvo no painel vale mais, e os segredos vão cifrados para o banco.
-
-| Variável | Padrão | |
-|---|---|---|
-| `DB_FILE` | `./data/catalog.db` | arquivo do SQLite |
-| `API_PORT` / `API_HOST` | `3000` / `0.0.0.0` | onde a API escuta |
-| `SECRETS_KEY` | — | chave AES dos segredos salvos pelo painel (`npm run keygen`) |
-| `ADMIN_TOKEN` | — | exigido pelo painel; opcional no `.env`: o primeiro acesso ao painel cria um |
-| `API_TOKEN` | — | exigido por toda a `/api` menos `/api/health`; sem ele, ela não responde |
-| `TMDB_API_KEY` | — | ativa o enriquecimento |
-| `TMDB_LANGUAGE` | `pt-BR` | idioma de títulos, sinopses e gêneros |
-| `TMDB_RPS` | `8` | requisições por segundo à TMDB |
-| `TMDB_STALE_DAYS` | `30` | revalida a nota das obras casadas |
-| `TMDB_RETRY_DAYS` | `14` | tenta de novo o que não casou (`0` desliga) |
-| `TMDB_MIN_VOTES` | `150` | abaixo disso a nota não é exibida |
-| `DEBRID_PROVIDER` / `TORBOX_API_KEY` | — | provedor de debrid e o token dele |
-| `HTTP_TIMEOUT_MS` / `HTTP_RETRIES` | `20000` / `3` | cliente HTTP dos trackers |
-| `LOG_LEVEL` | `info` | o que o terminal mostra: `debug`, `info`, `warn` ou `error` |
-
-> [!IMPORTANT]
-> Nenhuma rota é aberta, exceto `/api/health`. O painel exige `ADMIN_TOKEN`; o
-> catálogo, a busca, o debrid e a documentação exigem `API_TOKEN`. Sem
-> `ADMIN_TOKEN`, o primeiro acesso ao painel cria um (precisa de
-> `SECRETS_KEY`). Para expor o servidor, coloque um proxy com HTTPS na frente.
-
-## Painel
-
-Em **<http://localhost:3000/admin>** dá para:
-
-- atualizar o catálogo, buscar capas e cancelar uma execução em andamento;
-- acompanhar cada execução por etapas, com progresso e avisos; os logs técnicos ficam a um clique;
-- ligar, desligar, **testar** e ajustar cada tracker;
-- agendar atualizações diárias ou por intervalo;
-- cadastrar chaves e tokens, cifrados no banco.
-
-O guia completo está em [docs/painel.md](docs/painel.md).
-
-## Adicionando um tracker
-
-Tracker HTML vira uma declaração de seletores:
-
-```js
-module.exports = defineHtmlSource({
-  name: 'meu-tracker',
-  rps: 1,
-  pages: 10,
-  stopAfterQuietPages: 2,
-  content: 'movies',
-  rules: { requireYear: true },
-
-  list: {
-    url: (page) => `https://exemplo.com/pagina/${page}/`,
-    rows: 'a.cover-link',
-    fields: { url: '@href', title: 'article@data-title' },
-  },
-  detail: {
-    fields: { magnet: 'a[href^="magnet:"]@href' },
-  },
-});
-```
-
-O arquivo fica em `src/sources/trackers/`. Depois, é só registrar o tracker em
-`src/sources/index.js` e conferir com
-`npm run check-source meu-tracker`. Tracker com API JSON segue o contrato
-`fetchPage` / `toItem`, descrito em
-[docs/arquitetura.md](docs/arquitetura.md#adicionando-um-tracker).
+| `npm run serve` | sobe a API, a documentação e o painel |
+| `npm run sync` | atualiza o catálogo pela linha de comando |
+| `npm run enrich` | busca só capas e notas na TMDB |
+| `npm run check-source <tracker>` | testa a primeira página de um tracker, sem gravar |
+| `npm test` / `npm run test:web` | testes do backend e do painel |
 
 ## Documentação
 
 | Guia | Conteúdo |
 |---|---|
-| [docs/api.md](docs/api.md) | rotas, payloads, categorias, ordenação, debrid e erros |
-| [docs/arquitetura.md](docs/arquitetura.md) | sync, enriquecimento, classificador, trackers, estrutura e limitações |
-| [docs/painel.md](docs/painel.md) | painel, agendamento, segredos e a API do admin |
-| [docs/trackers-candidatos.md](docs/trackers-candidatos.md) | sites independentes que valem virar tracker |
+| [Configuração](docs/configuracao.md) | variáveis de ambiente e acesso |
+| [API](docs/api.md) | rotas, payloads, categorias, busca, debrid e erros |
+| [Painel](docs/painel.md) | trackers, agendamento, segredos, log e a API do admin |
+| [Arquitetura](docs/arquitetura.md) | sync, enriquecimento, classificador, estrutura e como adicionar um tracker |
 
 ## Contribuindo
 
-1. Faça um fork e crie uma branch.
-2. Rode `npm test` antes de abrir o PR.
-3. Para um tracker novo, inclua a saída do `npm run check-source`.
+Issues e pull requests são bem-vindos. Antes de abrir um PR, rode `npm test` e
+`npm run test:web`. Para um tracker novo, inclua a saída do
+`npm run check-source`. As convenções do código estão em [AGENTS.md](AGENTS.md).
 
 ## Aviso
 
 Este projeto indexa **metadados públicos** de torrents. Ele não hospeda nem
 distribui nenhum arquivo. Respeite os direitos autorais e os termos de uso dos
-sites indexados.
+sites indexados; o uso é de responsabilidade de quem roda o servidor.
+
+Este produto usa a API da TMDB, mas não é endossado nem certificado pela TMDB.
+
+## Licença
+
+[GPL-3.0](LICENSE) © leosantosw
