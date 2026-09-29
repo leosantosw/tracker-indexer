@@ -39,13 +39,21 @@ const WHERE_LISTABLE_ALL = `WHERE w.type = @type AND (w.status = 'ok' OR @all = 
 // the match exact, so "Terror" never matches "Terror psicológico".
 const WHERE_GENRE = `AND ', ' || w.genres || ', ' LIKE @genre`;
 
-const WHERE_CACHED = `AND EXISTS (
+const HAS_CACHED_COPY = `EXISTS (
   SELECT 1 FROM work m JOIN item i ON ${itemOf('m')}
   JOIN debrid_cache c ON c.infohash = i.infohash
-  WHERE m.lead_id = w.lead_id AND c.provider = @cachedBy AND c.cached = 1
+  WHERE m.lead_id = w.lead_id AND c.provider = @provider AND c.cached = 1
 )`;
 
-const listFilters = ({ genre, cachedBy }) => `${genre ? WHERE_GENRE : ''} ${cachedBy === null ? '' : WHERE_CACHED}`;
+const cachedClause = (cached) => {
+  if (cached === null || cached === undefined) return null;
+  return cached ? HAS_CACHED_COPY : `NOT ${HAS_CACHED_COPY}`;
+};
+
+const listFilters = ({ genre, cached }) => {
+  const byCache = cachedClause(cached);
+  return `${genre ? WHERE_GENRE : ''} ${byCache ? `AND ${byCache}` : ''}`;
+};
 
 /**
  * Ter nota vem antes de tudo -- nota qualquer, nao nota alta. Obra sem votacao
@@ -193,7 +201,7 @@ function createWorks(db) {
    * `minVotes` comes per call (editable from the panel), `genre` and `order`
    * come from the chosen category.
    */
-  function listWorks(type, { page = 1, limit = 50, minVotes, genre = null, order = 'default', all = false, cachedBy = null }) {
+  function listWorks(type, { page = 1, limit = 50, minVotes, genre = null, order = 'default', all = false, cached = null, provider = null }) {
     const perPage = Math.min(Math.max(Number(limit) || 50, 1), 200);
     const atual = Math.max(Number(page) || 1, 1);
 
@@ -202,17 +210,17 @@ function createWorks(db) {
       minVotes,
       genre: genre ? `%, ${genre}, %` : null,
       all: all ? 1 : 0,
-      cachedBy,
+      provider: provider ?? '',
       limit: perPage,
       offset: (atual - 1) * perPage,
     };
 
     const list =
-      `${WORK_SELECT} ${WHERE_LISTABLE_ALL} AND ${IS_LEAD} ${listFilters({ genre, cachedBy })} GROUP BY w.id ` +
+      `${WORK_SELECT} ${WHERE_LISTABLE_ALL} AND ${IS_LEAD} ${listFilters({ genre, cached })} GROUP BY w.id ` +
       `ORDER BY ${ORDERS[order] ?? ORDER} LIMIT @limit OFFSET @offset`;
 
     const rows = db.prepare(list).all(bind(list, values));
-    const count = countListable({ genre, cachedBy });
+    const count = countListable({ genre, cached });
     const { total } = db.prepare(count).get(bind(count, values));
 
     return { rows, page: atual, limit: perPage, total };
@@ -304,4 +312,4 @@ function createWorks(db) {
   return { listWorks, genreCounts, getWork, listTorrents, pendingWorks, registerWorks, refreshLeads, saveWork, workStats, typeStats };
 }
 
-module.exports = { createWorks, WITH_TORRENTS, HAS_TORRENTS, IS_LEAD, ITEM_TO_WORK };
+module.exports = { createWorks, cachedClause, WITH_TORRENTS, HAS_TORRENTS, IS_LEAD, ITEM_TO_WORK };

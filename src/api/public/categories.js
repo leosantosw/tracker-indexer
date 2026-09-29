@@ -40,7 +40,8 @@ function registerCategories(app, { repo, store }) {
   const minVotes = () => store.config().tmdb.minVotes;
 
   app.get('/categories', { schema: CATEGORIES }, async (request) => {
-    const { preview = 0, type = 'movie' } = request.query;
+    const { preview = 0, type = 'movie', cached = null } = request.query;
+    const provider = store.config().debrid.provider;
     const votes = minVotes();
 
     const categories = listCategories(repo, type).map((category) => {
@@ -49,6 +50,8 @@ function registerCategories(app, { repo, store }) {
         minVotes: votes,
         genre: category.genre ?? null,
         order: category.order,
+        cached,
+        provider,
       });
 
       return {

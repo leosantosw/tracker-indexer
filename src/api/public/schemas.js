@@ -18,6 +18,14 @@ const TAGS = {
 
 const WORK_ORDERS = ['year', 'added', 'rating', 'votes', 'title', 'seeders'];
 
+const CACHED_FILTER = {
+  type: 'boolean',
+  description:
+    '`true`: só obras com ao menos uma cópia em cache no debrid — tocam na hora. `false`: só as que não têm ' +
+    'nenhuma e baixam antes de tocar. Sem o parâmetro: todas. Vale o que a verificação de cache gravou; sem ' +
+    'debrid configurado, `true` vem vazio. `cache` em `/api/health` diz se o filtro está valendo.',
+};
+
 /** Todo campo e sempre devolvido: o que nao se sabe vai como null, nunca ausente. */
 const allRequired = (schema) => ({ ...schema, required: Object.keys(schema.properties) });
 
@@ -272,13 +280,7 @@ const LIST_QUERY = {
         'Inclui as obras que não casaram com a TMDB (ou ainda não foram consultadas), no fim da lista: ' +
         'título e ano do torrent, sem capa e sem nota. Sem `TMDB_API_KEY`, é o único jeito de listar algo.',
     },
-    cached: {
-      type: 'boolean',
-      default: false,
-      description:
-        'Só obras com ao menos uma cópia em cache no debrid configurado — tocam na hora. Vale o que a ' +
-        'verificação de cache já gravou; sem debrid configurado, a lista vem vazia.',
-    },
+    cached: CACHED_FILTER,
   },
 };
 
@@ -346,6 +348,7 @@ const CATEGORIES = {
         default: 'movie',
         description: 'De quem são as categorias: filmes ou séries.',
       },
+      cached: CACHED_FILTER,
     },
   },
   response: {
@@ -376,13 +379,19 @@ const CATEGORIES = {
 const HEALTH = {
   tags: [TAGS.servico],
   summary: 'Liveness',
-  description: 'Responde 200 assim que a API sobe. Não toca no banco. Única rota sem token.',
+  description:
+    'Responde 200 assim que a API sobe. Não consulta o catálogo. Única rota sem token.\n\n' +
+    '`cache` diz se o filtro `cached` está valendo: há um debrid com consulta de cache e a verificação ' +
+    'automática está ligada. Com `false`, o cliente deve listar tudo, sem o filtro.',
   security: [],
   response: {
     200: {
       type: 'object',
-      properties: { status: { type: 'string', examples: ['ok'] } },
-      required: ['status'],
+      properties: {
+        status: { type: 'string', examples: ['ok'] },
+        cache: { type: 'boolean', description: 'Se o filtro `cached` está valendo.', examples: [true] },
+      },
+      required: ['status', 'cache'],
     },
   },
 };
@@ -465,6 +474,7 @@ const SEARCH = {
         default: false,
         description: 'Inclui as obras que não casaram com a TMDB, como em `/api/movies`.',
       },
+      cached: CACHED_FILTER,
     },
   },
   response: { 200: { $ref: 'SearchList#' }, 400: { $ref: 'BadRequest#' }, 404: { $ref: 'NotFound#' } },
@@ -476,6 +486,11 @@ const SEARCH_GENRES = {
   description:
     'Os gêneros prontos para a tela de busca (*Ação*, *Comédia*, *Terror*…), valendo para filmes e ' +
     'séries. Só vem o que tem ao menos uma obra no catálogo.',
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: { cached: CACHED_FILTER },
+  },
   response: {
     200: {
       type: 'object',

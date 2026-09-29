@@ -27,6 +27,11 @@ const providerOptions = () => PROVIDERS.map(({ id, label, secret, cacheBatch }) 
 
 const providerOf = (config) => BY_ID.get(config.debrid.provider) ?? null;
 
+function cacheActive(config) {
+  const provider = providerOf(config);
+  return Boolean(provider?.cacheBatch && config.debrid.tokens[provider.id] && config.debrid.checkCache);
+}
+
 function createDebrid(config, options = {}) {
   const provider = BY_ID.get(config.debrid.provider);
   if (!provider) throw new DebridError('nenhum provedor de debrid configurado', 503, 'not_configured');
@@ -37,4 +42,4 @@ function createDebrid(config, options = {}) {
   return provider.create({ token, timeoutMs: config.http.timeoutMs, ...options });
 }
 
-module.exports = { PROVIDERS, PROVIDER_IDS, providerOptions, providerOf, createDebrid, DebridError };
+module.exports = { PROVIDERS, PROVIDER_IDS, providerOptions, providerOf, cacheActive, createDebrid, DebridError };

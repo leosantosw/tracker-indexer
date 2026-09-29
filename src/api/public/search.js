@@ -26,9 +26,10 @@ const shortcutOf = (id) => SHORTCUTS.find((shortcut) => shortcut.id === id) ?? n
 
 function registerSearch(app, { repo, store }) {
   const minVotes = () => store.config().tmdb.minVotes;
+  const provider = () => store.config().debrid.provider;
 
   app.get('/search', { schema: SEARCH }, async (request, reply) => {
-    const { q = '', genre, type = 'all', page, limit, all } = request.query;
+    const { q = '', genre, type = 'all', page, limit, all, cached = null } = request.query;
     const shortcut = genre ? shortcutOf(genre) : null;
     if (genre && !shortcut) return reply.code(404).send({ error: 'genero nao encontrado' });
 
@@ -40,6 +41,8 @@ function registerSearch(app, { repo, store }) {
       page,
       limit,
       all,
+      cached,
+      provider: provider(),
     });
 
     return {
@@ -51,11 +54,12 @@ function registerSearch(app, { repo, store }) {
     };
   });
 
-  app.get('/search/genres', { schema: SEARCH_GENRES }, async () => {
+  app.get('/search/genres', { schema: SEARCH_GENRES }, async (request) => {
+    const { cached = null } = request.query;
     const genres = SHORTCUTS.map(({ id, title, genres: names }) => ({
       id,
       title,
-      total: repo.searchWorks({ genres: names, limit: 1 }).total,
+      total: repo.searchWorks({ genres: names, limit: 1, cached, provider: provider() }).total,
     }));
     return { genres: genres.filter((genre) => genre.total > 0) };
   });

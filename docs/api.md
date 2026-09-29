@@ -387,16 +387,33 @@ It runs from *Configurações → Debrid* (*Verificar cache*, check cache), from
 (`npm run check-cache`) or at the end of every catalog update when *Verificar cache após
 atualizar* (check cache after updating) is on.
 
-With it, the lists accept `cached=true`:
+With it, the lists, the categories and the search accept `cached`:
 
 ```
 GET /api/movies?cached=true
 GET /api/series?cached=true&category=novidades
+GET /api/categories?type=movie&preview=12&cached=true
+GET /api/search?q=batman&cached=false
+GET /api/search/genres?cached=true
 ```
 
-Only works with **at least one copy cached** on the active provider enter the list —
-they play at once. It uses what the check stored; with no provider configured, the list
-comes back empty rather than ignoring the filter. In the detail, each copy's `cached` is
+- `cached=true`: only works with **at least one copy cached** on the active provider — they
+  play at once.
+- `cached=false`: only works with **no copy cached** — they download before playing. It is
+  the complement of `true`, so a client can split the catalog in two screens.
+- Without it: everything, as before.
+
+It uses what the check stored; with no provider configured, `cached=true` comes back empty
+rather than ignoring the filter. To know whether to use it at all, a client reads
+`GET /api/health`:
+
+```json
+{ "status": "ok", "cache": true }
+```
+
+`cache` is `true` only when a provider with a batch cache lookup is configured, has its token
+and *Verificar cache após atualizar* is on. With `false`, list everything without the
+filter: stored answers age, and nothing refreshes them. In the detail, each copy's `cached` is
 the live answer when the provider replies in time, and the stored one otherwise; `null`
 means nobody asked yet. Live answers are stored too, so the filter learns from them.
 

@@ -276,3 +276,51 @@ test('o status do painel traz o cache por tracker do provedor ativo', async () =
   assert.deepEqual(stats.cache, [{ source: 't', total: 3, checked: 1, cached: 1 }]);
   await app.close();
 });
+
+async function catalogWithCache() {
+  const { repo } = setup([item(1), item(2)]);
+  for (const n of [1, 2]) repo.saveWork({ type: 'movie', title: `Filme ${n}`, year: 2024 }, { status: 'ok', match: { tmdbId: n, title: `Filme ${n}` } });
+  repo.saveCacheAnswers('torbox', { [hash(1)]: true, [hash(2)]: false });
+  const app = await buildAuthedServer(repo, { base: { debrid: { ...baseConfig.debrid, provider: 'torbox', tokens: {} } } });
+  const get = async (url) => JSON.parse((await app.inject(url)).payload);
+  return { app, get };
+}
+
+test('?cached=false lista só o que baixa antes de tocar', async () => {
+  const { app, get } = await catalogWithCache();
+
+  const { movies } = await get('/api/movies?cached=false');
+
+  assert.deepEqual(movies.map((movie) => movie.title), ['Filme 2']);
+  await app.close();
+});
+
+test('as categorias e a busca aceitam o mesmo filtro de cache', async () => {
+  const { app, get } = await catalogWithCache();
+
+  const instant = await get('/api/categories?preview=5&cached=true');
+  const onDemand = await get('/api/categories?preview=5&cached=false');
+  const search = await get('/api/search?q=filme&cached=true');
+  const everything = await get('/api/search?q=filme');
+
+  const recent = (page) => page.categories.find((category) => category.id === 'novidades');
+  assert.deepEqual(recent(instant).movies.map((movie) => movie.title), ['Filme 1']);
+  assert.deepEqual(recent(onDemand).movies.map((movie) => movie.title), ['Filme 2']);
+  assert.deepEqual(search.results.map((result) => result.title), ['Filme 1']);
+  assert.equal(everything.total, 2);
+  await app.close();
+});
+
+test('o health diz se o filtro de cache está valendo', async () => {
+  const health = async (debrid) => {
+    const app = await buildAuthedServer(createRepo(openDb(':memory:')), { base: { debrid: { ...baseConfig.debrid, ...debrid } } });
+    const body = JSON.parse((await app.inject({ url: '/api/health', headers: { authorization: '' } })).payload);
+    await app.close();
+    return body;
+  };
+
+  assert.deepEqual(await health({ provider: 'torbox', tokens: { torbox: 'tb' }, checkCache: true }), { status: 'ok', cache: true });
+  assert.equal((await health({ provider: 'torbox', tokens: { torbox: 'tb' }, checkCache: false })).cache, false, 'verificação desligada');
+  assert.equal((await health({ provider: 'torbox', tokens: {}, checkCache: true })).cache, false, 'sem token');
+  assert.equal((await health({ provider: null, tokens: {}, checkCache: true })).cache, false, 'sem debrid');
+});

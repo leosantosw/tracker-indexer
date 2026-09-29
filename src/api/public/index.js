@@ -5,6 +5,7 @@ const { registerCatalogs } = require('./catalog');
 const { registerCategories } = require('./categories');
 const { registerSearch } = require('./search');
 const { authorize } = require('../auth');
+const { cacheActive } = require('../../debrid');
 const { allowApps } = require('../cors');
 
 /** The read-only API: service routes, the movie and series catalogs and the search. */
@@ -16,7 +17,7 @@ async function registerPublicApi(api, { repo, store, cacheStatus }) {
     if (request.method === 'GET') reply.header('cache-control', 'no-cache');
   });
 
-  api.get('/health', { schema: HEALTH }, async () => ({ status: 'ok' }));
+  api.get('/health', { schema: HEALTH }, async () => ({ status: 'ok', cache: cacheActive(store.config()) }));
 
   await api.register(async (scoped) => {
     scoped.addHook('onRequest', authorize(() => store.config().apps.token, 'API_TOKEN'));

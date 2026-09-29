@@ -42,7 +42,8 @@ function registerCatalog(app, { repo, store, cacheStatus }, { path, type, key, s
       minVotes: votes,
       genre: category?.genre ?? null,
       order: category?.order ?? 'default',
-      cachedBy: cached ? (provider() ?? '') : null,
+      cached: cached ?? null,
+      provider: provider(),
     });
 
     return {

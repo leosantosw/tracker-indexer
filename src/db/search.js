@@ -1,7 +1,7 @@
 'use strict';
 
 const { fold } = require('../lib/fold');
-const { WITH_TORRENTS, HAS_TORRENTS, IS_LEAD } = require('./works');
+const { WITH_TORRENTS, HAS_TORRENTS, IS_LEAD, cachedClause } = require('./works');
 
 const MAX_TERMS = 6;
 
@@ -14,12 +14,14 @@ const eitherName = (param) => `(f.name LIKE @${param} OR f.alias LIKE @${param})
  * finds "Ação" and "homem aranha" finds "Homem-Aranha". A title that starts
  * with the query comes first, then one with a word that starts with it.
  */
-function buildSearch({ terms, genres, type }) {
+function buildSearch({ terms, genres, type, cached }) {
   const values = {};
   const inner = [`(w.status = 'ok' OR @all = 1)`, IS_LEAD, HAS_TORRENTS];
   const outer = ['1 = 1'];
 
   if (type) inner.push('w.type = @type');
+  const byCache = cachedClause(cached);
+  if (byCache) inner.push(byCache);
 
   if (genres.length) {
     inner.push(`(${genres.map((_, n) => `', ' || w.genres || ', ' LIKE @genre${n}`).join(' OR ')})`);
@@ -52,10 +54,10 @@ const withoutUnused = (sql, values) =>
 
 function createSearch(db) {
   /** One list for movies and series; `genres` is any-of. */
-  function searchWorks({ query = '', genres = [], type = null, page = 1, limit = 30, all = false }) {
+  function searchWorks({ query = '', genres = [], type = null, page = 1, limit = 30, all = false, cached = null, provider = null }) {
     const terms = termsOf(query);
-    const { found, values } = buildSearch({ terms, genres, type });
-    const params = { ...values, type, all: all ? 1 : 0, limit, offset: (page - 1) * limit };
+    const { found, values } = buildSearch({ terms, genres, type, cached });
+    const params = { ...values, type, all: all ? 1 : 0, provider: provider ?? '', limit, offset: (page - 1) * limit };
 
     const list = `
       SELECT w.*, COUNT(i.id) AS torrents, MAX(i.seeders) AS best_seeders, MAX(i.created_at) AS last_added
