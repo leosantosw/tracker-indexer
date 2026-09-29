@@ -3,7 +3,6 @@
 ## Corrigir primeiro
 
 - [x] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
-- [ ] **SSRF via HTML do tracker** — `src/sources/html/defineHtmlSource.js:68` busca `card.url` vindo da página sem checar o domínio. Exigir mesma origem da listagem.
 - [ ] **Dois syncs simultâneos** — o runner só é single-flight dentro do `serve`; `npm run sync` pela CLI roda junto com o agendado. Lock no banco (linha com pid + heartbeat).
 - [ ] **Erros engolidos** — `src/debrid/cacheStatus.js:41,51`, `src/debrid/torbox/index.js:27`, `src/sources/tmdb/index.js:63`, `src/ui/lib/api.js:15`. Token TorBox revogado passa despercebido. Capturar só o erro esperado, logar o resto, repassar abort.
 
@@ -21,6 +20,10 @@
   - [ ] `WORK_ORDERS` sem uso (`src/api/public/schemas.js:19`); índices `ix_item_seeders` e `ix_item_created` sem query.
   - [ ] Dividir `src/db/works.js` em catálogo e fila do enrich.
 - [ ] **Buracos de teste** — `src/lib/http.js`, `src/db/search.js`, parsers comando/torrentDosFilmes/torrentsCsv; rotas `/api/search`, `/api/series*`, `/api/categories`, `/api/admin/setup`.
+
+## Endurecimento
+
+- [ ] **SSRF via HTML do tracker** — `src/sources/html/defineHtmlSource.js:68` busca `card.url` vindo da página sem checar o domínio. Risco baixo: exige controlar o tracker (todos em HTTPS), é só GET sem credencial e a resposta não volta ao atacante. Exigir mesma origem da listagem.
 
 ## Funcionalidades
 
