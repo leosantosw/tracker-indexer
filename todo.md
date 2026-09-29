@@ -3,7 +3,6 @@
 ## Corrigir primeiro
 
 - [x] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
-- [ ] **Dois syncs simultâneos** — o runner só é single-flight dentro do `serve`; `npm run sync` pela CLI roda junto com o agendado. Lock no banco (linha com pid + heartbeat).
 - [ ] **Erros engolidos** — `src/debrid/cacheStatus.js:41,51`, `src/debrid/torbox/index.js:27`, `src/sources/tmdb/index.js:63`, `src/ui/lib/api.js:15`. Token TorBox revogado passa despercebido. Capturar só o erro esperado, logar o resto, repassar abort.
 
 ## Arquitetura
@@ -24,6 +23,7 @@
 ## Endurecimento
 
 - [ ] **SSRF via HTML do tracker** — `src/sources/html/defineHtmlSource.js:68` busca `card.url` vindo da página sem checar o domínio. Risco baixo: exige controlar o tracker (todos em HTTPS), é só GET sem credencial e a resposta não volta ao atacante. Exigir mesma origem da listagem.
+- [ ] **Dois syncs simultâneos** — o runner só é single-flight dentro do `serve`; `npm run sync` pela CLI roda junto com o agendado. Não corrompe dados (UPSERT, SQLite serializa escritas), mas dobra as requisições aos trackers e à TMDB e o painel não vê o job da CLI. Só acontece rodando o comando na mão. Lock no banco (linha com pid + heartbeat).
 
 ## Funcionalidades
 
