@@ -5,8 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/admin/logo.png" />
     <title>tracker-indexer · painel</title>
+    <script>
+      try {
+        var theme = localStorage.getItem('theme') || 'dark'
+        var dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.add(dark ? 'dark' : 'light')
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+      } catch (error) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
   </head>
   <body>
+    <div id="splash" class="splash" role="status" aria-label="Carregando o painel">
+      <div class="flex flex-col items-center gap-7">
+        <div class="relative size-28">
+          <div class="splash-glow"></div>
+          <div class="splash-ring"></div>
+          <div class="absolute inset-4 grid place-items-center rounded-3xl bg-white shadow-lg shadow-primary/20">
+            <img src="/admin/logo.png" alt="" width="56" height="56" class="size-14" />
+          </div>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <p class="font-brand text-2xl leading-none font-black tracking-tight">
+            <span class="text-foreground">tracker-</span><span class="text-brand">indexer</span>
+          </p>
+          <p class="splash-caption text-sm text-muted-foreground">carregando o painel</p>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

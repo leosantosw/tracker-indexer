@@ -1,14 +1,17 @@
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v8'
+import { useEffect } from 'react'
 import { Outlet, ScrollRestoration } from 'react-router'
 
 import { ConfirmDialog } from '@/components/app/confirm-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccessDialog } from '@/features/access/access-dialog'
+import { useAccessStore } from '@/features/access/access-store'
 import { useLiveEvents } from '@/features/live/use-live-events'
 import { CheckDialog } from '@/features/trackers/check-dialog'
 import { MatchDialog } from '@/features/unmatched/match-dialog'
 import { AppHeader } from '@/layout/app-header'
 import { useSettings, useStatus } from '@/lib/queries'
+import { hideSplash } from '@/lib/splash'
 
 function LoadingPage() {
   return (
@@ -25,7 +28,13 @@ export function AppLayout() {
   const settings = useSettings()
   const ready = Boolean(status.data && settings.data)
   const running = Boolean(status.data?.job.running)
+  const accessNeeded = useAccessStore((state) => Boolean(state.error))
+  const failed = status.isError || settings.isError
   useLiveEvents(ready)
+
+  useEffect(() => {
+    if (ready || accessNeeded || failed) hideSplash()
+  }, [ready, accessNeeded, failed])
 
   return (
     <NuqsAdapter>
@@ -35,7 +44,15 @@ export function AppLayout() {
         </div>
       )}
       <AppHeader job={status.data?.job} settings={settings.data} />
-      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">{ready ? <Outlet /> : <LoadingPage />}</main>
+      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
+        {ready ? (
+          <div className="animate-in duration-500 fade-in slide-in-from-bottom-1">
+            <Outlet />
+          </div>
+        ) : (
+          <LoadingPage />
+        )}
+      </main>
       <AccessDialog />
       <ConfirmDialog />
       <CheckDialog />
