@@ -328,6 +328,27 @@ test('erro pontual nao derruba o resto da fila', async () => {
   db.close();
 });
 
+test('falha ao buscar o trailer nao marca o trailer como procurado', async () => {
+  const { db, repo } = withItems([item('a', { title: 'Interestelar', year: 2014 })]);
+  repo.registerWorks();
+  const working = fakeJson([{ id: 9, title: 'Interestelar', release_date: '2014-11-05' }]);
+  const failingDetail = async (url) => {
+    if (url.pathname === '/3/movie/9') throw new Error('timeout');
+    return working.getJson(url);
+  };
+  const trailerOf = () => db.prepare('SELECT status, trailer_key, trailer_checked FROM work').get();
+
+  const first = await enrich({ repo, tmdb: createTmdb({ getJson: failingDetail, apiKey: 'k', language: 'pt-BR' }), config, log });
+
+  assert.equal(first.failed, 1);
+  assert.deepEqual({ ...trailerOf() }, { status: 'pending', trailer_key: null, trailer_checked: 0 });
+
+  await enrich({ repo, tmdb: createTmdb({ getJson: working.getJson, apiKey: 'k', language: 'pt-BR' }), config, log });
+
+  assert.deepEqual({ ...trailerOf() }, { status: 'ok', trailer_key: 'trailerPt', trailer_checked: 1 });
+  db.close();
+});
+
 test('o que o enrich grava e o que a API mostra em /movies', async () => {
   const { db, repo } = withItems([
     item('a', { title: 'Com Capa' }),

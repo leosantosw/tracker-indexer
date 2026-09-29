@@ -57,13 +57,7 @@ function createTmdb({ getJson, apiKey, language }) {
     return detailCache.get(key);
   }
 
-  async function movieTrailer(id) {
-    try {
-      return pickTrailer((await details('movie', id)).videos?.results);
-    } catch {
-      return null;
-    }
-  }
+  const movieTrailer = async (id) => pickTrailer((await details('movie', id)).videos?.results);
 
   const matched = (match, trailerKey) => ({ status: 'ok', match: { ...match, trailerKey, trailerChecked: 1 } });
 
