@@ -340,3 +340,18 @@ test('a última execução continua no painel depois de reiniciar o servidor', a
   assert.deepEqual({ job: last.job, result: last.result, reason: last.reason }, { job: 'enrich', result: 'skipped', reason: 'no-tmdb-key' });
   await after.close();
 });
+
+test('apagar sem match pelo painel respeita os filtros e espera o job terminar', async () => {
+  const { app, sync } = await setup();
+
+  const cleared = await app.inject({ method: 'DELETE', url: '/api/admin/unmatched?status=not_found' });
+  assert.equal(cleared.statusCode, 200);
+  assert.deepEqual(json(cleared), { works: 0, removed: 0 });
+
+  await app.inject({ method: 'POST', url: '/api/admin/jobs/sync', payload: {} });
+  const busy = await app.inject({ method: 'DELETE', url: '/api/admin/unmatched' });
+  assert.equal(busy.statusCode, 409);
+
+  sync.finish();
+  await app.close();
+});

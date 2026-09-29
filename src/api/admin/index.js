@@ -63,7 +63,7 @@ async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = co
       registerJobRoutes(api, { repo, runner, scheduler });
       registerSettingsRoutes(api, { store });
       registerSourceRoutes(api, { repo, store, runner, log });
-      registerUnmatchedRoutes(api, { repo });
+      registerUnmatchedRoutes(api, { repo, runner, log });
       registerManualMatchRoutes(api, { repo, store, log });
       registerEventRoutes(api, { feed, runner, scheduler });
     },

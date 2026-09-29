@@ -1,5 +1,6 @@
 'use strict';
 
+const { transaction } = require('./index');
 const { ITEM_TO_WORK } = require('./works');
 
 const NAMES_PER_WORK = 3;
@@ -35,6 +36,12 @@ const BY_STATUS = `
   FROM work w JOIN item i ON ${ITEM_TO_WORK}
   WHERE ${UNMATCHED}
   GROUP BY w.status
+`;
+
+const CLEARABLE = `
+  SELECT i.id AS itemId, w.id AS workId
+  FROM work w JOIN item i ON ${ITEM_TO_WORK}
+  WHERE ${UNMATCHED} AND (@status IS NULL OR w.status = @status) AND (@source IS NULL OR i.source = @source)
 `;
 
 const namesOf = (ids) => `
@@ -81,7 +88,17 @@ function createUnmatched(db) {
     byStatus: db.prepare(BY_STATUS).all(),
   });
 
-  return { listUnmatched, unmatchedCounts, workById, setManualMatch };
+  function clearUnmatched({ source = null, status = null } = {}) {
+    return transaction(db, () => {
+      const rows = db.prepare(CLEARABLE).all({ source, status });
+      const works = new Set(rows.map((row) => row.workId)).size;
+      const remove = db.prepare('DELETE FROM item WHERE id = ?');
+      for (const { itemId } of rows) remove.run(itemId);
+      return { works, removed: rows.length };
+    });
+  }
+
+  return { listUnmatched, unmatchedCounts, workById, setManualMatch, clearUnmatched };
 }
 
 module.exports = { createUnmatched };

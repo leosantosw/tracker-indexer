@@ -128,6 +128,18 @@ const UNMATCHED = hidden({
   },
 });
 
+const CLEAR_UNMATCHED = hidden({
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      source: { type: 'string', minLength: 1 },
+      status: { enum: ['not_found', 'ambiguous'] },
+      token: { type: 'string' },
+    },
+  },
+});
+
 const TMDB_SEARCH = hidden({
   querystring: {
     type: 'object',
@@ -170,4 +182,4 @@ const EVENTS = hidden({
   querystring: { type: 'object', properties: { token: { type: 'string' } } },
 });
 
-module.exports = { hidden, SETTINGS_PATCH, START_JOB, CLEAR_SOURCE, UNMATCHED, TMDB_SEARCH, MANUAL_MATCH, SETUP_STATUS, SETUP, EVENTS };
+module.exports = { hidden, SETTINGS_PATCH, START_JOB, CLEAR_SOURCE, UNMATCHED, CLEAR_UNMATCHED, TMDB_SEARCH, MANUAL_MATCH, SETUP_STATUS, SETUP, EVENTS };
