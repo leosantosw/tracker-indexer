@@ -47,7 +47,7 @@ function LastRunCard({ last }: { last: LastJob | null }) {
   if (!last) {
     return (
       <StatCard icon={ClockIcon} label="Última execução">
-        <BigNumber className="text-lg font-medium text-muted-foreground">Nunca executado</BigNumber>
+        <BigNumber className="text-xl">Nunca executado</BigNumber>
         <Caption>Nenhuma execução registrada</Caption>
       </StatCard>
     )
