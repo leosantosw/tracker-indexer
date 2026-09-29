@@ -1,6 +1,7 @@
 'use strict';
 
 const { createDebrid } = require('./index');
+const { silentLogger } = require('../lib/logger');
 
 const TTL_MS = 10 * 60 * 1000;
 // The movie detail waits for this at most; slower than that, it goes out without the flag.
@@ -22,7 +23,7 @@ function createCacheStatus({
   timeoutMs = LOOKUP_TIMEOUT_MS,
   backoffMs = BACKOFF_MS,
   now = Date.now,
-  log = console.log,
+  log = silentLogger,
 }) {
   const known = new Map(); // hash -> { cached, at }
   let quietUntil = 0;
@@ -61,7 +62,7 @@ function createCacheStatus({
     } catch (err) {
       // Slow, down or refusing the token: null for these, and a pause before asking again.
       quietUntil = now() + backoffMs;
-      log(`debrid: selo de cache pausado por ${Math.round(backoffMs / 1000)}s -- ${err.message}`);
+      log.warn('debrid', `selo de cache pausado por ${Math.round(backoffMs / 1000)}s · ${err.message}`);
     }
     return result;
   }

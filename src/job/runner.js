@@ -1,13 +1,13 @@
 'use strict';
 
+const { describeOutcome, describeStart } = require('./summary');
+
 class JobError extends Error {
   constructor(message, statusCode) {
     super(message);
     this.statusCode = statusCode;
   }
 }
-
-const OUTCOME_LABEL = { done: 'concluido', skipped: 'pulado', cancelled: 'cancelado', failed: 'falhou' };
 
 const iso = (ms) => new Date(ms).toISOString();
 
@@ -65,8 +65,9 @@ function createRunner({ jobs, log, onChange = () => {}, last: saved = null, onSe
       outcome = { result: cancelled ? 'cancelled' : 'failed', reason: null, error: cancelled ? null : err.message };
     }
 
-    log(`${job.job}: ${OUTCOME_LABEL[outcome.result]}${outcome.error ? ` -- ${outcome.error}` : ''}`);
     last = { job: job.job, startedAt: iso(job.startedAt), finishedAt: iso(Date.now()), ...outcome, progress: job.progress };
+    const { level, message } = describeOutcome(last);
+    log[level]('execução', message);
     onSettle(last);
     current = null;
     notify();
@@ -77,7 +78,7 @@ function createRunner({ jobs, log, onChange = () => {}, last: saved = null, onSe
     if (current) throw new JobError(`${current.job} ja esta rodando`, 409);
 
     current = { job, options, startedAt: Date.now(), controller: new AbortController(), progress: null };
-    log(`${job}: iniciado`);
+    log.info('execução', describeStart(job, options));
     notify();
     current.done = execute(current);
     return status();
@@ -87,7 +88,7 @@ function createRunner({ jobs, log, onChange = () => {}, last: saved = null, onSe
     if (!current) throw new JobError('nenhum job rodando', 409);
     if (!current.controller.signal.aborted) {
       current.controller.abort();
-      log(`${current.job}: cancelando...`);
+      log.info('execução', 'cancelando…');
       notify();
     }
     return status();

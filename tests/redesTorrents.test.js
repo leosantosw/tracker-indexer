@@ -150,7 +150,7 @@ test('pagina que rende cartao mas nenhum magnet avisa no log', async () => {
 
   assert.deepEqual(items, []);
   assert.equal(avisos.length, 1);
-  assert.match(avisos[0], /template mudou/);
+  assert.match(avisos[0], /layout do site pode ter mudado/);
 });
 
 test('o source nao promete seeders que o site nao publica', () => {

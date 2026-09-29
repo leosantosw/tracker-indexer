@@ -7,7 +7,7 @@ const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
 const { syncSource } = require('../src/job/sync');
 
-const log = () => {};
+const { createLogger, silentLogger: log } = require('../src/lib/logger');
 
 const torrent = (n) => ({
   infohash: String(n).padStart(40, '0'),
@@ -160,4 +160,32 @@ test('um termo que falha nao derruba a run', async () => {
   assert.equal(total.inserted, 0);
   assert.equal(countItems(db), 0);
   db.close();
+});
+
+const byPages = (pages, over = {}) => ({ ...fakeSource(pages), terms: undefined, ...over });
+
+test('a varredura por catálogo diz por que parou', async () => {
+  const pages = [[torrent(1)], [torrent(2)], [torrent(3)]];
+
+  assert.equal((await run(byPages(pages), openDb(':memory:'))).stop, 'end');
+  assert.equal((await run(byPages(pages, { pages: 2 }), openDb(':memory:'))).stop, 'cap');
+
+  const db = openDb(':memory:');
+  await run(byPages(pages), db);
+  const quiet = await run(byPages(pages, { stopAfterQuietPages: 2 }), db);
+  assert.deepEqual({ stop: quiet.stop, stopAfter: quiet.stopAfter, pages: quiet.pages }, { stop: 'quiet', stopAfter: 2, pages: 2 });
+});
+
+test('termos viram uma linha de debug cada, sem repetir o resumo como info', async () => {
+  const entries = [];
+  const logger = createLogger((entry) => entries.push(entry));
+  const source = { ...fakeSource([[torrent(1)]]), terms: ['dublado', 'dual'] };
+
+  const total = await syncSource(source, { repo: createRepo(openDb(':memory:')), log: logger });
+
+  assert.equal(total.terms, 2);
+  assert.deepEqual(
+    entries.map(({ level, message }) => `${level} ${message}`),
+    ['debug termo "dublado": 1 página · +1 novo', 'debug termo "dual": 1 página · +0 novos']
+  );
 });

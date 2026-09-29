@@ -48,7 +48,7 @@ function registerManualMatchRoutes(api, { repo, store, log }) {
     repo.saveWork(work, result);
     repo.setManualMatch(work.id, request.body.tmdbId);
     repo.refreshLeads();
-    log(`tmdb: "${work.title}" casada manualmente com "${result.match.title}" (${result.match.year ?? 's/ ano'})`);
+    log.info('tmdb', `"${work.title}" casada manualmente com "${result.match.title}" (${result.match.year ?? 'sem ano'})`);
     return { title: result.match.title, year: result.match.year };
   });
 }

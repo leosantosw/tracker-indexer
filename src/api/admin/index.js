@@ -1,6 +1,5 @@
 'use strict';
 
-const { createFeed } = require('../../lib/feed');
 const { createRunner } = require('../../job/runner');
 const { createScheduler } = require('../../job/scheduler');
 const { runSync, runEnrich } = require('../../job/pipeline');
@@ -27,9 +26,7 @@ const pipelineJobs = ({ repo, store }, log) => ({
  * to the terminal and to the live feed, never to disk. The token is read per
  * request, so changing it in the panel applies at once; `token` pins it (tests).
  */
-async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = console.log, jobs, uiDir } = {}) {
-  const feed = createFeed();
-  const log = (message) => echo(`${feed.log(message).at} ${message}`);
+async function registerAdmin(app, { repo, store, feed, log }, { apiPrefix, token, jobs, uiDir } = {}) {
   const currentToken = () => (token !== undefined ? token : store.config().admin.token);
 
   const runner = createRunner({

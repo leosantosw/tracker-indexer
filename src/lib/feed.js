@@ -14,8 +14,7 @@ function createFeed({ size = 500 } = {}) {
     emitter.emit('event', type, data);
   }
 
-  function log(message) {
-    const entry = { at: new Date().toISOString(), message };
+  function log(entry) {
     lines.push(entry);
     if (lines.length > size) lines.shift();
     publish('log', entry);

@@ -15,7 +15,7 @@ function registerUnmatchedRoutes(api, { repo, runner, log }) {
 
     const { source = null, status = null } = request.query;
     const result = repo.clearUnmatched({ source, status });
-    log(`sem match: ${result.removed} torrents de ${result.works} obras apagados pelo painel`);
+    log.info('catálogo', `${result.removed.toLocaleString('pt-BR')} torrents de ${result.works.toLocaleString('pt-BR')} obras sem match apagados pelo painel`);
     return result;
   });
 }

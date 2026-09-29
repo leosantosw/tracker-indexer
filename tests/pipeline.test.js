@@ -10,7 +10,7 @@ const { runSync, runEnrich } = require('../src/job/pipeline');
 const { createRunner } = require('../src/job/runner');
 const { buildAuthedServer } = require('./authed');
 
-const log = () => {};
+const { silentLogger: log } = require('../src/lib/logger');
 const noKey = { ...baseConfig, tmdb: { ...baseConfig.tmdb, apiKey: null } };
 const noTrackers = (config) => ({ ...config, sources: config.sources?.map((s) => ({ ...s, enabled: false })) ?? [] });
 

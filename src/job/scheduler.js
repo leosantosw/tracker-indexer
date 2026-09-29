@@ -40,7 +40,7 @@ function createScheduler({ store, runner, log, onChange = () => {}, timers = glo
     try {
       return step();
     } catch (err) {
-      log(`agendamento: ${err.message} -- tentando de novo em 1 minuto`);
+      log.error('agendamento', `${err.message} · tentando de novo em 1 minuto`);
       next = null;
       armedFor = null;
       wait(RETRY_MS);
@@ -67,14 +67,14 @@ function createScheduler({ store, runner, log, onChange = () => {}, timers = glo
   async function fire() {
     try {
       if (runner.status().running) {
-        log('agendamento: ja havia uma execucao rodando, a agendada foi pulada');
+        log.warn('agendamento', 'já havia uma execução rodando; a agendada foi pulada');
       } else {
-        log(`agendamento: iniciando a atualizacao do catalogo (${describeSchedule(schedule())})`);
+        log.info('agendamento', `disparando a atualização do catálogo (${describeSchedule(schedule())})`);
         runner.start('sync', {});
         await runner.idle();
       }
     } catch (err) {
-      log(`agendamento: ${err.message}`);
+      log.error('agendamento', err.message);
     }
     if (!stopped) arm();
   }

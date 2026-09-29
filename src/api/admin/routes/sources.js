@@ -25,7 +25,7 @@ function registerSourceRoutes(api, { repo, store, runner, log }) {
     try {
       return await inspectSource(source);
     } catch (err) {
-      log(`${name}: teste falhou -- ${err.message}`);
+      log.warn(name, `teste falhou: ${err.message}`);
       return reply.code(502).send({ error: `não foi possível ler o tracker: ${err.message}` });
     }
   });
@@ -41,7 +41,7 @@ function registerSourceRoutes(api, { repo, store, runner, log }) {
     }
 
     const removed = repo.clearSource(name);
-    log(`${name}: ${removed} torrents apagados pelo painel`);
+    log.info(name, `${removed.toLocaleString('pt-BR')} torrents apagados pelo painel`);
     return { source: name, removed };
   });
 }

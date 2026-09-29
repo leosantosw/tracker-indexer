@@ -22,23 +22,25 @@ const { wants } = require('../sources/content');
 async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn = () => {} }) {
   const rules = source.rules ?? {};
   const quietLimit = source.stopAfterQuietPages ?? Infinity;
-  const total = { pages: 0, inserted: 0, removed: { noYear: 0, duplicate: 0 } };
+  const total = { pages: 0, inserted: 0, removed: { noYear: 0, duplicate: 0 }, terms: null, stop: 'end', stopAfter: null };
 
   // Tracker de busca varre por termo; tracker de catalogo, por pagina.
   const terms = source.terms ?? [null];
   const maxPages = source.pages ?? Infinity;
+  if (source.terms) total.terms = source.terms.length;
 
   // A tracker's own warnings (like "no magnet on this page") go to both.
-  const prefix = `${source.name}: `;
   const warn = (message) => {
-    log(message);
-    onWarn(message.startsWith(prefix) ? message.slice(prefix.length) : message);
+    log.warn(source.name, message);
+    onWarn(message);
   };
 
   for (const [termIndex, term] of terms.entries()) {
     let cursor = null;
     let pages = 0;
     let quietPages = 0;
+    let insertedByTerm = 0;
+    let stop = 'end';
     const seen = new Set();
 
     while (pages < maxPages) {
@@ -49,8 +51,10 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
         page = await source.fetchPage({ term, cursor, log: warn });
       } catch (err) {
         if (signal?.aborted) throw err;
-        log(`${term ?? source.name}: ${err.message}`);
-        onWarn(term ? `o termo "${term}" falhou (${err.message})` : `a página falhou (${err.message})`);
+        const failed = term ? `o termo "${term}" falhou: ${err.message}` : `a página ${pages + 1} falhou: ${err.message}`;
+        log.warn(source.name, failed);
+        onWarn(failed);
+        stop = 'error';
         break;
       }
 
@@ -67,21 +71,31 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
       total.inserted += inserted;
       total.pages++;
       pages++;
+      insertedByTerm += inserted;
       quietPages = inserted === 0 ? quietPages + 1 : 0;
       onPage({ termIndex, inserted });
       cursor = page.nextCursor;
 
-      if (!cursor || quietPages >= quietLimit) break;
+      if (!cursor) break;
+      if (quietPages >= quietLimit) {
+        stop = 'quiet';
+        break;
+      }
       if (seen.has(cursor)) {
-        log(`${term ?? source.name}: o tracker repetiu a pagina ${cursor}, termo encerrado`);
+        log.warn(source.name, `o site repetiu a página ${cursor}; a varredura parou ali`);
         onWarn('o tracker repetiu uma página; a varredura parou ali');
+        stop = 'loop';
         break;
       }
       seen.add(cursor);
     }
 
-    const hitCap = pages === maxPages;
-    log(`${term ?? source.name}: ${pages} paginas${hitCap ? ' (limite do tracker atingido, pode haver mais)' : ''}`);
+    if (stop === 'end' && pages === maxPages) stop = 'cap';
+    if (term !== null) {
+      log.debug(source.name, `termo "${term}": ${pages} ${pages === 1 ? 'página' : 'páginas'} · +${insertedByTerm} ${insertedByTerm === 1 ? 'novo' : 'novos'}${stop === 'cap' ? ' · limite atingido' : ''}`);
+    }
+    total.stop = stop;
+    total.stopAfter = stop === 'quiet' ? quietLimit : null;
   }
 
   // Depois de gravar tudo: so com a base inteira da para ver duplicata que

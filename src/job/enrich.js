@@ -18,7 +18,7 @@ async function enrich({ repo, tmdb, config, log, signal, onStart = () => {}, onS
   const total = { seen: 0, ok: 0, notFound: 0, ambiguous: 0, skipped: 0, failed: 0 };
 
   if (!pending.length) return total;
-  log(`tmdb: ${pending.length} obras para consultar`);
+  log.info('tmdb', `consultando ${pending.length.toLocaleString('pt-BR')} ${pending.length === 1 ? 'obra' : 'obras'}`);
   onStart(pending.length);
 
   for (const work of pending) {
@@ -34,7 +34,7 @@ async function enrich({ repo, tmdb, config, log, signal, onStart = () => {}, onS
       if (err.status === 401) throw new Error('TMDB_API_KEY recusada pela API (401)');
 
       total.failed++;
-      log(`tmdb: ${work.title} -- ${err.message}`);
+      log.warn('tmdb', `"${work.title}": ${err.message}`);
       onStep('failed');
       continue;
     }

@@ -10,7 +10,7 @@ const { enrich } = require('../src/job/enrich');
 const { createTmdb, pickMatch, pickTrailer } = require('../src/sources/tmdb');
 
 const config = { tmdb: { staleDays: 30 } };
-const log = () => {};
+const { silentLogger: log } = require('../src/lib/logger');
 
 const candidate = (over = {}) => ({
   tmdbId: 1,

@@ -6,6 +6,8 @@ const etag = require('@fastify/etag');
 
 const { createSettingsStore } = require('../settings');
 const { createCacheStatus } = require('../debrid/cacheStatus');
+const { createFeed } = require('../lib/feed');
+const { createLogger, consoleSink } = require('../lib/logger');
 const { SHARED } = require('./public/schemas');
 const { registerDocs } = require('./public/docs');
 const { registerPublicApi } = require('./public');
@@ -28,7 +30,13 @@ const API_PREFIX = '/api';
 async function buildServer(repo, options = {}) {
   const app = fastify();
   const store = options.store ?? createSettingsStore(repo);
-  const deps = { repo, store, cacheStatus: createCacheStatus({ store, log: options.log }) };
+  const feed = createFeed();
+  const echo = options.admin?.echo ?? consoleSink({ minLevel: process.env.LOG_LEVEL || 'info' });
+  const log = createLogger((entry) => {
+    feed.log(entry);
+    echo(entry);
+  });
+  const deps = { repo, store, feed, log, cacheStatus: createCacheStatus({ store, log }) };
 
   await app.register(compress);
   await app.register(etag);

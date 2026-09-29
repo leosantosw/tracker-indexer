@@ -5,6 +5,7 @@ const assert = require('node:assert');
 
 const { nextRun, describeSchedule } = require('../src/job/schedule');
 const { createScheduler } = require('../src/job/scheduler');
+const { createLogger } = require('../src/lib/logger');
 
 // Quarta-feira, 16/09/2026, 10:00 no horario local.
 const WEDNESDAY_10H = new Date(2026, 8, 16, 10, 0, 0);
@@ -78,7 +79,8 @@ function setup(schedule, { running = false } = {}) {
   };
   const logs = [];
   let clock = WEDNESDAY_10H;
-  const scheduler = createScheduler({ store, runner, timers, log: (m) => logs.push(m), now: () => clock });
+  const log = createLogger((entry) => logs.push(`${entry.level} ${entry.message}`));
+  const scheduler = createScheduler({ store, runner, timers, log, now: () => clock });
 
   return {
     scheduler,
@@ -124,7 +126,7 @@ test('agendador: com outra execucao rodando, pula e rearma', async () => {
   await timers.pending.shift().fn(); // a real timer leaves the list when it fires
 
   assert.equal(runner.started, 0);
-  assert.match(logs.join('\n'), /pulada/);
+  assert.match(logs.join('\n'), /^warn .*pulada/m);
   assert.equal(timers.pending.length, 1);
 });
 

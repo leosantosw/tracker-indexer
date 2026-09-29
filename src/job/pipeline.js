@@ -4,6 +4,7 @@ const { createSources, createTmdbClient } = require('../sources');
 const { syncSource } = require('./sync');
 const { enrich } = require('./enrich');
 const { createProgress } = require('./progress');
+const { describeSourceRun, describeTmdbRun } = require('./summary');
 
 /**
  * What a job hands back to the runner. `skipped` means nothing was done;
@@ -21,15 +22,16 @@ const OUTCOME = {
 async function enrichStep({ repo, config, log, signal, progress }) {
   // Before the key check: without TMDB the works still exist, just `pending`.
   const registered = repo.registerWorks();
-  if (registered) log(`catalogo: ${registered} obras novas`);
+  if (registered) log.info('catálogo', `${registered.toLocaleString('pt-BR')} ${registered === 1 ? 'obra nova' : 'obras novas'} no catálogo`);
 
   const tmdb = createTmdbClient(config, { signal });
   if (!tmdb) {
-    log('tmdb: sem TMDB_API_KEY, enriquecimento pulado');
+    log.warn('tmdb', 'sem TMDB_API_KEY: capas e notas não foram buscadas');
     progress.endTmdb('skipped', OUTCOME.noTmdbKey.reason);
     return OUTCOME.noTmdbKey;
   }
 
+  const startedAt = Date.now();
   let total;
   try {
     total = await enrich({
@@ -46,15 +48,11 @@ async function enrichStep({ repo, config, log, signal, progress }) {
   }
   progress.endTmdb('done');
   if (!total.seen && !total.failed) {
-    log('tmdb: nada novo para consultar');
+    log.info('tmdb', 'nada novo para consultar');
     return {};
   }
 
-  log(
-    `tmdb: ${total.ok} casadas, ${total.ambiguous} ambiguas, ` +
-      `${total.notFound} sem match, ${total.skipped} ignoradas` +
-      (total.failed ? `, ${total.failed} com erro` : '')
-  );
+  log.info('tmdb', describeTmdbRun(total, Date.now() - startedAt));
   return {};
 }
 
@@ -66,13 +64,6 @@ async function runEnrich({ repo, config, log, signal, report }) {
   return outcome;
 }
 
-/** Cada parcela leva o proprio sinal: "-196 sem ano, 95 duplicados" pareceria entrada. */
-function describeRemoved({ noYear, duplicate }) {
-  return [noYear && `-${noYear} sem ano`, duplicate && `-${duplicate} duplicados`]
-    .filter(Boolean)
-    .join(', ');
-}
-
 /**
  * `only` narrows the run to some trackers; disabled ones never run. The
  * trackers' work stands on its own, so an enrich that could not run only
@@ -82,12 +73,13 @@ async function runSync({ repo, config, log, signal, only, report }) {
   const sources = createSources(config, { signal }).filter(
     (source) => !only?.length || only.includes(source.name)
   );
-  if (!sources.length) log('sync: nenhum tracker ativo para rodar');
+  if (!sources.length) log.warn('catálogo', 'nenhum tracker adicionado: não há o que atualizar');
   const progress = createProgress(report, { sources });
 
   for (const source of sources) {
     signal?.throwIfAborted();
     progress.startSource(source.name);
+    const startedAt = Date.now();
 
     const total = await syncSource(source, {
       repo,
@@ -97,8 +89,7 @@ async function runSync({ repo, config, log, signal, only, report }) {
       onPage: (page) => progress.page(source.name, page),
       onWarn: (text) => progress.warn(source.name, text),
     });
-    const cut = describeRemoved(total.removed);
-    log(`${source.name}: ${total.pages} paginas, ${total.inserted} novos${cut ? `, ${cut}` : ''}`);
+    log.info(source.name, describeSourceRun(total, Date.now() - startedAt));
     progress.endSource(source.name, { removed: total.removed.noYear + total.removed.duplicate });
   }
 
@@ -109,7 +100,7 @@ async function runSync({ repo, config, log, signal, only, report }) {
     return reason ? { reason } : {};
   } catch (err) {
     if (signal?.aborted) throw err;
-    log(`tmdb: ${err.message}`);
+    log.error('tmdb', `a TMDB falhou: ${err.message}`);
     progress.endTmdb('failed', 'tmdb-failed');
     progress.warn(null, `a TMDB falhou: ${err.message}`);
     return { reason: 'tmdb-failed' };

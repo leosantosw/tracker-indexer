@@ -103,7 +103,7 @@ function defineHtmlSource({
       const items = accepted.filter((entry) => entry.item).map((entry) => entry.item);
 
       if (accepted.length && !items.length) {
-        log?.(`${source.name}: pagina ${page} sem nenhum magnet -- template mudou?`);
+        log?.(`página ${page} sem nenhum magnet · o layout do site pode ter mudado`);
       }
       return { items, nextCursor: entries.length ? String(page + 1) : null };
     }

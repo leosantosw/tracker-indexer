@@ -5,6 +5,7 @@ const assert = require('node:assert');
 
 const baseConfig = require('../src/config');
 const { createCacheStatus } = require('../src/debrid/cacheStatus');
+const { createLogger } = require('../src/lib/logger');
 
 const HASH = 'ac3ee9395349ad9a0b6ef13e1520511a6b9ee2b2';
 
@@ -18,7 +19,7 @@ function setup(config) {
   const cacheStatus = createCacheStatus({
     store: storeWith(config),
     now: () => clock,
-    log: (line) => lines.push(line),
+    log: createLogger((entry) => lines.push(`${entry.level} ${entry.scope} ${entry.message}`)),
   });
   return { cacheStatus, lines, advance: (ms) => (clock += ms) };
 }
@@ -35,7 +36,7 @@ test('token recusado deixa o selo nulo e avisa no log uma vez por pausa', async 
 
   assert.equal(fetch.mock.callCount(), 1);
   assert.equal(lines.length, 1);
-  assert.match(lines[0], /token do TorBox recusado/);
+  assert.match(lines[0], /^warn debrid .*token do TorBox recusado/);
 
   advance(60 * 1000);
   await cacheStatus.lookup([HASH]);

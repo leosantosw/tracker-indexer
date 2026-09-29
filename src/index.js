@@ -9,8 +9,9 @@ const { runSync, runEnrich } = require('./job/pipeline');
 const { checkSource } = require('./job/checkSource');
 const { createSources } = require('./sources');
 const { buildServer } = require('./api/server');
+const { createLogger, consoleSink } = require('./lib/logger');
 
-const log = (msg) => console.log(`${new Date().toISOString()} ${msg}`);
+const log = createLogger(consoleSink({ minLevel: process.env.LOG_LEVEL || 'info' }));
 
 const USAGE = `
   npm run sync                    sincroniza os trackers e enriquece pela TMDB
@@ -47,10 +48,10 @@ const commands = {
 
   async stats(repo) {
     const rows = repo.stats();
-    if (!rows.length) return log('nada indexado ainda. rode: npm run sync');
-    for (const row of rows) log(`${row.source}: ${row.total} itens`);
+    if (!rows.length) return console.log('nada indexado ainda. rode: npm run sync');
+    for (const row of rows) console.log(`${row.source}: ${row.total} itens`);
 
-    for (const row of repo.workStats()) log(`tmdb ${row.status}: ${row.total} obras`);
+    for (const row of repo.workStats()) console.log(`tmdb ${row.status}: ${row.total} obras`);
   },
 
   async query(repo, sql) {
@@ -60,12 +61,12 @@ const commands = {
 
   async serve(repo) {
     const { admin, apps } = createSettingsStore(repo).config();
-    if (!admin.token) log('painel sem token: o primeiro acesso a /admin cria o ADMIN_TOKEN');
-    if (!apps.token) log('aviso: sem API_TOKEN a API (menos /api/health) nao responde; defina no painel ou no .env');
+    if (!admin.token) log.warn('servidor', 'painel sem token: o primeiro acesso a /admin cria o ADMIN_TOKEN');
+    if (!apps.token) log.warn('servidor', 'sem API_TOKEN a API (menos /api/health) não responde; defina no painel ou no .env');
 
-    const app = await buildServer(repo, { log });
+    const app = await buildServer(repo);
     await app.listen(baseConfig.api);
-    log(`API em http://localhost:${baseConfig.api.port} (docs em /api/docs, painel em /admin)`);
+    log.info('servidor', `API em http://localhost:${baseConfig.api.port} · docs em /api/docs · painel em /admin`);
     return 'keep-alive';
   },
 };
