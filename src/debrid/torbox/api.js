@@ -61,7 +61,7 @@ function createTorboxApi({ token, timeoutMs = 20000, fetch = globalThis.fetch })
 
     /** Which of `hashes` TorBox already has cached: one call for all of them. */
     async cachedHashes(hashes) {
-      const data = await call('GET', '/torrents/checkcached', { query: { hash: hashes.join(','), format: 'object' } });
+      const data = await call('POST', '/torrents/checkcached', { query: { format: 'object' }, json: { hashes } });
       return new Set(Object.keys(data ?? {}).map((key) => key.toLowerCase()));
     },
 
