@@ -49,3 +49,5 @@ export function countdown(ms: number) {
 }
 
 export const percent = (value: number, total: number) => (total ? Math.round((value / total) * 100) : 0)
+
+export const formatShare = (value: number) => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`

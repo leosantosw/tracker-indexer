@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { insertedByLastSync, matchedShare } from '@/features/dashboard/overview-facts'
 import { useNow } from '@/hooks/use-now'
-import { ago, duration, formatNumber, plural } from '@/lib/format'
+import { ago, duration, formatNumber, formatShare, plural, when } from '@/lib/format'
 import { JOBS, RESULTS } from '@/lib/labels'
 import { paths } from '@/lib/paths'
 import type { LastJob, ScheduleStatus, Status } from '@/lib/schemas'
@@ -36,7 +36,7 @@ function WorksCard({ works }: { works: Status['stats']['works'] }) {
   return (
     <StatCard icon={LayersIcon} label="Obras no catálogo">
       <BigNumber>{formatNumber(matched)}</BigNumber>
-      <Caption>{share}% casadas com a TMDB</Caption>
+      <Caption>{formatShare(share)} identificadas pela TMDB</Caption>
     </StatCard>
   )
 }
@@ -47,8 +47,8 @@ function LastRunCard({ last }: { last: LastJob | null }) {
   if (!last) {
     return (
       <StatCard icon={ClockIcon} label="Última execução">
-        <BigNumber className="text-muted-foreground">—</BigNumber>
-        <Caption>nenhuma execução registrada</Caption>
+        <BigNumber className="text-2xl">Nunca executado</BigNumber>
+        <Caption>Nenhuma execução registrada</Caption>
       </StatCard>
     )
   }
@@ -85,7 +85,7 @@ function NextRunCard({ schedule }: { schedule: ScheduleStatus }) {
       <BigNumber className="font-mono text-primary">
         <Countdown to={schedule.nextRunAt} />
       </BigNumber>
-      <Caption>{schedule.description}</Caption>
+      <Caption>próxima execução {when(schedule.nextRunAt)}</Caption>
     </StatCard>
   )
 }

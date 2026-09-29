@@ -41,7 +41,7 @@ describe('contexto dos cards do topo', () => {
   })
 
   it('dá a parte das obras que casou com a TMDB', () => {
-    expect(matchedShare([{ status: 'ok', total: 96 }, { status: 'not_found', total: 4 }])).toEqual({ matched: 96, share: 96 })
+    expect(matchedShare([{ status: 'ok', total: 2355 }, { status: 'not_found', total: 101 }])).toEqual({ matched: 2355, share: 95.9 })
     expect(matchedShare([])).toEqual({ matched: 0, share: 0 })
   })
 })

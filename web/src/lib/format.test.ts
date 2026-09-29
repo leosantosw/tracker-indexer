@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { countdown, duration, elapsed, percent, plural, when } from '@/lib/format'
+import { countdown, duration, elapsed, formatShare, percent, plural, when } from '@/lib/format'
 
 describe('format', () => {
   it('conta regressivamente em horas, e em dias depois de 24h', () => {
@@ -29,6 +29,11 @@ describe('format', () => {
     expect(when(new Date(2026, 8, 28, 23, 0).toISOString(), now)).toBe('hoje às 23:00')
     expect(when(new Date(2026, 8, 29, 8, 30).toISOString(), now)).toBe('amanhã às 08:30')
     expect(when(new Date(2026, 9, 5, 9, 0).toISOString(), now)).toBe('seg, 05/10 às 09:00')
+  })
+
+  it('escreve a porcentagem com uma casa decimal e vírgula', () => {
+    expect(formatShare(95.88)).toBe('95,9%')
+    expect(formatShare(100)).toBe('100%')
   })
 
   it('calcula a porcentagem sem dividir por zero', () => {
