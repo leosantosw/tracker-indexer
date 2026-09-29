@@ -3,7 +3,7 @@
 ## Corrigir primeiro
 
 - [x] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
-- [ ] **Erros engolidos** — `src/debrid/cacheStatus.js:41,51`, `src/debrid/torbox/index.js:27`, `src/sources/tmdb/index.js:63`, `src/ui/lib/api.js:15`. Token TorBox revogado passa despercebido. Capturar só o erro esperado, logar o resto, repassar abort.
+- [x] **Erros engolidos** — `src/debrid/cacheStatus.js:41,51`, `src/debrid/torbox/index.js:27`, `src/sources/tmdb/index.js:63`, `src/ui/lib/api.js:15`. Token TorBox revogado passa despercebido. Capturar só o erro esperado, logar o resto, repassar abort.
 
 ## Arquitetura
 
