@@ -80,6 +80,7 @@ export const sourceSchema = z.object({
   name: z.string(),
   site: z.url(),
   access: z.enum(['public', 'private']),
+  requiresLogin: z.boolean().optional(),
   enabled: z.boolean(),
   mode: z.enum(['terms', 'pages']),
   content: contentSchema,
@@ -87,6 +88,7 @@ export const sourceSchema = z.object({
   pages: z.number().nullable(),
   stopAfterQuietPages: z.number().nullable(),
   terms: z.array(z.string()).nullish(),
+  freeleechOnly: z.boolean().optional(),
   rules: z.object({ requireYear: z.boolean(), dedupe: z.enum(['seeders']).nullable() }),
 })
 

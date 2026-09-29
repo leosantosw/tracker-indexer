@@ -75,6 +75,7 @@ export type SourcePatch = Partial<{
   pages: number | null
   stopAfterQuietPages: number | null
   terms: string[]
+  freeleechOnly: boolean
   rules: { requireYear?: boolean; dedupe?: 'seeders' | null }
 }>
 

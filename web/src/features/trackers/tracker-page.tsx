@@ -21,13 +21,22 @@ import { useJobActions } from '@/features/jobs/use-job-actions'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { AccessBadge } from '@/features/trackers/access-badge'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
-import { toAddPatch, toFormValues, toPatch, trackerFormFor, type TrackerForm } from '@/features/trackers/tracker-form'
+import { AccountSection } from '@/features/trackers/account-section'
+import {
+  accountSecret,
+  ACCOUNT_FIELDS,
+  toFormValues,
+  toSettingsPatch,
+  trackerFormFor,
+  type AccountField,
+  type TrackerForm,
+} from '@/features/trackers/tracker-form'
 import { warnInvalid } from '@/lib/form-errors'
 import { formatNumber } from '@/lib/format'
 import { CONTENT, MODE_LABEL, SOURCE_SYNC } from '@/lib/labels'
 import { paths } from '@/lib/paths'
 import { useClearSource, useLoaded, useSaveSettings } from '@/lib/queries'
-import { contentSchema, type Source } from '@/lib/schemas'
+import { contentSchema, type Settings, type Source } from '@/lib/schemas'
 
 const SUBTITLE = {
   terms: 'Varre por termos de busca · resultado ordenado por seeders',
@@ -148,16 +157,24 @@ function DangerZone({ source, indexed, running }: TrackerViewProps) {
   )
 }
 
-function TrackerFormView({ source, indexed, running, mode }: TrackerViewProps & { mode: Mode }) {
+const savedAccount = (source: Source, secrets: Settings['secrets']) =>
+  Object.fromEntries(
+    ACCOUNT_FIELDS.map((field) => [field, !secrets.encryption || Boolean(secrets.statuses[accountSecret(source.name, field)]?.source)])
+  ) as Record<AccountField, boolean>
+
+function TrackerFormView({ source, secrets, indexed, running, mode }: TrackerViewProps & { secrets: Settings['secrets']; mode: Mode }) {
   const navigate = useNavigate()
   const save = useSaveSettings()
-  const form = useForm<TrackerForm>({ resolver: zodResolver(trackerFormFor(source)), defaultValues: toFormValues(source) })
+  const form = useForm<TrackerForm>({
+    resolver: zodResolver(trackerFormFor(source, savedAccount(source, secrets))),
+    defaultValues: toFormValues(source),
+  })
   const byTerms = source.mode === 'terms'
   const adding = mode === 'add'
 
   function onSubmit(values: TrackerForm) {
     save.mutate(
-      { sources: { [source.name]: adding ? toAddPatch(values) : toPatch(values) } },
+      toSettingsPatch(source.name, values, adding),
       {
         onSuccess: () => {
           toast.success(adding ? `${source.name} adicionado` : `${source.name} salvo`)
@@ -172,6 +189,7 @@ function TrackerFormView({ source, indexed, running, mode }: TrackerViewProps & 
       <form className="pb-28" onSubmit={form.handleSubmit(onSubmit, warnInvalid)}>
         <TrackerHeader source={source} indexed={indexed} running={running} mode={mode} />
         <div className="space-y-6">
+          {source.requiresLogin && <AccountSection source={source} secrets={secrets} />}
           <FormSection id="geral" title="Geral" description="O que o tracker traz para o catálogo e em que ritmo.">
             <FormField<TrackerForm, 'content'> name="content" label="Conteúdo" description="O que este tracker traz para o catálogo.">
               {({ value, onChange, id }) => (
@@ -215,6 +233,20 @@ function TrackerFormView({ source, indexed, running, mode }: TrackerViewProps & 
                 {(field) => <NumberInput {...field} min={1} placeholder="nunca" />}
               </FormField>
             </div>
+            {source.freeleechOnly !== undefined && (
+              <Controller
+                control={form.control}
+                name="freeleechOnly"
+                render={({ field }) => (
+                  <SwitchField
+                    label="Apenas freeleech"
+                    description="Só lê torrents freeleech: baixar não conta no ratio da sua conta."
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            )}
           </FormSection>
 
           <FormSection id="regras" title="Regras" description="Valem só para o catálogo deste tracker.">
@@ -287,7 +319,16 @@ function TrackerRoute({ name, mode }: { name: string; mode: Mode }) {
   }, [redirect, source, name, navigate])
 
   if (!source || redirect) return null
-  return <TrackerFormView key={JSON.stringify(source)} source={source} indexed={indexed} running={Boolean(status.job.running)} mode={mode} />
+  return (
+    <TrackerFormView
+      key={JSON.stringify([source, settings.secrets])}
+      source={source}
+      secrets={settings.secrets}
+      indexed={indexed}
+      running={Boolean(status.job.running)}
+      mode={mode}
+    />
+  )
 }
 
 function TrackerRouteByParam({ mode }: { mode: Mode }) {

@@ -20,6 +20,7 @@ export type SecretMeta = {
   hint: string
   missing: { label: string; variant: BadgeVariant }
   generate?: boolean
+  keepSpaces?: boolean
 }
 
 type SecretFieldProps = {
@@ -69,7 +70,7 @@ export function SecretField({ meta, status, encryption, value, onChange, onRemov
       disabled={!writable}
       placeholder={editing ? 'novo valor' : MASK}
       value={value}
-      onChange={(event) => onChange(event.target.value.trim())}
+      onChange={(event) => onChange(meta.keepSpaces ? event.target.value : event.target.value.trim())}
     />
   )
 
