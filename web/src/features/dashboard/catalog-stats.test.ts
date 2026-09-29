@@ -3,6 +3,17 @@ import { describe, expect, it } from 'vitest'
 import { matchBreakdown, typeBreakdown } from '@/features/dashboard/catalog-stats'
 
 describe('números do card de catálogo', () => {
+  it('coleções ignoradas ficam fora do card e da conta das porcentagens', () => {
+    const breakdown = matchBreakdown([
+      { status: 'ok', total: 90 },
+      { status: 'not_found', total: 10 },
+      { status: 'skipped', total: 25 },
+    ])
+
+    expect(breakdown.map(({ status }) => status)).not.toContain('skipped')
+    expect(breakdown.find((segment) => segment.status === 'ok')?.share).toBe(90)
+  })
+
   it('dá contagem e porcentagem de cada status, com zero para o que não veio', () => {
     const breakdown = matchBreakdown([
       { status: 'ok', total: 90 },
@@ -14,7 +25,6 @@ describe('números do card de catálogo', () => {
       ['ok', 90, 90],
       ['ambiguous', 6, 6],
       ['not_found', 4, 4],
-      ['skipped', 0, 0],
       ['pending', 0, 0],
     ])
   })
