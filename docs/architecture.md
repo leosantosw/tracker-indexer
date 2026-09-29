@@ -332,6 +332,40 @@ presence of "Temporada" (season) in the title. The site publishes **one torrent 
 per range of episodes), and the episode name comes from the link's context, together with the
 post's title.
 
+## amigos-share-club (private)
+
+The first private tracker: it needs an account, and nothing is read without logging in.
+It comes **disabled**; the panel's *Adicionar tracker* asks for the username and the password,
+which are stored encrypted like any other secret (so `SECRETS_KEY` is required).
+
+**Session.** The site is Laravel + Inertia: each page carries its data as JSON in
+`<script data-page="app">`. Every run logs in once (`GET /login` for the `XSRF-TOKEN`
+cookie, then `POST /login` with the Inertia headers) and keeps the cookies **in memory
+only**: nothing about the session is written anywhere, and it dies with the run. If the site
+sends the request back to `/login` mid-run, the session logs in again **once**; a second
+refusal stops the tracker with a clear message instead of looping. Wrong credentials never
+retry. The shared logic lives in `src/sources/private/inertiaSession.js`.
+
+**Scan.** By page, newest first (`released_at`, the site's default order), one term per
+category: `filmes` (4), `anime-filmes` (59), `series` (3), `anime-series` (61). The
+tracker's `content` picks which ones run. 96 per page, the largest the site accepts — other
+values (and other sort orders) are answered with a redirect to the login page.
+*Apenas freeleech* (`freeleechOnly`) adds `freeleech=1` to the listing.
+
+**Detail only for what is new.** The listing has no infohash, so each torrent costs a
+request to its page. `fetchPage` receives `isKnown(ids)`, which asks the database which
+ids of the page are already stored: only the others open the detail. The first run of the
+default configuration costs up to 4 × 3 × 96 detail requests at 1 rps (~20 min); the next
+ones, only what is new. The flip side: seeders of known torrents are not refreshed.
+
+**Release name.** The listing's name is the site's title ("Filme 2024"), without the release
+markers. The name comes from the first video file of the torrent (padding files in `.pad/`
+are ignored), keeping the episode token of the listing — or the season range, for packs.
+
+**IMDb.** The torrent's page carries the IMDb id. It is stored in `item.imdb_id` and the
+enrichment tries it first: `/3/find/{imdb}` on the TMDB, in the work's type. Only when the
+TMDB does not know that id does it fall back to the search by title.
+
 ## Adding a tracker
 
 Create the file and add one line to `src/sources/index.js`:
@@ -349,11 +383,11 @@ module.exports = {
 
   create({ getJson, getText }) {
     return {
-      async fetchPage({ term, cursor, log }) {
+      async fetchPage({ term, cursor, log, isKnown }) {
         // -> { items, nextCursor }
       },
       toItem(raw) {
-        // -> { sourceId, infohash, name, sizeBytes, createdUnix, seeders, leechers }
+        // -> { sourceId, infohash, name, sizeBytes, createdUnix, seeders, leechers, imdbId? }
       },
     };
   },

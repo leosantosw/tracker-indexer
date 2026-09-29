@@ -110,10 +110,19 @@ in progress would bring part of the rows back right away.
 It deletes only that tracker's torrents. The TMDB titles and posters stay: they are a cache,
 and if the torrent comes back in the next sync the poster is already there, with no new query.
 
+### Private trackers
+
+A private tracker comes out of the updates until someone adds it. Its page has a *Conta*
+(account) section with the username and the password, required to add it; they are
+secrets, so they need `SECRETS_KEY`, never come back to the screen and never travel with
+the tracker list. *Remover do painel* on either field stops the tracker's sync until they
+are entered again. Where the tracker supports it, *Apenas freeleech* (freeleech only) keeps
+only torrents whose download does not count against the account's ratio.
+
 ### Secrets
 
 `TMDB_API_KEY`, `ADMIN_TOKEN`, `API_TOKEN` and `TORBOX_API_KEY` can come from `.env` or be
-set through the panel.
+set through the panel. A private tracker's username and password exist only in the panel.
 The panel's value wins; *Remover do painel* (remove from panel) restores the one from `.env`.
 
 What is saved through the panel goes to the database **encrypted**, with the
