@@ -65,6 +65,7 @@ module.exports = { sizeToBytes };
 
 - Code in **English**: identifiers, file names, commit messages.
 - User-facing text in **Brazilian Portuguese (pt-BR)**: panel UI, log messages and error messages.
+- The public API serves any client, not only a TV app. Do not name API files, identifiers, error messages or API docs after a TV; say "client" or describe the use instead.
 
 ## Logs
 
