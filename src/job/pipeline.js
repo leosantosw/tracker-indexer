@@ -30,16 +30,20 @@ async function enrichStep({ repo, config, log, signal, progress }) {
     return OUTCOME.noTmdbKey;
   }
 
-  const total = await enrich({
-    repo,
-    tmdb,
-    config,
-    log,
-    signal,
-    onStart: progress.startTmdb,
-    onStep: progress.tmdbStep,
-  });
-  repo.refreshLeads();
+  let total;
+  try {
+    total = await enrich({
+      repo,
+      tmdb,
+      config,
+      log,
+      signal,
+      onStart: progress.startTmdb,
+      onStep: progress.tmdbStep,
+    });
+  } finally {
+    repo.refreshLeads();
+  }
   progress.endTmdb('done');
   if (!total.seen && !total.failed) {
     log('tmdb: nada novo para consultar');

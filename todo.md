@@ -2,7 +2,7 @@
 
 ## Corrigir primeiro
 
-- [ ] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
+- [x] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
 - [ ] **SSRF via HTML do tracker** — `src/sources/html/defineHtmlSource.js:68` busca `card.url` vindo da página sem checar o domínio. Exigir mesma origem da listagem.
 - [ ] **Dois syncs simultâneos** — o runner só é single-flight dentro do `serve`; `npm run sync` pela CLI roda junto com o agendado. Lock no banco (linha com pid + heartbeat).
 - [ ] **Erros engolidos** — `src/debrid/cacheStatus.js:41,51`, `src/debrid/torbox/index.js:27`, `src/sources/tmdb/index.js:63`, `src/ui/lib/api.js:15`. Token TorBox revogado passa despercebido. Capturar só o erro esperado, logar o resto, repassar abort.
