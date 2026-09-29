@@ -13,27 +13,33 @@ function Dot({ color }: { color: string }) {
   return <span className={cn('size-2 shrink-0 rounded-full', color)} />
 }
 
-function Bar({ segments }: { segments: { color: string; share: number; label: string; count: number }[] }) {
+function BlockTitle({ children }: { children: string }) {
+  return <p className="text-sm font-medium">{children}</p>
+}
+
+function TypesBlock({ types }: { types: Status['stats']['types'] }) {
   return (
-    <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-muted">
-      {segments
-        .filter((segment) => segment.count > 0)
-        .map((segment) => (
-          <div
-            key={segment.label}
-            className={cn('h-full first:rounded-l-full last:rounded-r-full', segment.color)}
-            style={{ width: `${Math.max(segment.share, 1)}%` }}
-            title={`${segment.label}: ${formatNumber(segment.count)}`}
-          />
+    <div className="space-y-3">
+      <BlockTitle>Filmes e séries</BlockTitle>
+      <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-x-4 gap-y-2.5 text-sm">
+        {typeBreakdown(types).map((type) => (
+          <div key={type.type} className="contents">
+            <span className="text-muted-foreground">{type.label}</span>
+            <span className="text-right font-semibold tabular-nums">{formatNumber(type.count)}</span>
+            <span className="w-10 text-right text-muted-foreground tabular-nums">{type.share}%</span>
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className={cn('h-full rounded-full', type.color)} style={{ width: `${type.share}%` }} />
+            </div>
+          </div>
         ))}
+      </div>
     </div>
   )
 }
 
-export function CatalogCard({ stats }: { stats: Status['stats'] }) {
+function MatchBlock({ works }: { works: Status['stats']['works'] }) {
   const [, setFilters] = useUnmatchedFilters()
-  const types = typeBreakdown(stats.types)
-  const match = matchBreakdown(stats.works)
+  const match = matchBreakdown(works)
 
   async function showList(status: UnmatchedStatus) {
     await setFilters({ status })
@@ -41,51 +47,54 @@ export function CatalogCard({ stats }: { stats: Status['stats'] }) {
   }
 
   return (
-    <StatCard icon={LibraryBigIcon} label="Catálogo">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
-          {types.map((type) => (
-            <div key={type.type} className="flex items-baseline gap-2">
-              <Dot color={type.color} />
-              <span className="text-sm text-muted-foreground">{type.label}</span>
-              <span className="text-2xl font-semibold tracking-tight tabular-nums">{formatNumber(type.count)}</span>
-              <span className="text-sm text-muted-foreground tabular-nums">{type.share}%</span>
-            </div>
+    <div className="space-y-3">
+      <BlockTitle>Match com a TMDB</BlockTitle>
+      <div className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-muted">
+        {match
+          .filter((segment) => segment.count > 0)
+          .map((segment) => (
+            <div
+              key={segment.status}
+              className={cn('h-full first:rounded-l-full last:rounded-r-full', segment.color)}
+              style={{ width: `${Math.max(segment.share, 1)}%` }}
+              title={`${segment.label}: ${formatNumber(segment.count)}`}
+            />
           ))}
-        </div>
-        <div className="space-y-3">
-          <p className="text-sm font-medium">Match com a TMDB</p>
-          <Bar segments={match} />
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            {match.map((segment) => {
-              const { status } = segment
-              const content = (
-                <>
-                  <Dot color={segment.color} />
-                  <span className="text-muted-foreground">{segment.label}</span>
-                  <span className="font-medium tabular-nums">{formatNumber(segment.count)}</span>
-                  <span className="text-muted-foreground tabular-nums">{segment.share}%</span>
-                </>
-              )
-              return (
-                <li key={status}>
-                  {isListed(status) && segment.count > 0 ? (
-                    <button
-                      type="button"
-                      title="Ver a lista"
-                      className="flex items-center gap-1.5 rounded hover:underline"
-                      onClick={() => showList(status)}
-                    >
-                      {content}
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-1.5">{content}</div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+      </div>
+      <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+        {match.map((segment) => {
+          const { status } = segment
+          const content = (
+            <>
+              <Dot color={segment.color} />
+              <span className="text-muted-foreground">{segment.label}</span>
+              <span className="font-medium tabular-nums">{formatNumber(segment.count)}</span>
+              <span className="text-muted-foreground tabular-nums">{segment.share}%</span>
+            </>
+          )
+          return (
+            <li key={status}>
+              {isListed(status) && segment.count > 0 ? (
+                <button type="button" title="Ver a lista" className="flex items-center gap-1.5 rounded hover:underline" onClick={() => showList(status)}>
+                  {content}
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5">{content}</div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+export function CatalogCard({ stats }: { stats: Status['stats'] }) {
+  return (
+    <StatCard icon={LibraryBigIcon} label="Catálogo">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-10">
+        <TypesBlock types={stats.types} />
+        <MatchBlock works={stats.works} />
       </div>
     </StatCard>
   )
