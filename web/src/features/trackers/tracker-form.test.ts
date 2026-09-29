@@ -6,6 +6,7 @@ import type { Source } from '@/lib/schemas'
 const bySearch: Source = {
   name: 'torrents-csv',
   site: 'https://torrents-csv.com',
+  access: 'public',
   enabled: true,
   mode: 'terms',
   content: 'both',

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { useJobActions } from '@/features/jobs/use-job-actions'
+import { AccessBadge } from '@/features/trackers/access-badge'
 import { AddTrackerDialog } from '@/features/trackers/add-tracker-dialog'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
@@ -49,6 +50,7 @@ function TrackerRow({ source, indexed, running }: { source: Source; indexed: num
           <Badge variant="secondary" className="hidden sm:inline-flex">
             {MODE_LABEL[source.mode]}
           </Badge>
+          <AccessBadge access={source.access} className="hidden sm:inline-flex" />
         </div>
         <p className="mt-0.5 truncate text-sm text-muted-foreground">{summary(source, indexed)}</p>
       </div>

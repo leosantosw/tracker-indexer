@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
+import { AccessBadge } from '@/features/trackers/access-badge'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
 import { CONTENT, MODE_LABEL } from '@/lib/labels'
 import { paths } from '@/lib/paths'
@@ -39,6 +40,7 @@ export function AddTrackerDialog({ open, onOpenChange, available }: AddTrackerDi
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium">{source.name}</span>
                       <Badge variant="secondary">{MODE_LABEL[source.mode]}</Badge>
+                      <AccessBadge access={source.access} />
                     </div>
                     <p className="text-sm text-muted-foreground">{CONTENT[source.content].short}</p>
                   </div>

@@ -339,6 +339,7 @@ Crie o arquivo e acrescente uma linha em `src/sources/index.js`:
 module.exports = {
   name: 'meu-tracker',
   site: 'https://meu-tracker.com',   // o painel abre este endereço
+  access: 'public',                // 'public' ou 'private': a tag que o painel mostra
   rps: 2,
   terms: ['dublado'],                     // varredura por busca...
   pages: 10,                              // ...ou por página, um dos dois

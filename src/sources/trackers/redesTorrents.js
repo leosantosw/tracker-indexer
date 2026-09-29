@@ -11,6 +11,7 @@ const isSeries = (card) => card.kind === 'Séries' || SEASON_RE.test(card.title 
 module.exports = defineHtmlSource({
   name: 'redes-torrents',
   site: BASE_URL,
+  access: 'public',
   rps: 1,
   pages: 10,
   stopAfterQuietPages: 2,

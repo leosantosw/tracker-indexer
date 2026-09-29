@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useJobActions } from '@/features/jobs/use-job-actions'
 import { openCheckDialog } from '@/features/trackers/check-store'
+import { AccessBadge } from '@/features/trackers/access-badge'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
 import { toAddPatch, toFormValues, toPatch, trackerFormFor, type TrackerForm } from '@/features/trackers/tracker-form'
 import { warnInvalid } from '@/lib/form-errors'
@@ -50,6 +51,7 @@ function TrackerHeader({ source, indexed, running, mode }: TrackerViewProps & { 
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="truncate text-2xl font-semibold tracking-tight">{adding ? `Adicionar ${source.name}` : source.name}</h2>
             <Badge variant="secondary">{MODE_LABEL[source.mode]}</Badge>
+            <AccessBadge access={source.access} />
             <Hint label={`Abrir ${new URL(source.site).host}`}>
               <Button variant="ghost" size="icon-sm" asChild>
                 <a href={source.site} target="_blank" rel="noopener noreferrer" aria-label={`Abrir o site do ${source.name}`}>

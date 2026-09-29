@@ -366,3 +366,12 @@ test('cada tracker vem com o endereço do site para o painel abrir', async () =>
   assert.equal(sources.find((source) => source.name === 'redes-torrents').site, 'https://redestorrents.com');
   await app.close();
 });
+
+test('cada tracker diz se é público ou privado; os atuais são públicos', async () => {
+  const { app } = await setup();
+
+  const { sources } = json(await app.inject({ url: '/api/admin/settings' }));
+
+  assert.deepEqual([...new Set(sources.map((source) => source.access))], ['public']);
+  await app.close();
+});

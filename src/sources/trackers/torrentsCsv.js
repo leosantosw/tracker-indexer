@@ -27,6 +27,7 @@ const TERMS = [
 module.exports = {
   name: 'torrents-csv',
   site: BASE_URL,
+  access: 'public',
   rps: 2,
   terms: TERMS,
   content: 'both',
