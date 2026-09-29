@@ -5,9 +5,9 @@ import { Countdown } from '@/components/app/countdown'
 import { BigNumber, Caption, StatCard } from '@/components/app/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { insertedByLastSync, matchedShare } from '@/features/dashboard/overview-facts'
+import { matchedShare, torrentsCaption } from '@/features/dashboard/overview-facts'
 import { useNow } from '@/hooks/use-now'
-import { ago, duration, formatNumber, formatShare, plural, when } from '@/lib/format'
+import { ago, duration, formatNumber, formatShare, when } from '@/lib/format'
 import { JOBS, RESULTS } from '@/lib/labels'
 import { paths } from '@/lib/paths'
 import type { LastJob, ScheduleStatus, Status } from '@/lib/schemas'
@@ -16,16 +16,11 @@ const MINUTE = 60 * 1000
 
 function TorrentsCard({ stats, last }: { stats: Status['stats']; last: LastJob | null }) {
   const torrents = stats.sources.reduce((sum, row) => sum + row.total, 0)
-  const inserted = insertedByLastSync(last)
 
   return (
     <StatCard icon={DatabaseIcon} label="Torrents indexados">
       <BigNumber>{formatNumber(torrents)}</BigNumber>
-      <Caption>
-        {inserted === null
-          ? `em ${plural(stats.sources.length, 'tracker', 'trackers')}`
-          : `+${formatNumber(inserted)} na última atualização`}
-      </Caption>
+      <Caption>{torrentsCaption(last, stats.sources.length)}</Caption>
     </StatCard>
   )
 }
@@ -94,7 +89,7 @@ export function OverviewCards({ status }: { status: Status }) {
   const { stats, job, schedule } = status
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <TorrentsCard stats={stats} last={job.last} />
       <WorksCard works={stats.works} />
       <LastRunCard last={job.last} />

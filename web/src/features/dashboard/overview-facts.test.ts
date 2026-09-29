@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { insertedByLastSync, matchedShare } from '@/features/dashboard/overview-facts'
+import { insertedByLastSync, matchedShare, torrentsCaption } from '@/features/dashboard/overview-facts'
 import type { LastJob } from '@/lib/schemas'
 
 const source = (name: string, inserted: number) => ({
@@ -38,6 +38,12 @@ describe('contexto dos cards do topo', () => {
     expect(insertedByLastSync({ ...lastSync, job: 'enrich' })).toBeNull()
     expect(insertedByLastSync({ ...lastSync, progress: null })).toBeNull()
     expect(insertedByLastSync(null)).toBeNull()
+  })
+
+  it('legenda curta dos torrents: novos, nenhum novo, ou quantos trackers', () => {
+    expect(torrentsCaption(lastSync, 4)).toBe('+37 na última atualização')
+    expect(torrentsCaption({ ...lastSync, progress: { ...lastSync.progress!, sources: [source('comando', 0)] } }, 4)).toBe('nenhum torrent novo')
+    expect(torrentsCaption(null, 4)).toBe('em 4 trackers')
   })
 
   it('dá a parte das obras que casou com a TMDB', () => {
