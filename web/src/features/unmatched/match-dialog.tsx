@@ -84,7 +84,7 @@ function MatchForm({ work }: { work: UnmatchedWork }) {
           Buscar
         </Button>
       </form>
-      <div className="max-h-96 overflow-y-auto rounded-xl border">
+      <div className="min-h-0 overflow-y-auto overscroll-contain rounded-xl border sm:max-h-[28rem]">
         {search.isPending ? (
           <div className="flex items-center justify-center gap-3 py-6 text-sm text-muted-foreground">
             <Spinner className="size-5 text-primary" />
@@ -127,7 +127,7 @@ export function MatchDialog() {
 
   return (
     <Dialog open={Boolean(work)} onOpenChange={(open) => !open && closeMatchDialog()}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_auto_minmax(0,1fr)_auto] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Match manual</DialogTitle>
           {work && (
