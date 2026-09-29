@@ -24,7 +24,7 @@ function stopText({ stop, stopAfter, pages }) {
 function describeSourceRun(run, ms) {
   const removed = run.removed.noYear + run.removed.duplicate;
   return joined([
-    run.terms && plural(run.terms, 'termo', 'termos'),
+    run.terms && (run.byCategory ? plural(run.terms, 'categoria', 'categorias') : plural(run.terms, 'termo', 'termos')),
     plural(run.pages, 'página', 'páginas'),
     run.inserted ? `+${count(run.inserted)} ${run.inserted === 1 ? 'novo' : 'novos'}` : 'nenhum novo',
     removed && `${plural(removed, 'removido', 'removidos')} pelas regras`,

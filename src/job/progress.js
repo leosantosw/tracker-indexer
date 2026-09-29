@@ -20,6 +20,7 @@ function createProgress(report = () => {}, { sources = [] } = {}) {
       pages: 0,
       maxPages: Number.isFinite(source.pages) ? source.pages : null,
       terms: source.terms?.length ?? null,
+      byCategory: Boolean(source.categories),
       termIndex: null,
       inserted: 0,
       removed: 0,

@@ -7,10 +7,11 @@ export function sourceDetail(source: SourceProgress) {
   if (source.state === 'pending') return 'na fila'
   if (source.state === 'done') {
     const removed = source.removed ? ` · ${plural(source.removed, 'removido', 'removidos')} pelas regras` : ''
-    return `${plural(source.pages, 'página', 'páginas')} · ${insertedText(source.inserted)}${removed}`
+    const inCategories = source.byCategory && source.terms ? ` em ${plural(source.terms, 'categoria', 'categorias')}` : ''
+    return `${plural(source.pages, 'página', 'páginas')}${inCategories} · ${insertedText(source.inserted)}${removed}`
   }
   const where = source.terms
-    ? `termo ${(source.termIndex ?? 0) + 1} de ${source.terms}`
+    ? `${source.byCategory ? 'categoria' : 'termo'} ${(source.termIndex ?? 0) + 1} de ${source.terms}`
     : `página ${source.pages + 1}${source.maxPages ? ` de ${source.maxPages}` : ''}`
   return `${where} · ${insertedText(source.inserted)}`
 }

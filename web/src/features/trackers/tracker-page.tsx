@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ExternalLinkIcon, FlaskConicalIcon, MinusCircleIcon, PlayIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Controller, FormProvider, useForm } from 'react-hook-form'
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 
@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useJobActions } from '@/features/jobs/use-job-actions'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { AccessBadge } from '@/features/trackers/access-badge'
+import { pagesFieldText } from '@/features/trackers/scan-text'
 import { TrackerAvatar } from '@/features/trackers/tracker-avatar'
 import { AccountSection } from '@/features/trackers/account-section'
 import {
@@ -171,6 +172,8 @@ function TrackerFormView({ source, secrets, indexed, running, mode }: TrackerVie
   })
   const byTerms = source.mode === 'terms'
   const adding = mode === 'add'
+  const [content, pages] = useWatch({ control: form.control, name: ['content', 'pages'] })
+  const pagesText = pagesFieldText(source, content, pages)
 
   function onSubmit(values: TrackerForm) {
     save.mutate(
@@ -220,8 +223,8 @@ function TrackerFormView({ source, secrets, indexed, running, mode }: TrackerVie
             <div className="grid gap-5 sm:grid-cols-2">
               <FormField<TrackerForm, 'pages'>
                 name="pages"
-                label={byTerms ? 'Páginas por termo' : 'Páginas por varredura'}
-                description="Vazio: vai até a última página."
+                label={pagesText.label}
+                description={pagesText.description}
               >
                 {(field) => <NumberInput {...field} min={1} placeholder="todas" />}
               </FormField>

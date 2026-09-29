@@ -14,6 +14,7 @@ const sourceProgressSchema = z.object({
   maxPages: z.number().nullable(),
   terms: z.number().nullable(),
   termIndex: z.number().nullable(),
+  byCategory: z.boolean().optional(),
   inserted: z.number(),
   removed: z.number(),
 })
@@ -84,6 +85,7 @@ export const sourceSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum(['terms', 'pages']),
   content: contentSchema,
+  categories: z.partialRecord(contentSchema, z.array(z.string())).nullish(),
   rps: z.number(),
   pages: z.number().nullable(),
   stopAfterQuietPages: z.number().nullable(),

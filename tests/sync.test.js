@@ -216,3 +216,16 @@ test('o imdb do torrent é gravado e não some quando uma run seguinte não traz
 
   assert.equal(db.prepare('SELECT imdb_id FROM item').get().imdb_id, 'tt0111161');
 });
+
+test('tracker com categorias limita as páginas em cada uma e fala em categoria', async () => {
+  const entries = [];
+  const logger = createLogger((entry) => entries.push(entry));
+  const pages = Array.from({ length: 5 }, (_, i) => [torrent(i + 1)]);
+  const source = { ...fakeSource(pages), terms: ['filmes', 'series'], categories: { both: ['filmes', 'series'] }, pages: 3 };
+
+  const total = await syncSource(source, { repo: createRepo(openDb(':memory:')), log: logger });
+
+  assert.equal(total.pages, 6);
+  assert.equal(total.byCategory, true);
+  assert.match(entries[0].message, /^categoria "filmes": 3 páginas/);
+});

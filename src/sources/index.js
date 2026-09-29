@@ -22,7 +22,7 @@ const loginSources = () => SOURCES.filter((source) => source.requiresLogin).map(
 
 /** What each tracker declares in code: the baseline the admin UI overrides. */
 const sourceDefaults = () =>
-  SOURCES.map(({ name, site, access, requiresLogin, rps, terms, pages, stopAfterQuietPages, content, freeleechOnly, rules }) => ({
+  SOURCES.map(({ name, site, access, requiresLogin, rps, terms, pages, stopAfterQuietPages, content, categories, freeleechOnly, rules }) => ({
     name,
     site,
     access,
@@ -34,6 +34,7 @@ const sourceDefaults = () =>
     pages: pages ?? null,
     stopAfterQuietPages: stopAfterQuietPages ?? null,
     content: content ?? 'movies',
+    categories: categories ?? null,
     ...(freeleechOnly !== undefined && { freeleechOnly }),
     rules: { requireYear: false, dedupe: null, ...rules },
   }));

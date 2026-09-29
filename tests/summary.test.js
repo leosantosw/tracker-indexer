@@ -74,3 +74,9 @@ test('fim com aviso, pulado, cancelado e com erro mudam o nível', () => {
     message: 'Atualização do catálogo falhou após 42s · disco cheio',
   });
 });
+
+test('tracker com categorias diz quantas categorias varreu', () => {
+  const run = { pages: 10, inserted: 745, removed: noneRemoved, terms: 4, byCategory: true, stop: 'end', stopAfter: null };
+
+  assert.equal(describeSourceRun(run, 60_000), '4 categorias · 10 páginas · +745 novos · 1m00s');
+});

@@ -28,6 +28,8 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
   const terms = source.terms ?? [null];
   const maxPages = source.pages ?? Infinity;
   if (source.terms) total.terms = source.terms.length;
+  total.byCategory = Boolean(source.categories);
+  const termLabel = total.byCategory ? 'a categoria' : 'o termo';
 
   // A tracker's own warnings (like "no magnet on this page") go to both.
   const warn = (message) => {
@@ -52,7 +54,7 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
         page = await source.fetchPage({ term, cursor, log: warn, isKnown });
       } catch (err) {
         if (signal?.aborted) throw err;
-        const failed = term ? `o termo "${term}" falhou: ${err.message}` : `a página ${pages + 1} falhou: ${err.message}`;
+        const failed = term ? `${termLabel} "${term}" falhou: ${err.message}` : `a página ${pages + 1} falhou: ${err.message}`;
         log.warn(source.name, failed);
         onWarn(failed);
         stop = 'error';
@@ -93,7 +95,7 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
 
     if (stop === 'end' && pages === maxPages) stop = 'cap';
     if (term !== null) {
-      log.debug(source.name, `termo "${term}": ${pages} ${pages === 1 ? 'página' : 'páginas'} · +${insertedByTerm} ${insertedByTerm === 1 ? 'novo' : 'novos'}${stop === 'cap' ? ' · limite atingido' : ''}`);
+      log.debug(source.name, `${total.byCategory ? 'categoria' : 'termo'} "${term}": ${pages} ${pages === 1 ? 'página' : 'páginas'} · +${insertedByTerm} ${insertedByTerm === 1 ? 'novo' : 'novos'}${stop === 'cap' ? ' · limite atingido' : ''}`);
     }
     total.stop = stop;
     total.stopAfter = stop === 'quiet' ? quietLimit : null;

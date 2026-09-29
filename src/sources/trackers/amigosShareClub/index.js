@@ -107,6 +107,7 @@ module.exports = {
   pages: 3,
   stopAfterQuietPages: 2,
   content: 'both',
+  categories: CONTENT_CATEGORIES,
   freeleechOnly: false,
   rules: { requireYear: true },
   create,
