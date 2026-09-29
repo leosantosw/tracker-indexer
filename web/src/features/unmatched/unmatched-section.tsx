@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { SparklesIcon } from 'lucide-react'
 
+import { Hint } from '@/components/app/hint'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -16,22 +17,21 @@ import { UNMATCHED_STATUS, WORK_TYPE } from '@/lib/labels'
 import { queryKeys } from '@/lib/queries'
 import { unmatchedStatusSchema, type UnmatchedPage, type UnmatchedWork } from '@/lib/schemas'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 const ALL = 'all'
 
 const TAB_LABEL = { not_found: 'Sem match', ambiguous: 'Ambíguas' } as const
 
 function RawNames({ work }: { work: UnmatchedWork }) {
-  const [first] = work.names
-  if (!first) return null
-  const all = work.names.map(({ source, rawName }) => `${source}: ${rawName}`).join('\n')
-
   return (
-    <p className="truncate text-xs text-muted-foreground" title={all}>
-      <span className="font-medium">{first.source}: </span>
-      <code>{first.rawName}</code>
-      {work.names.length > 1 && <span className="ml-1 font-medium">+{work.names.length - 1}</span>}
-    </p>
+    <ul className="max-w-md space-y-1">
+      {work.names.map(({ source, rawName }) => (
+        <li key={`${source}:${rawName}`}>
+          <span className="font-medium">{source}: </span>
+          <code className="break-all">{rawName}</code>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -44,12 +44,13 @@ function WorkRow({ work }: { work: UnmatchedWork }) {
     <li className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate font-medium">{work.title}</span>
+          <Hint label={work.names.length ? <RawNames work={work} /> : null}>
+            <span className="truncate font-medium">{work.title}</span>
+          </Hint>
           {work.year && <span className="shrink-0 text-sm text-muted-foreground tabular-nums">({work.year})</span>}
           <Badge variant={status.variant}>{status.label}</Badge>
-          <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{meta}</span>
         </div>
-        <RawNames work={work} />
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta}</p>
       </div>
       <Button variant="outline" size="sm" className="shrink-0" aria-label="Match manual" onClick={() => openMatchDialog(work)}>
         <SparklesIcon data-icon="inline-start" />

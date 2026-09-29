@@ -1,4 +1,4 @@
-import { ChevronRightIcon, FlaskConicalIcon, PlayIcon } from 'lucide-react'
+import { CalendarCheckIcon, ChevronRightIcon, CopyMinusIcon, FlaskConicalIcon, PlayIcon } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
@@ -60,9 +60,17 @@ function TrackerRow({ source, indexed, running }: { source: Source; indexed: num
         </div>
         <p className="mt-0.5 truncate text-sm text-muted-foreground">{summary(source, indexed)}</p>
       </div>
-      <div className="hidden gap-1.5 md:flex">
-        {source.rules.requireYear && <Badge variant="info">exige ano</Badge>}
-        {source.rules.dedupe === 'seeders' && <Badge variant="info">dedupe</Badge>}
+      <div className="hidden items-center gap-2 text-muted-foreground md:flex">
+        {source.rules.requireYear && (
+          <Hint label="Exige ano nos filmes">
+            <CalendarCheckIcon className="size-4" aria-label="Exige ano nos filmes" />
+          </Hint>
+        )}
+        {source.rules.dedupe === 'seeders' && (
+          <Hint label="Deduplica por seeders">
+            <CopyMinusIcon className="size-4" aria-label="Deduplica por seeders" />
+          </Hint>
+        )}
       </div>
       <div className="flex items-center gap-1">
         <Hint label="Testar: lê a primeira página e mostra o que entraria, sem gravar">

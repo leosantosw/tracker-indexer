@@ -8,39 +8,38 @@ import type { JobResult, LastJob, StepState } from '@/lib/schemas'
 
 const RESULT_ICON: Record<JobResult, StepState> = { done: 'done', skipped: 'skipped', cancelled: 'skipped', failed: 'failed' }
 
-export function IdleView({ last }: { last: LastJob | null }) {
+export function IdleSummary({ last }: { last: LastJob | null }) {
   if (!last) {
     return (
-      <>
-        <h2 className="font-semibold">Atividade</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Nenhuma execução desde que o servidor subiu. Clique em Atualizar catálogo para começar.
-        </p>
-      </>
+      <div className="flex min-w-0 items-center gap-3 text-sm">
+        <span className="size-2 shrink-0 rounded-full bg-zinc-400" />
+        <span className="font-medium">Ociosa</span>
+        <span className="truncate text-muted-foreground">nenhuma execução desde que o servidor subiu</span>
+      </div>
     )
   }
 
   const result = RESULTS[last.result]
-  const facts = summaryFacts(last.progress)
-  const warnings = last.progress?.warnings ?? []
+  const facts = [ago(last.finishedAt), `levou ${duration(last.startedAt, last.finishedAt)}`, ...summaryFacts(last.progress)]
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <StepIcon state={RESULT_ICON[last.result]} />
-        <h2 className="font-semibold">{JOBS[last.job].title}</h2>
-        <Badge variant={result.variant}>{result.label}</Badge>
-        <span className="text-sm text-muted-foreground">
-          {ago(last.finishedAt)} · levou {duration(last.startedAt, last.finishedAt)}
-        </span>
-      </div>
-      {facts.length > 0 && <p className="mt-2 pl-7 text-sm text-muted-foreground">{facts.join(' · ')}</p>}
-      {last.error && <p className="mt-2 pl-7 text-sm text-destructive">{last.error}</p>}
-      {warnings.length > 0 && (
-        <div className="mt-4">
-          <RunWarnings warnings={warnings} />
-        </div>
-      )}
-    </>
+    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+      <StepIcon state={RESULT_ICON[last.result]} />
+      <span className="font-medium">{JOBS[last.job].title}</span>
+      <Badge variant={result.variant}>{result.label}</Badge>
+      <span className="text-muted-foreground">{facts.join(' · ')}</span>
+    </div>
+  )
+}
+
+export function IdleDetails({ last }: { last: LastJob | null }) {
+  const warnings = last?.progress?.warnings ?? []
+  if (!last?.error && !warnings.length) return null
+
+  return (
+    <div className="space-y-3 px-5 pb-4">
+      {last?.error && <p className="text-sm text-destructive">{last.error}</p>}
+      <RunWarnings warnings={warnings} />
+    </div>
   )
 }

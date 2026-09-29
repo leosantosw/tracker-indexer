@@ -7,10 +7,10 @@ Uma página só:
 | Onde | O quê |
 |---|---|
 | Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (claro, escuro ou o do sistema, guardado no navegador) |
-| Resumo | torrents indexados, obras casadas, distribuição do match e última execução |
-| Atividade | etapas da execução com progresso real (trackers, depois capas e notas), avisos e o resumo da última; os logs técnicos ficam recolhidos em *Ver logs técnicos* |
-| Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele; clicar abre a página dele |
-| Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, trackers e até 3 nomes crus dos torrents; filtra por status e por tracker, 10 por vez. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
+| Resumo | torrents indexados, obras casadas, última e próxima execução; o card *Catálogo* traz filmes e séries e a distribuição do match com a TMDB |
+| Atividade | parada, vira uma linha com o resumo da última execução; rodando, mostra as etapas com progresso real (trackers, depois capas e notas) e os avisos; os logs técnicos ficam recolhidos em *Ver logs* |
+| Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele, e as regras ativas como ícones; clicar abre a página dele |
+| Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, e os nomes crus dos torrents ao passar o mouse no título; filtra por status e por tracker, 5 por vez. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
 | Página do tracker (`/admin/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
 | Configurações (`/admin/configuracoes`, `?secao=tmdb` abre direto numa seção) | página inteira, uma seção por assunto e cada chave junto do que ela liga: agendamento; TMDB + `TMDB_API_KEY`; debrid + token do provedor; acesso (`ADMIN_TOKEN`, `API_TOKEN`) |
 
