@@ -52,7 +52,7 @@ export function DebridSection({ settings, onRemoveSecret }: DebridSectionProps) 
             render={({ field }) => (
               <SwitchField
                 label="Verificar cache após atualizar"
-                description="No fim de cada atualização do catálogo, pergunta ao debrid quais torrents novos já estão em cache. A API filtra por isso com ?cached=true."
+                description="No fim de cada atualização do catálogo, pergunta ao debrid quais torrents novos já estão em cache."
                 checked={field.value}
                 onCheckedChange={field.onChange}
               />
