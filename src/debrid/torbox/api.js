@@ -41,8 +41,8 @@ function createTorboxApi({ token, timeoutMs = 20000, fetch = globalThis.fetch })
     let res;
     try {
       res = await fetch(url, { method, headers, body, signal: AbortSignal.timeout(timeoutMs) });
-    } catch {
-      throw new DebridError('TorBox fora do ar ou lento demais', 504, 'provider_unavailable');
+    } catch (err) {
+      throw new DebridError('TorBox fora do ar ou lento demais', 504, 'provider_unavailable', { cause: err });
     }
 
     const payload = await res.json().catch(() => null);

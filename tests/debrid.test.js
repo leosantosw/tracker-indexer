@@ -217,6 +217,16 @@ test('token recusado vira erro claro, sem vazar o token', async () => {
   );
 });
 
+test('TorBox fora do ar vira 504 e guarda a causa original', async () => {
+  const offline = new TypeError('fetch failed');
+  const debrid = torbox.create({ token: TOKEN, fetch: async () => { throw offline; }, recent: createRecent() });
+
+  await assert.rejects(
+    () => debrid.status(HASH),
+    (err) => err.code === 'provider_unavailable' && err.statusCode === 504 && err.cause === offline
+  );
+});
+
 test('limite da TorBox vira 429', async () => {
   const { debrid } = provider({ '/torrents/mylist': () => ({ status: 429, body: { detail: 'slow down' } }) });
   await assert.rejects(() => debrid.status(HASH), (err) => err.statusCode === 429);
