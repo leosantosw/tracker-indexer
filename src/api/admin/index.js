@@ -25,7 +25,7 @@ const pipelineJobs = ({ repo, store }, log) => ({
  * to the terminal and to the live feed, never to disk. The token is read per
  * request, so changing it in the panel applies at once; `token` pins it (tests).
  */
-async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = console.log, jobs } = {}) {
+async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = console.log, jobs, uiDir } = {}) {
   const feed = createFeed();
   const log = (message) => echo(`${feed.log(message).at} ${message}`);
   const currentToken = () => (token !== undefined ? token : store.config().admin.token);
@@ -49,7 +49,7 @@ async function registerAdmin(app, { repo, store }, { apiPrefix, token, echo = co
     await runner.idle();
   });
 
-  registerUiRoutes(app);
+  registerUiRoutes(app, { dir: uiDir });
 
   await app.register(async (api) => registerSetupRoutes(api, { store, currentToken }), { prefix: apiPrefix });
 

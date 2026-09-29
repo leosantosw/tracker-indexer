@@ -2,6 +2,9 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
+const { mkdtempSync, mkdirSync, writeFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
 
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
@@ -60,17 +63,51 @@ test('com token, ele e exigido por header ou query', async () => {
   await app.close();
 });
 
+function builtPanel() {
+  const dir = mkdtempSync(join(tmpdir(), 'painel-'));
+  mkdirSync(join(dir, 'assets'));
+  writeFileSync(join(dir, 'index.html'), '<!doctype html><div id="root"></div>');
+  writeFileSync(join(dir, 'assets', 'index-abc123.js'), 'console.log(1)');
+  return dir;
+}
+
 test('a pagina do painel abre sem autenticar, a API nao', async () => {
-  const { app } = await setup({ token: 's3cret' });
+  const { app } = await setup({ token: 's3cret', uiDir: builtPanel() });
 
   const page = await app.inject({ url: '/admin' });
-  const script = await app.inject({ url: '/admin/main.js' });
+  const script = await app.inject({ url: '/admin/assets/index-abc123.js' });
   const escape = await app.inject({ url: '/admin/..%2Fconfig.js' });
+  const api = await app.inject({ url: '/api/admin/status', headers: { authorization: '' } });
 
   assert.equal(page.statusCode, 200);
   assert.match(page.headers['content-type'], /text\/html/);
   assert.match(script.headers['content-type'], /javascript/);
+  assert.match(script.headers['cache-control'], /immutable/);
   assert.equal(escape.statusCode, 404);
+  assert.equal(api.statusCode, 401);
+  await app.close();
+});
+
+test('rota do painel devolve o index.html; arquivo que falta da 404', async () => {
+  const { app } = await setup({ uiDir: builtPanel() });
+
+  const route = await app.inject({ url: '/admin/trackers/comando' });
+  const missing = await app.inject({ url: '/admin/assets/nao-existe.js' });
+
+  assert.equal(route.statusCode, 200);
+  assert.match(route.body, /id="root"/);
+  assert.equal(route.headers['cache-control'], 'no-cache');
+  assert.equal(missing.statusCode, 404);
+  await app.close();
+});
+
+test('sem o build do painel, /admin explica o que falta', async () => {
+  const { app } = await setup({ uiDir: mkdtempSync(join(tmpdir(), 'vazio-')) });
+
+  const res = await app.inject({ url: '/admin' });
+
+  assert.equal(res.statusCode, 503);
+  assert.match(json(res).error, /npm run build/);
   await app.close();
 });
 
@@ -147,14 +184,14 @@ test('cancelar sem job rodando leva 409', async () => {
 });
 
 test('toda a API mora sob /api; o painel fica em /admin', async () => {
-  const { app } = await setup();
+  const { app } = await setup({ uiDir: builtPanel() });
 
   assert.equal((await app.inject({ url: '/api/health' })).statusCode, 200);
   assert.equal((await app.inject({ url: '/api/docs/json' })).statusCode, 200);
   assert.equal((await app.inject({ url: '/health' })).statusCode, 404);
   assert.equal((await app.inject({ url: '/movies' })).statusCode, 404);
   assert.equal((await app.inject({ url: '/docs' })).statusCode, 404);
-  assert.equal((await app.inject({ url: '/admin/api/status' })).statusCode, 404);
+  assert.doesNotMatch((await app.inject({ url: '/admin/api/status' })).headers['content-type'] ?? '', /json/);
   await app.close();
 });
 
