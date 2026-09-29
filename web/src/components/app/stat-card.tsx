@@ -27,7 +27,7 @@ export function StatCard({ icon: Icon, label, children }: StatCardProps) {
 }
 
 export function BigNumber({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn('text-3xl font-semibold tracking-tight tabular-nums', className)}>{children}</p>
+  return <p className={cn('text-2xl font-semibold tracking-tight tabular-nums', className)}>{children}</p>
 }
 
 export function Caption({ children }: { children: ReactNode }) {
