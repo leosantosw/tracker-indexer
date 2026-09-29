@@ -32,7 +32,7 @@
 - [ ] **Temporadas/episódios no detalhe da série** — agrupar em `seasons[].episodes[]` (`toWorkDetail` em `src/api/public/dto.js`). Resolve também as cópias sem paginação.
 - [ ] **Filtros nas listas** — idioma (dublado/dual), resolução mínima, ano, gênero (`LIST_QUERY` + `listWorks`).
 - [ ] **Categorias novas** — "Novos esta semana", "Em 4K", "Dublados", "Disponível instantâneo" (cache do debrid).
-- [ ] **Alerta de tracker sem itens** — hoje "template mudou?" só vai para o log. Uma linha por tracker, sobrescrita, exibida em `src/ui/views/alerts.js`.
+- [ ] **Alerta de tracker sem itens** — hoje "template mudou?" só vai para o log. Uma linha por tracker, sobrescrita, exibida no painel (`web/src/features/dashboard/reason-alert.tsx`).
 - [ ] **Tracker BluDV** — irmão do torrentdosfilmes (`docs/trackers-candidatos.md`).
 
 ### Médias

@@ -395,7 +395,7 @@ src/
 │  └─ admin/                 API do painel
 │     ├─ index.js            liga feed, runner, auth e rotas
 │     ├─ schemas.js          validação das rotas do painel
-│     └─ routes/             jobs, settings, sources, events (SSE), ui (arquivos)
+│     └─ routes/             jobs, settings, sources, events (SSE), ui (serve web/dist)
 ├─ debrid/                  provedores de debrid
 │  ├─ index.js               registry e criação a partir da config
 │  ├─ errors.js              DebridError: HTTP + code estável
@@ -429,12 +429,23 @@ src/
 │  ├─ trackers/              um arquivo por tracker (torrentsCsv, redesTorrents, comando, torrentDosFilmes)
 │  ├─ html/                  molde para tracker HTML (defineHtmlSource, seletores, título do post)
 │  └─ tmdb/                  busca e match: candidate, movie, series, trailer
-└─ ui/                       painel: HTML + ES modules + Tailwind (CDN), sem build
-   ├─ index.html
-   ├─ main.js                estado da página e ações
-   ├─ lib/                   api, dom, ícones, nomes da tela
-   ├─ components/            controles, painel lateral, confirmação, tags
-   └─ views/                 topo, resumo, trackers, editor, configurações, log
+```
+
+O painel mora fora de `src/`, num app próprio:
+
+```
+web/                         React + Vite + TypeScript + Tailwind v4 + shadcn/ui
+├─ src/
+│  ├─ app.tsx                providers: tema, TanStack Query, tooltips, toasts
+│  ├─ router.tsx             rotas sob /admin, cada página carregada sob demanda
+│  ├─ layout/                cabeçalho, pill do job, barra de progresso
+│  ├─ components/ui/         componentes do shadcn (gerados pelo CLI, ajustados ao tema)
+│  ├─ components/app/        peças do painel reutilizadas entre telas
+│  ├─ features/              uma pasta por assunto: dashboard, activity, trackers,
+│  │                         unmatched, settings, access, live (SSE), jobs
+│  ├─ hooks/                 hooks genéricos
+│  └─ lib/                   cliente da API, schemas zod, formatação, textos, stores
+└─ dist/                     build servido pelo Fastify (fora do git)
 ```
 
 ## Limitações conhecidas

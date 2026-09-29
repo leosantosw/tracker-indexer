@@ -11,8 +11,8 @@ Uma página só:
 | Atividade | etapas da execução com progresso real (trackers, depois capas e notas), avisos e o resumo da última; os logs técnicos ficam recolhidos em *Ver logs técnicos* |
 | Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele; clicar abre a página dele |
 | Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, trackers e até 3 nomes crus dos torrents; filtra por status e por tracker, 10 por vez. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
-| Página do tracker (`#/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
-| Configurações (`#/configuracoes`) | página inteira, uma seção por assunto e cada chave junto do que ela liga: agendamento; TMDB + `TMDB_API_KEY`; debrid + token do provedor; acesso (`ADMIN_TOKEN`, `API_TOKEN`) |
+| Página do tracker (`/admin/trackers/<nome>`) | rps, páginas, parada antecipada, regras, termos e a zona de perigo (*Apagar resultados*) |
+| Configurações (`/admin/configuracoes`, `?secao=tmdb` abre direto numa seção) | página inteira, uma seção por assunto e cada chave junto do que ela liga: agendamento; TMDB + `TMDB_API_KEY`; debrid + token do provedor; acesso (`ADMIN_TOKEN`, `API_TOKEN`) |
 
 Os nomes da tela são para quem usa; código, CLI, API e log continuam com
 `sync` e `enrich`:
@@ -23,8 +23,15 @@ Os nomes da tela são para quem usa; código, CLI, API e log continuam com
 | Buscar torrents (na lista) | `sync` com `sources: [nome]` | o mesmo, só naquele tracker |
 | Buscar capas e notas | `enrich` | só a TMDB, sem tocar nos trackers |
 
-O estilo é Tailwind v4 pelo CDN (`@tailwindcss/browser`), sem etapa de build —
-então o painel precisa de internet para carregar o CSS.
+O painel é um app React em `web/` (Vite, TypeScript, Tailwind v4 e componentes
+shadcn/ui). `npm run build` gera `web/dist`, que o próprio `serve` entrega em
+`/admin`; qualquer rota do painel devolve o `index.html` e o React Router decide
+a tela. Sem o build, `/admin` responde 503 pedindo `npm run build`. Os filtros
+da lista *Sem match* ficam na URL (`?status=ambiguous&tracker=comando`), então
+dá para compartilhar ou recarregar sem perder a visão.
+
+Para mexer no painel, `npm run dev:web` sobe o Vite em :5173 com hot reload e
+repassa `/api` para o `serve` em :3000.
 
 **Um job por vez.** Pedir outro com um rodando dá 409. Cancelar interrompe até a
 requisição em andamento; as regras do tracker ficam para a próxima run.

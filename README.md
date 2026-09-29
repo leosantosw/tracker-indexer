@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/ui/assets/logo.png" alt="tracker-indexer" width="96" height="96">
+<img src="web/public/logo.png" alt="tracker-indexer" width="96" height="96">
 
 # tracker-indexer
 
@@ -46,6 +46,7 @@ Requer **Node.js 22+**, por causa do `node:sqlite`.
 git clone https://github.com/leosantosw/tracker-indexer.git
 cd tracker-indexer
 npm install
+npm run build             # compila o painel (web/) para web/dist
 
 cp .env.example .env
 npm run keygen            # cole a SECRETS_KEY gerada no .env
@@ -69,7 +70,10 @@ painel. Sem ela, o sync funciona normalmente e só pula o enriquecimento.
 | `npm run check-source <tracker>` | confere a 1ª página de um tracker, sem gravar |
 | `npm run query "SELECT ..."` | consulta o banco (somente leitura) |
 | `npm run keygen` | gera uma `SECRETS_KEY` |
-| `npm test` | roda a suíte de testes |
+| `npm run build` | instala as dependências do painel e compila `web/` para `web/dist` |
+| `npm run dev:web` | painel com hot reload em :5173, repassando `/api` para o `serve` em :3000 |
+| `npm test` | roda a suíte de testes do backend |
+| `npm run test:web` | roda os testes do painel (Vitest) |
 
 ## Como funciona
 
