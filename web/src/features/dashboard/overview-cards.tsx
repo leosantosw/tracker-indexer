@@ -85,7 +85,7 @@ function NextRunCard({ schedule }: { schedule: ScheduleStatus }) {
       <BigNumber className="font-mono text-primary">
         <Countdown to={schedule.nextRunAt} />
       </BigNumber>
-      <Caption>próxima execução {when(schedule.nextRunAt)}</Caption>
+      <Caption>{when(schedule.nextRunAt)}</Caption>
     </StatCard>
   )
 }
