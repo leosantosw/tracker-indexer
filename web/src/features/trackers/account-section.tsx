@@ -13,6 +13,7 @@ const ACCOUNT_META: Record<AccountField, SecretMeta> = {
     label: 'Usuário',
     hint: 'O mesmo do login no site.',
     missing: { label: 'ausente — sem sincronizar', variant: 'warning' },
+    visible: true,
   },
   password: {
     label: 'Senha',

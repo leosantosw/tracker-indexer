@@ -21,6 +21,7 @@ export type SecretMeta = {
   missing: { label: string; variant: BadgeVariant }
   generate?: boolean
   keepSpaces?: boolean
+  visible?: boolean
 }
 
 type SecretFieldProps = {
@@ -63,7 +64,7 @@ export function SecretField({ meta, status, encryption, value, onChange, onRemov
   const field = (
     <Input
       ref={input}
-      type={revealed ? 'text' : 'password'}
+      type={revealed || meta.visible ? 'text' : 'password'}
       className="font-mono"
       autoComplete="off"
       spellCheck={false}
