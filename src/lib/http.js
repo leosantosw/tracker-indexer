@@ -52,12 +52,7 @@ function createHttpClient({ rps = 2, timeoutMs = 20000, retries = 3, signal } = 
       await throttle();
 
       try {
-        const res = await fetch(url, {
-          headers: HEADERS,
-          signal: signal
-            ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
-            : AbortSignal.timeout(timeoutMs),
-        });
+        const res = await fetch(url, { headers: HEADERS, signal: timeout() });
         if (!res.ok) throw new HttpError(res.status, url);
         return await parse(res);
       } catch (err) {
@@ -67,9 +62,27 @@ function createHttpClient({ rps = 2, timeoutMs = 20000, retries = 3, signal } = 
     }
   }
 
+  const timeout = () => (signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs));
+
+  async function send(url, { headers = {}, ...init } = {}) {
+    for (let attempt = 0; ; attempt++) {
+      await throttle();
+
+      try {
+        const res = await fetch(url, { redirect: 'manual', ...init, headers: { ...HEADERS, ...headers }, signal: timeout() });
+        if (res.status >= 500) throw new HttpError(res.status, url);
+        return res;
+      } catch (err) {
+        if (signal?.aborted || attempt >= retries) throw err;
+        await sleep(500 * 2 ** attempt + Math.random() * 500);
+      }
+    }
+  }
+
   return {
     getJson: (url) => get(url, (res) => res.json()),
     getText: (url) => get(url, (res) => res.text()),
+    send,
   };
 }
 
