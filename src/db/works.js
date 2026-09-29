@@ -107,6 +107,7 @@ const PENDING = `
   SELECT i.type, i.title, ${WORK_YEAR} AS year,
          COALESCE(MAX(w.trailer_checked), 0) AS trailerChecked,
          MAX(w.manual_tmdb_id) AS manualTmdbId,
+         GROUP_CONCAT(i.imdb_id) AS imdbIds,
          MAX(COALESCE(i.season_end, i.season)) AS maxSeason,
          GROUP_CONCAT(DISTINCT CASE
            WHEN i.season IS NOT NULL AND i.season_end IS NULL AND i.year IS NOT NULL
@@ -233,11 +234,21 @@ function createWorks(db) {
       .map(([season, year]) => ({ season, year })),
   });
 
+  const mostFrequent = (list) => {
+    const counts = new Map();
+    for (const value of (list ?? '').split(',').filter(Boolean)) counts.set(value, (counts.get(value) ?? 0) + 1);
+    return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  };
+
   const pendingWorks = (staleBefore, retryBefore = 0) =>
     db
       .prepare(PENDING)
       .all({ staleBefore, retryBefore })
-      .map(({ maxSeason, seasonYears, ...work }) => ({ ...work, hints: toHints({ maxSeason, seasonYears }) }));
+      .map(({ maxSeason, seasonYears, imdbIds, ...work }) => ({
+        ...work,
+        imdbId: mostFrequent(imdbIds),
+        hints: toHints({ maxSeason, seasonYears }),
+      }));
 
   /** Creates the missing works, still `pending`; returns how many. */
   function registerWorks() {

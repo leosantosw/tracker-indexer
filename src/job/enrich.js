@@ -2,6 +2,13 @@
 
 const DAY = 86400;
 
+async function matchWork(tmdb, work) {
+  if (work.manualTmdbId) return tmdb.lookup(work.type, work.manualTmdbId);
+
+  const tmdbId = work.imdbId ? await tmdb.findByImdb(work.type, work.imdbId) : null;
+  return tmdbId ? tmdb.lookup(work.type, tmdbId) : tmdb.search(work);
+}
+
 /**
  * Segundo passo do catalogo: casa cada obra com a TMDB e guarda capa, sinopse
  * e nota na tabela `work`.
@@ -26,7 +33,7 @@ async function enrich({ repo, tmdb, config, log, signal, onStart = () => {}, onS
 
     let result;
     try {
-      result = work.manualTmdbId ? await tmdb.lookup(work.type, work.manualTmdbId) : await tmdb.search(work);
+      result = await matchWork(tmdb, work);
     } catch (err) {
       if (signal?.aborted) throw err;
       // Chave invalida erra em toda obra: para na primeira em vez de gravar

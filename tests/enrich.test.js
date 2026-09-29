@@ -390,3 +390,63 @@ test('o que o enrich grava e o que a API mostra em /movies', async () => {
   ]);
   db.close();
 });
+
+test('a tmdb acha a obra pelo imdb, no tipo certo', async () => {
+  const calls = [];
+  const getJson = async (url) => {
+    calls.push(`${url.pathname}?${url.searchParams.get('external_source')}`);
+    if (url.pathname === '/3/find/tt0111161') return { movie_results: [{ id: 278 }], tv_results: [] };
+    if (url.pathname === '/3/find/tt0959621') return { movie_results: [], tv_results: [], tv_episode_results: [{ show_id: 1396 }] };
+    return { movie_results: [], tv_results: [] };
+  };
+  const tmdb = createTmdb({ getJson, apiKey: 'k', language: 'pt-BR' });
+
+  assert.equal(await tmdb.findByImdb('movie', 'tt0111161'), 278);
+  assert.equal(await tmdb.findByImdb('series', 'tt0959621'), 1396);
+  assert.equal(await tmdb.findByImdb('series', 'tt0111161'), null, 'filme não vira série');
+  assert.equal(calls[0], '/3/find/tt0111161?imdb_id');
+});
+
+const withImdb = (sourceId, title, imdbId) => ({ ...item(sourceId, { title }), imdbId });
+
+const imdbTmdb = (byImdb) => ({
+  calls: [],
+  async findByImdb(type, imdbId) {
+    this.calls.push(`find:${imdbId}`);
+    return byImdb[imdbId] ?? null;
+  },
+  async lookup(type, id) {
+    this.calls.push(`lookup:${id}`);
+    return { status: 'ok', match: candidate({ tmdbId: id }) };
+  },
+  async search(work) {
+    this.calls.push(`search:${work.title}`);
+    return { status: 'not_found' };
+  },
+});
+
+test('obra com imdb casa direto pelo id, sem busca por título', async () => {
+  const { db, repo } = withItems([
+    withImdb('a', 'Um Sonho de Liberdade', 'tt0111161'),
+    withImdb('b', 'Um Sonho de Liberdade', 'tt0111161'),
+    withImdb('c', 'Um Sonho de Liberdade', 'tt9999999'),
+  ]);
+  const tmdb = imdbTmdb({ tt0111161: 278 });
+
+  const total = await enrich({ repo, tmdb, config, log });
+
+  assert.deepEqual(tmdb.calls, ['find:tt0111161', 'lookup:278']);
+  assert.equal(total.ok, 1);
+  assert.equal(db.prepare('SELECT tmdb_id FROM work').get().tmdb_id, 278);
+  db.close();
+});
+
+test('imdb que a tmdb não conhece cai na busca por título', async () => {
+  const { db, repo } = withItems([withImdb('a', 'Raro', 'tt0000001'), item('b', { title: 'Sem Imdb' })]);
+  const tmdb = imdbTmdb({});
+
+  await enrich({ repo, tmdb, config, log });
+
+  assert.deepEqual(tmdb.calls, ['find:tt0000001', 'search:Raro', 'search:Sem Imdb']);
+  db.close();
+});

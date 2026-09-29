@@ -91,9 +91,20 @@ function createTmdb({ getJson, apiKey, language }) {
     return matched(fromDetails(raw, type), pickTrailer(raw.videos?.results));
   }
 
+  async function findByImdb(type, imdbId) {
+    const request = url(`/3/find/${encodeURIComponent(imdbId)}`);
+    request.searchParams.set('external_source', 'imdb_id');
+    const found = await getJson(request);
+
+    if (type === 'movie') return found.movie_results?.[0]?.id ?? null;
+    return (
+      found.tv_results?.[0]?.id ?? found.tv_episode_results?.[0]?.show_id ?? found.tv_season_results?.[0]?.show_id ?? null
+    );
+  }
+
   const candidates = async (type, query) => (await find(type, query)).sort(byPopularity);
 
-  return { search, lookup, candidates };
+  return { search, lookup, findByImdb, candidates };
 }
 
 module.exports = { createTmdb, pickMatch, pickSeries, pickTrailer, toCandidate, COLLECTION_RE };
