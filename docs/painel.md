@@ -6,7 +6,7 @@ Uma página só:
 
 | Onde | O quê |
 |---|---|
-| Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícone de configurações |
+| Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (claro, escuro ou o do sistema, guardado no navegador) |
 | Resumo | torrents indexados, obras casadas, distribuição do match e última execução |
 | Atividade | etapas da execução com progresso real (trackers, depois capas e notas), avisos e o resumo da última; os logs técnicos ficam recolhidos em *Ver logs técnicos* |
 | Trackers | uma linha por tracker: liga/desliga na hora, *Testar*, *Buscar torrents* só nele; clicar abre a página dele |

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useJobActions } from '@/features/jobs/use-job-actions'
 import { JobPill } from '@/layout/job-pill'
+import { ThemeToggle } from '@/layout/theme-toggle'
 import { JOBS } from '@/lib/labels'
 import { paths } from '@/lib/paths'
 import type { JobStatus, Settings } from '@/lib/schemas'
@@ -72,6 +73,7 @@ export function AppHeader({ job, settings }: { job?: JobStatus; settings?: Setti
               </NavLink>
             </Button>
           </Hint>
+          <ThemeToggle />
           <Separator orientation="vertical" className="mx-1 h-6!" />
           {job && settings && <JobButtons job={job} settings={settings} />}
         </div>
