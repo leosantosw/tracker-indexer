@@ -17,20 +17,16 @@
     </script>
   </head>
   <body>
-    <div id="splash" class="splash" role="status" aria-label="Carregando o painel">
-      <div class="flex flex-col items-center gap-7">
-        <div class="relative size-28">
+    <div id="splash" class="splash" role="progressbar" aria-label="Carregando o painel">
+      <div class="flex flex-col items-center gap-8">
+        <div class="relative">
           <div class="splash-glow"></div>
-          <div class="splash-ring"></div>
-          <div class="absolute inset-4 grid place-items-center rounded-3xl bg-white shadow-lg shadow-primary/20">
+          <div class="relative grid size-20 place-items-center rounded-3xl bg-white shadow-lg shadow-primary/20">
             <img src="/admin/logo.png" alt="" width="56" height="56" class="size-14" />
           </div>
         </div>
-        <div class="flex flex-col items-center gap-2">
-          <p class="font-brand text-2xl leading-none font-black tracking-tight">
-            <span class="text-foreground">tracker-</span><span class="text-brand">indexer</span>
-          </p>
-          <p class="splash-caption text-sm text-muted-foreground">carregando o painel</p>
+        <div class="splash-track">
+          <div class="splash-fill"></div>
         </div>
       </div>
     </div>
