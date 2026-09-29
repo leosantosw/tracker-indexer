@@ -416,7 +416,8 @@ src/
 │  ├─ repo.js                fachada sobre as tabelas
 │  ├─ items.js               tabela item: gravação, regras e limpeza por tracker
 │  ├─ works.js               tabela work: obra, enriquecimento e leituras da API
-│  └─ settings.js            tabela setting: o que foi salvo no painel
+│  ├─ settings.js            tabela setting: o que foi salvo no painel
+│  └─ state.js               tabela app_state: estado operacional, uma linha por chave, sobrescrita
 ├─ lib/
 │  ├─ classifier/            ver acima
 │  ├─ http.js                fetch com throttle, retry e cancelamento

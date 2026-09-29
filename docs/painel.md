@@ -36,6 +36,11 @@ repassa `/api` para o `serve` em :3000.
 **Um job por vez.** Pedir outro com um rodando dá 409. Cancelar interrompe até a
 requisição em andamento; as regras do tracker ficam para a próxima run.
 
+A última execução do painel fica gravada na tabela `app_state` (uma linha só,
+sobrescrita a cada execução), então o resumo continua lá depois de reiniciar o
+servidor ou de *Restaurar padrões*. Execuções pela CLI (`npm run sync`) não
+passam pelo painel e não entram nesse resumo.
+
 O resultado de cada execução é `done`, `skipped`, `cancelled` ou `failed`, e
 pode trazer um `reason` que o painel traduz em texto e atalho:
 

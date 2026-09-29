@@ -5,16 +5,50 @@ import { Countdown } from '@/components/app/countdown'
 import { BigNumber, Caption, StatCard } from '@/components/app/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ago, formatNumber, plural, when } from '@/lib/format'
+import { insertedByLastSync, matchedShare } from '@/features/dashboard/overview-facts'
+import { useNow } from '@/hooks/use-now'
+import { ago, duration, formatNumber, plural } from '@/lib/format'
 import { JOBS, RESULTS } from '@/lib/labels'
 import { paths } from '@/lib/paths'
-import type { LastJob, Status } from '@/lib/schemas'
+import type { LastJob, ScheduleStatus, Status } from '@/lib/schemas'
+
+const MINUTE = 60 * 1000
+
+function TorrentsCard({ stats, last }: { stats: Status['stats']; last: LastJob | null }) {
+  const torrents = stats.sources.reduce((sum, row) => sum + row.total, 0)
+  const inserted = insertedByLastSync(last)
+
+  return (
+    <StatCard icon={DatabaseIcon} label="Torrents indexados">
+      <BigNumber>{formatNumber(torrents)}</BigNumber>
+      <Caption>
+        {inserted === null
+          ? `em ${plural(stats.sources.length, 'tracker', 'trackers')}`
+          : `+${formatNumber(inserted)} na última atualização`}
+      </Caption>
+    </StatCard>
+  )
+}
+
+function WorksCard({ works }: { works: Status['stats']['works'] }) {
+  const { matched, share } = matchedShare(works)
+
+  return (
+    <StatCard icon={LayersIcon} label="Obras no catálogo">
+      <BigNumber>{formatNumber(matched)}</BigNumber>
+      <Caption>{share}% casadas com a TMDB</Caption>
+    </StatCard>
+  )
+}
 
 function LastRunCard({ last }: { last: LastJob | null }) {
+  const now = useNow(Boolean(last), MINUTE)
+
   if (!last) {
     return (
       <StatCard icon={ClockIcon} label="Última execução">
-        <p className="text-sm text-muted-foreground">Nenhuma desde que o servidor subiu.</p>
+        <BigNumber className="text-muted-foreground">—</BigNumber>
+        <Caption>nenhuma execução registrada</Caption>
       </StatCard>
     )
   }
@@ -23,55 +57,48 @@ function LastRunCard({ last }: { last: LastJob | null }) {
   return (
     <StatCard icon={ClockIcon} label="Última execução">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold">{JOBS[last.job].title}</span>
+        <BigNumber>{ago(last.finishedAt, now)}</BigNumber>
         <Badge variant={result.variant}>{result.label}</Badge>
       </div>
-      <Caption>{ago(last.finishedAt)}</Caption>
+      <Caption>
+        {JOBS[last.job].title} · levou {duration(last.startedAt, last.finishedAt)}
+      </Caption>
       {last.error && <p className="mt-2 line-clamp-2 text-xs text-destructive">{last.error}</p>}
     </StatCard>
   )
 }
 
-function NextRunCard({ nextRunAt }: { nextRunAt: string | null }) {
+function NextRunCard({ schedule }: { schedule: ScheduleStatus }) {
+  if (!schedule.nextRunAt) {
+    return (
+      <StatCard icon={RefreshCwIcon} label="Próxima atualização">
+        <BigNumber className="text-muted-foreground">—</BigNumber>
+        <Button variant="link" className="mt-1 h-auto p-0" asChild>
+          <Link to={paths.settings('agendamento')}>{schedule.enabled ? 'Ver agendamento' : 'Agendar'}</Link>
+        </Button>
+      </StatCard>
+    )
+  }
+
   return (
     <StatCard icon={RefreshCwIcon} label="Próxima atualização">
-      {nextRunAt ? (
-        <>
-          <Countdown
-            to={nextRunAt}
-            className="block font-mono text-2xl font-semibold tracking-tight text-primary tabular-nums"
-          />
-          <Caption>{when(nextRunAt)}</Caption>
-        </>
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">Sem agendamento.</p>
-          <Button variant="link" className="h-auto p-0" asChild>
-            <Link to={paths.settings('agendamento')}>Agendar</Link>
-          </Button>
-        </>
-      )}
+      <BigNumber className="font-mono text-primary">
+        <Countdown to={schedule.nextRunAt} />
+      </BigNumber>
+      <Caption>{schedule.description}</Caption>
     </StatCard>
   )
 }
 
 export function OverviewCards({ status }: { status: Status }) {
   const { stats, job, schedule } = status
-  const torrents = stats.sources.reduce((sum, row) => sum + row.total, 0)
-  const matched = stats.works.find((row) => row.status === 'ok')?.total ?? 0
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard icon={DatabaseIcon} label="Torrents indexados">
-        <BigNumber>{formatNumber(torrents)}</BigNumber>
-        <Caption>em {plural(stats.sources.length, 'tracker', 'trackers')}</Caption>
-      </StatCard>
-      <StatCard icon={LayersIcon} label="Obras no catálogo">
-        <BigNumber>{formatNumber(matched)}</BigNumber>
-        <Caption>casadas com a TMDB</Caption>
-      </StatCard>
+      <TorrentsCard stats={stats} last={job.last} />
+      <WorksCard works={stats.works} />
       <LastRunCard last={job.last} />
-      <NextRunCard nextRunAt={schedule.nextRunAt} />
+      <NextRunCard schedule={schedule} />
     </section>
   )
 }

@@ -14,7 +14,7 @@ export function IdleSummary({ last }: { last: LastJob | null }) {
       <div className="flex min-w-0 items-center gap-3 text-sm">
         <span className="size-2 shrink-0 rounded-full bg-zinc-400" />
         <span className="font-medium">Ociosa</span>
-        <span className="truncate text-muted-foreground">nenhuma execução desde que o servidor subiu</span>
+        <span className="truncate text-muted-foreground">nenhuma execução registrada</span>
       </div>
     )
   }

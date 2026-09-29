@@ -60,7 +60,11 @@ export const jobStatusSchema = z.object({
     .nullable(),
 })
 
-export const scheduleStatusSchema = z.object({ nextRunAt: z.string().nullable() })
+export const scheduleStatusSchema = z.object({
+  enabled: z.boolean(),
+  description: z.string(),
+  nextRunAt: z.string().nullable(),
+})
 
 export const statusSchema = z.object({
   job: jobStatusSchema,
