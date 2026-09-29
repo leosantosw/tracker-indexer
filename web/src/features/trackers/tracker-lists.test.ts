@@ -5,6 +5,7 @@ import type { Source } from '@/lib/schemas'
 
 const tracker = (name: string, enabled: boolean): Source => ({
   name,
+  site: `https://${name}.com`,
   enabled,
   mode: 'pages',
   content: 'both',

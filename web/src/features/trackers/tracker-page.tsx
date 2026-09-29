@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FlaskConicalIcon, MinusCircleIcon, PlayIcon, Trash2Icon } from 'lucide-react'
+import { ExternalLinkIcon, FlaskConicalIcon, MinusCircleIcon, PlayIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Controller, FormProvider, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router'
@@ -50,6 +50,13 @@ function TrackerHeader({ source, indexed, running, mode }: TrackerViewProps & { 
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="truncate text-2xl font-semibold tracking-tight">{adding ? `Adicionar ${source.name}` : source.name}</h2>
             <Badge variant="secondary">{MODE_LABEL[source.mode]}</Badge>
+            <Hint label={`Abrir ${new URL(source.site).host}`}>
+              <Button variant="ghost" size="icon-sm" asChild>
+                <a href={source.site} target="_blank" rel="noopener noreferrer" aria-label={`Abrir o site do ${source.name}`}>
+                  <ExternalLinkIcon />
+                </a>
+              </Button>
+            </Hint>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {SUBTITLE[source.mode]} · {adding ? 'revise a configuração e adicione' : `${formatNumber(indexed)} torrents indexados`}

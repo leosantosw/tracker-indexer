@@ -15,6 +15,7 @@ function kindOf(card) {
 
 module.exports = defineHtmlSource({
   name: 'comando',
+  site: BASE_URL,
   rps: 1,
   pages: 10,
   stopAfterQuietPages: 2,

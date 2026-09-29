@@ -78,6 +78,7 @@ export const statusSchema = z.object({
 
 export const sourceSchema = z.object({
   name: z.string(),
+  site: z.url(),
   enabled: z.boolean(),
   mode: z.enum(['terms', 'pages']),
   content: contentSchema,

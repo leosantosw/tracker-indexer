@@ -355,3 +355,14 @@ test('apagar sem match pelo painel respeita os filtros e espera o job terminar',
   sync.finish();
   await app.close();
 });
+
+test('cada tracker vem com o endereço do site para o painel abrir', async () => {
+  const { app } = await setup();
+
+  const { sources } = json(await app.inject({ url: '/api/admin/settings' }));
+
+  assert.ok(sources.length > 0);
+  for (const source of sources) assert.match(source.site, /^https:\/\/[^/]+$/, source.name);
+  assert.equal(sources.find((source) => source.name === 'redes-torrents').site, 'https://redestorrents.com');
+  await app.close();
+});

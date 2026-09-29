@@ -19,8 +19,9 @@ const MODULES = new Map(SOURCES.map((source) => [source.name, source]));
 
 /** What each tracker declares in code: the baseline the admin UI overrides. */
 const sourceDefaults = () =>
-  SOURCES.map(({ name, rps, terms, pages, stopAfterQuietPages, content, rules }) => ({
+  SOURCES.map(({ name, site, rps, terms, pages, stopAfterQuietPages, content, rules }) => ({
     name,
+    site,
     mode: terms ? 'terms' : 'pages',
     enabled: true,
     rps,

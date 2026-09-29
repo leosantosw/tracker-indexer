@@ -15,6 +15,7 @@ function kindOf(card) {
 
 module.exports = defineHtmlSource({
   name: 'torrent-dos-filmes',
+  site: BASE_URL,
   rps: 1,
   pages: 10,
   stopAfterQuietPages: 2,
