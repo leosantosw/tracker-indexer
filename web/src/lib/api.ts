@@ -62,7 +62,7 @@ const query = (params: Record<string, string | number | null | undefined>) => {
 
 export type SettingsPatch = Partial<{
   tmdb: { language: string; rps: number; staleDays: number; minVotes: number }
-  debrid: { provider: string | null }
+  debrid: { provider: string | null; checkCache?: boolean }
   schedule: { enabled: boolean; mode: 'daily' | 'interval'; time: string; days: number[]; everyMinutes: number }
   sources: Record<string, SourcePatch>
   secrets: Record<string, string | null>

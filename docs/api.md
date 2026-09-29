@@ -353,6 +353,34 @@ Always `{ "error": "...", "code": "..." }`:
 | 429 | `provider_rate_limit` | TorBox limit (300/min; 60/h for adding uncached) |
 | 502 / 504 | `provider_error` / `provider_unavailable` | TorBox errored, went down or was slow |
 
+### Cache check
+
+The debrid does not need to be asked title by title. A **cache check** step asks the
+provider which torrents of the catalog it already has cached, in batches (1,000 hashes per
+call on TorBox), and stores the answer in the `debrid_cache` table: one row per
+provider and infohash, overwritten on each check. A cached answer is asked again after
+7 days, a missing one after 1 day; hashes that left the catalog are dropped.
+
+It runs from *Configurações → Debrid* (*Verificar cache*, check cache), from the CLI
+(`npm run check-cache`) or at the end of every catalog update when *Verificar cache após
+atualizar* (check cache after updating) is on.
+
+With it, the lists accept `cached=true`:
+
+```
+GET /api/movies?cached=true
+GET /api/series?cached=true&category=novidades
+```
+
+Only works with **at least one copy cached** on the active provider enter the list —
+they play at once. It uses what the check stored; with no provider configured, the list
+comes back empty rather than ignoring the filter. In the detail, each copy's `cached` is
+the live answer when the provider replies in time, and the stored one otherwise; `null`
+means nobody asked yet. Live answers are stored too, so the filter learns from them.
+
+A provider without a batch cache lookup simply has no check: the step is skipped with a
+reason, and `cached` stays `null`.
+
 ### TorBox endpoints used
 
 Base `https://api.torbox.app/v1/api`, with `Authorization: Bearer`:
@@ -360,7 +388,7 @@ Base `https://api.torbox.app/v1/api`, with `Authorization: Bearer`:
 | Our use | TorBox |
 |---|---|
 | already in the account? | `GET /torrents/mylist?bypass_cache=true` |
-| is it cached? | `GET /torrents/checkcached?hash=…&format=object` |
+| is it cached? | `POST /torrents/checkcached?format=object` `{ hashes: [...] }` — a GET with hundreds of hashes in the URL is refused |
 | start the download | `POST /torrents/createtorrent` (form, `magnet`) |
 | video link | `GET /torrents/requestdl?torrent_id&file_id&redirect=false` — the token goes in the query, that is how this endpoint accepts it |
 | remove | `POST /torrents/controltorrent` `{ torrent_id, operation: "delete" }` |
@@ -375,8 +403,9 @@ module.exports = {
   id: 'realdebrid',
   label: 'Real-Debrid',
   secret: 'realdebridToken',        // name of the secret in the panel
+  cacheBatch: 100,                   // optional: hashes per checkCached call; leave it out without a batch lookup
   create({ token, timeoutMs }) {
-    return { resolve(hash), status(hash), remove(hash) };  // same statuses as TorBox
+    return { resolve(hash), status(hash), remove(hash), checkCached(hashes) };  // same statuses as TorBox
   },
 };
 ```

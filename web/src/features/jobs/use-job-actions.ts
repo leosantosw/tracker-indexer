@@ -7,6 +7,7 @@ export function useJobActions() {
   return {
     sync: (sources?: string[]) => start.mutate({ job: 'sync', sources }),
     enrich: () => start.mutate({ job: 'enrich' }),
+    cache: () => start.mutate({ job: 'cache' }),
     cancel: () => cancel.mutate(),
     starting: start.isPending,
   }

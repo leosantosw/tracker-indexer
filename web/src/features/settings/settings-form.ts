@@ -12,7 +12,7 @@ export const settingsFormSchema = z.object({
     staleDays: z.number(required).int('número inteiro').min(1, 'no mínimo 1'),
     minVotes: z.number(required).int('número inteiro').min(0, 'no mínimo 0'),
   }),
-  debrid: z.object({ provider: z.string().nullable() }),
+  debrid: z.object({ provider: z.string().nullable(), checkCache: z.boolean() }),
   schedule: z.object({
     enabled: z.boolean(),
     mode: z.enum(['daily', 'interval']),
@@ -27,7 +27,7 @@ export type SettingsForm = z.infer<typeof settingsFormSchema>
 
 export const toFormValues = ({ tmdb, debrid, schedule }: Settings): SettingsForm => ({
   tmdb: { ...tmdb },
-  debrid: { provider: debrid.provider },
+  debrid: { provider: debrid.provider, checkCache: debrid.checkCache },
   schedule: { ...schedule, days: [...schedule.days] },
   secrets: {},
 })

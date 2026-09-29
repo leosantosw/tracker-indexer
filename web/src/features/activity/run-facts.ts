@@ -1,5 +1,5 @@
 import { formatNumber, plural } from '@/lib/format'
-import type { Progress, SourceProgress, TmdbProgress } from '@/lib/schemas'
+import type { CacheProgress, Progress, SourceProgress, TmdbProgress } from '@/lib/schemas'
 
 export const insertedText = (inserted: number) => (inserted ? `+${formatNumber(inserted)} novos` : 'nada novo')
 
@@ -35,16 +35,35 @@ export function tmdbFacts(tmdb: TmdbProgress, remaining: string | null) {
   ].filter(Boolean)
 }
 
+export const cacheShare = (cache: Pick<CacheProgress, 'done' | 'cached'>) =>
+  `${formatNumber(cache.cached)} de ${formatNumber(cache.done)} no cache (${Math.round((cache.cached / cache.done) * 100)}%)`
+
+export function cacheFacts(cache: CacheProgress) {
+  const seen = `${formatNumber(cache.done)} de ${plural(cache.total, 'torrent', 'torrents')}`
+  return cache.done ? [seen, cacheShare(cache)] : [seen]
+}
+
+function tmdbSummary(tmdb: TmdbProgress | null) {
+  if (tmdb?.state !== 'done') return []
+  const unmatched = tmdb.notFound + tmdb.ambiguous
+  return [
+    tmdb.total > 0 && `${plural(tmdb.ok, 'obra casada', 'obras casadas')} na TMDB`,
+    unmatched > 0 && `${formatNumber(unmatched)} sem match`,
+    tmdb.total === 0 && 'nenhuma obra nova para a TMDB',
+  ]
+}
+
+function cacheSummary(cache: CacheProgress | null | undefined) {
+  if (cache?.state !== 'done') return []
+  return [cache.done > 0 ? cacheShare(cache) : 'nada novo para o cache']
+}
+
 export function summaryFacts(progress?: Progress | null) {
   if (!progress) return []
   const inserted = progress.sources.reduce((sum, source) => sum + source.inserted, 0)
-  const { tmdb } = progress
-  const done = tmdb.state === 'done'
-  const unmatched = tmdb.notFound + tmdb.ambiguous
   return [
     progress.sources.length > 0 && insertedText(inserted).replace('novos', 'torrents novos'),
-    done && tmdb.total > 0 && `${plural(tmdb.ok, 'obra casada', 'obras casadas')} na TMDB`,
-    done && unmatched > 0 && `${formatNumber(unmatched)} sem match`,
-    done && tmdb.total === 0 && 'nenhuma obra nova para a TMDB',
+    ...tmdbSummary(progress.tmdb),
+    ...cacheSummary(progress.cache),
   ].filter(Boolean)
 }

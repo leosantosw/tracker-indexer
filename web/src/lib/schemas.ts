@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const jobNameSchema = z.enum(['sync', 'enrich'])
+export const jobNameSchema = z.enum(['sync', 'enrich', 'cache'])
 export const contentSchema = z.enum(['movies', 'series', 'both'])
 export const workTypeSchema = z.enum(['movie', 'series'])
 export const matchStatusSchema = z.enum(['ok', 'ambiguous', 'not_found', 'skipped', 'pending'])
@@ -32,10 +32,19 @@ const tmdbProgressSchema = z.object({
   reason: z.string().nullable(),
 })
 
+const cacheProgressSchema = z.object({
+  state: stepStateSchema,
+  total: z.number(),
+  done: z.number(),
+  cached: z.number(),
+  reason: z.string().nullable(),
+})
+
 const progressSchema = z.object({
-  phase: z.enum(['sources', 'tmdb', 'done']),
+  phase: z.enum(['sources', 'tmdb', 'cache', 'done']),
   sources: z.array(sourceProgressSchema),
-  tmdb: tmdbProgressSchema,
+  tmdb: tmdbProgressSchema.nullable(),
+  cache: cacheProgressSchema.nullish(),
   warnings: z.array(z.object({ source: z.string().nullable(), text: z.string() })),
 })
 
@@ -74,6 +83,7 @@ export const statusSchema = z.object({
     sources: z.array(z.object({ source: z.string(), total: z.number() })),
     works: z.array(z.object({ status: matchStatusSchema, total: z.number() })),
     types: z.array(z.object({ type: workTypeSchema, total: z.number() })),
+    cache: z.array(z.object({ source: z.string(), total: z.number(), checked: z.number(), cached: z.number() })).default([]),
   }),
 })
 
@@ -114,7 +124,8 @@ export const settingsSchema = z.object({
   sources: z.array(sourceSchema),
   debrid: z.object({
     provider: z.string().nullable(),
-    providers: z.array(z.object({ id: z.string(), label: z.string(), secret: z.string() })),
+    checkCache: z.boolean().default(false),
+    providers: z.array(z.object({ id: z.string(), label: z.string(), secret: z.string(), cacheBatch: z.number().nullish() })),
   }),
   schedule: scheduleSchema,
   secrets: z
@@ -182,6 +193,7 @@ export type LastJob = NonNullable<JobStatus['last']>
 export type Progress = z.infer<typeof progressSchema>
 export type SourceProgress = z.infer<typeof sourceProgressSchema>
 export type TmdbProgress = z.infer<typeof tmdbProgressSchema>
+export type CacheProgress = z.infer<typeof cacheProgressSchema>
 export type ScheduleStatus = z.infer<typeof scheduleStatusSchema>
 export type Status = z.infer<typeof statusSchema>
 export type Source = z.infer<typeof sourceSchema>

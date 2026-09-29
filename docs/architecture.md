@@ -435,6 +435,7 @@ src/
 │     └─ routes/             jobs, settings, sources, events (SSE), ui (serves web/dist)
 ├─ debrid/                  debrid providers
 │  ├─ index.js               registry and creation from config
+│  ├─ cacheStatus.js         live cache answer for the detail, kept in memory for a while
 │  ├─ errors.js              DebridError: HTTP + stable code
 │  └─ torbox/
 │     ├─ index.js            resolve, status, remove
@@ -442,7 +443,8 @@ src/
 │     └─ files.js            which file is the video; TorBox status -> ours
 ├─ job/
 │  ├─ checkSource.js         checks a tracker's 1st page, without writing
-│  ├─ pipeline.js            sync + enrich, used by the CLI and the panel
+│  ├─ pipeline.js            sync + enrich + cache check, used by the CLI and the panel
+│  ├─ cacheCheck.js          asks the debrid which stored torrents are cached, in batches
 │  ├─ runner.js              one job at a time, with cancellation
 │  ├─ summary.js             log texts: summary per tracker, for TMDB and at the end of the run
 │  ├─ scheduler.js           triggers the update at the time saved in the panel
@@ -454,6 +456,7 @@ src/
 │  ├─ repo.js                facade over the tables
 │  ├─ items.js               item table: writes, rules and cleanup per tracker
 │  ├─ works.js               work table: work, enrichment and API reads
+│  ├─ debridCache.js         debrid_cache table: cached or not per provider and infohash, overwritten
 │  ├─ settings.js            setting table: what was saved in the panel
 │  └─ state.js               app_state table: operational state, one row per key, overwritten
 ├─ lib/

@@ -6,7 +6,7 @@ import type { Settings } from '@/lib/schemas'
 const settings: Settings = {
   tmdb: { language: 'pt-BR', rps: 4, staleDays: 30, minVotes: 50 },
   sources: [],
-  debrid: { provider: 'torbox', providers: [{ id: 'torbox', label: 'TorBox', secret: 'torboxToken' }] },
+  debrid: { provider: 'torbox', checkCache: false, providers: [{ id: 'torbox', label: 'TorBox', secret: 'torboxToken' }] },
   schedule: { enabled: true, mode: 'daily', time: '03:00', days: [1, 3], everyMinutes: 360 },
   secrets: { encryption: true, statuses: { tmdbApiKey: { source: 'env' } } },
 }

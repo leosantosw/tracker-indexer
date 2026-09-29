@@ -18,7 +18,7 @@ export function ReasonAlert({ job }: { job: JobStatus }) {
       {reason.fix && (
         <AlertAction>
           <Button variant="link" size="sm" className="text-inherit" asChild>
-            <Link to={paths.settings('tmdb')}>{reason.fix}</Link>
+            <Link to={paths.settings(reason.fix.section)}>{reason.fix.label}</Link>
           </Button>
         </AlertAction>
       )}

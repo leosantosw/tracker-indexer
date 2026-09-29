@@ -16,6 +16,13 @@ export const JOBS: Record<JobName, { action: string; running: string; title: str
     short: 'Capas e notas',
     hint: 'Consulta a TMDB só para as obras novas ou com nota vencida, sem tocar nos trackers',
   },
+  cache: {
+    action: 'Verificar cache',
+    running: 'verificando cache',
+    title: 'Verificação de cache',
+    short: 'Cache',
+    hint: 'Pergunta ao debrid quais torrents já estão em cache, só os novos ou com resposta vencida',
+  },
 }
 
 export const CONTENT: Record<Content, { label: string; short: string }> = {
@@ -38,13 +45,23 @@ export const RESULTS: Record<JobResult, { label: string; variant: BadgeVariant }
   failed: { label: 'falhou', variant: 'destructive' },
 }
 
-export const REASONS: Record<string, { text: string; fix?: string }> = {
+export const REASONS: Record<string, { text: string; fix?: { label: string; section: string } }> = {
   'no-tmdb-key': {
     text: 'Capas e notas não foram buscadas: falta a TMDB_API_KEY.',
-    fix: 'Cadastrar chave',
+    fix: { label: 'Cadastrar chave', section: 'tmdb' },
   },
   'tmdb-failed': {
     text: 'A TMDB falhou: capas e notas ficam para a próxima. Detalhes no log.',
+  },
+  'no-debrid': {
+    text: 'O cache não foi verificado: escolha um debrid e cadastre o token.',
+    fix: { label: 'Configurar debrid', section: 'debrid' },
+  },
+  'no-cache-lookup': {
+    text: 'O debrid escolhido não tem consulta de cache em lote.',
+  },
+  'cache-failed': {
+    text: 'A verificação de cache falhou: fica para a próxima. Detalhes no log.',
   },
 }
 

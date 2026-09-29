@@ -110,6 +110,20 @@ in progress would bring part of the rows back right away.
 It deletes only that tracker's torrents. The TMDB titles and posters stay: they are a cache,
 and if the torrent comes back in the next sync the poster is already there, with no new query.
 
+### Debrid cache
+
+With a provider that has a batch cache lookup (TorBox), *Configurações → Debrid* shows:
+
+- *Verificar cache após atualizar* (check cache after updating): every catalog update ends
+  with a third step that asks the debrid about the torrents that are new or whose answer
+  expired. Off by default.
+- *Cache por tracker* (cache per tracker): how many of each tracker's torrents are cached,
+  how many are still unchecked, and the *Verificar cache* (check cache) button to run the
+  check on its own.
+
+The run card shows the step as *Cache do debrid*, and the summary says how many were
+checked and how many are cached.
+
 ### Private trackers
 
 A private tracker comes out of the updates until someone adds it. Its page has a *Conta*
