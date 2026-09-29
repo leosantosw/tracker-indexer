@@ -1,84 +1,84 @@
 # API
 
-Com a API no ar, a referência completa e navegável fica em
-**<http://localhost:3000/api/docs>** (Swagger UI, com _try it out_). O OpenAPI 3.1
-cru está em `/api/docs/json` — serve para gerar cliente:
+With the API running, the full, browsable reference is at
+**<http://localhost:3000/api/docs>** (Swagger UI, with _try it out_). The raw OpenAPI 3.1
+is at `/api/docs/json` — use it to generate a client:
 
 ```bash
 curl -s http://localhost:3000/api/docs/json > openapi.json
 ```
 
-Tudo exige o `API_TOKEN`, menos `/api/health` e a documentação:
-`Authorization: Bearer <API_TOKEN>` nas chamadas. A página da documentação é
-pública; para usar o _try it out_, informe o token em **Authorize**.
+Everything requires the `API_TOKEN`, except `/api/health` and the documentation:
+`Authorization: Bearer <API_TOKEN>` on calls. The documentation page is
+public; to use _try it out_, enter the token under **Authorize**.
 
-**A API tem duas entidades, e elas não se misturam:**
+**The API has two entities, and they do not mix:**
 
-| | O quê | De onde vem |
+| | What | Where it comes from |
 |---|---|---|
-| **obra** | o filme ou a série: capa, sinopse, nota | TMDB |
-| **torrent** | uma cópia dela: seeders, tamanho, resolução | tracker |
+| **title** | the movie or the series: poster, synopsis, rating | TMDB |
+| **torrent** | a copy of it: seeders, size, resolution | tracker |
 
 ```
 GET /api/health
 GET /api/stats
 
-GET /api/categories    as linhas da tela inicial (com os primeiros filmes, se quiser; ?type=series para séries)
-GET /api/movies        lista filmes    (cartão da grade, uma linha por filme)
-GET /api/movies/:id    um filme        (tudo, com as cópias dentro)
+GET /api/categories    the home screen rows (with the first movies, if you want; ?type=series for series)
+GET /api/movies        list movies     (grid card, one row per movie)
+GET /api/movies/:id    one movie       (everything, with the copies inside)
 
-GET /api/series        lista séries
-GET /api/series/:id    uma série
+GET /api/series        list series
+GET /api/series/:id    one series
 
-GET /api/search          busca filmes e séries juntos (?q=, ?genre=)
-GET /api/search/genres   atalhos de gênero para a tela de busca
+GET /api/search          search movies and series together (?q=, ?genre=)
+GET /api/search/genres   genre shortcuts for the search screen
 ```
 
-**Duas requisições por tela, e cada uma com o tamanho da tela.** A listagem
-traz só o que a grade desenha; o detalhe traz o resto e as cópias. Pensado
-para TV: medido com 50 filmes por página,
+**Two requests per screen, each one sized to the screen.** The listing
+brings only what the grid draws; the detail brings the rest and the copies. Designed
+for TV: measured with 50 movies per page,
 
-| | Antes | Agora |
+| | Before | Now |
 |---|---|---|
-| Listagem, sem compressão | 30,8 KB | 11,1 KB |
-| Listagem, gzip/brotli | 12 KB | **3,6 KB** |
-| Abrir um filme | 2 requisições | **1**, ~900 B |
-| Recarregar sem mudança | 30,8 KB | **304**, 0 bytes |
+| Listing, uncompressed | 30.8 KB | 11.1 KB |
+| Listing, gzip/brotli | 12 KB | **3.6 KB** |
+| Opening a movie | 2 requests | **1**, ~900 B |
+| Reloading with no change | 30.8 KB | **304**, 0 bytes |
 
-Toda resposta sai comprimida (br/gzip, acima de 1 KB) e com `ETag`; as rotas
-públicas mandam `Cache-Control: no-cache`, então o cliente guarda a resposta
-mas pergunta sempre — e, sem sync no meio, a resposta é um 304 vazio.
+Every response goes out compressed (br/gzip, above 1 KB) and with an `ETag`; the public
+routes send `Cache-Control: no-cache`, so the client stores the response
+but always asks — and, with no sync in between, the response is an empty 304.
 
-O `:id` é o id da **obra**, não do torrent. O tipo vem da rota: `/api/series/:id`
-com id de filme dá 404, e nenhum payload traz `type`.
+The `:id` is the id of the **title**, not of the torrent. The type comes from the route: `/api/series/:id`
+with a movie id gives 404, and no payload carries `type`.
 
-Os quatro releases de *Divertida Mente* são **um** item em `/api/movies` e quatro
-no `torrents` de `/api/movies/:id`. Para série, a obra é a série inteira e as cópias são os
-episódios — `season` e `episode` ficam na cópia, onde pertencem.
+The four releases of *Divertida Mente* (*Inside Out*) are **one** item in `/api/movies` and four
+in the `torrents` of `/api/movies/:id`. For a series, the title is the whole series and the copies are the
+episodes — `season` and `episode` live on the copy, where they belong.
 
-A listagem tem paginação e a categoria escolhida:
+The listing has pagination and the chosen category:
 
-| Parâmetro | Padrão | |
+| Parameter | Default | |
 |---|---|---|
-| `page` | `1` | página, a partir de 1 |
-| `limit` | `50` | itens por página, máximo 200 |
-| `category` | — | id de `/api/categories`; sem ele, a ordem padrão |
-| `all` | `false` | inclui, no fim, as obras sem match na TMDB: título e ano do torrent, sem capa |
+| `page` | `1` | page, starting at 1 |
+| `limit` | `50` | items per page, maximum 200 |
+| `category` | — | id from `/api/categories`; without it, the default order |
+| `all` | `false` | includes, at the end, titles with no TMDB match: title and year from the torrent, no poster |
 
-### Categorias
+### Categories
 
-São **filtros salvos, não uma tabela**: saem do próprio catálogo, então aparecem
-e somem sozinhas conforme o acervo muda. Não há nada a cadastrar no painel.
+They are **saved filters, not a table**: they come from the catalog itself, so they appear
+and disappear on their own as the collection changes. There is nothing to register in the panel.
 
-Filmes por padrão. As séries têm as mesmas categorias, montadas só com séries:
-`/api/categories?type=series&preview=12`, com as obras em `series` em vez de
-`movies`, e `/api/series?category=<id>` para paginar.
+Movies by default. Series have the same categories, built only from series:
+`/api/categories?type=series&preview=12`, with the titles in `series` instead of
+`movies`, and `/api/series?category=<id>` to paginate.
 
-| Categoria | O quê |
+| Category | What |
 |---|---|
-| `novidades` | Adicionados recentemente (pela entrada no catálogo) |
-| `melhores` | Melhores notas |
-| `genero-<gênero>` | um por gênero com pelo menos 10 filmes (`genero-terror`, `genero-acao`…) |
+| `novidades` | `Adicionados recentemente` (Recently added), by date of entry into the catalog |
+| `melhores` | `Melhores notas` (Top rated) |
+| `genero-<genre>` | one per genre with at least 10 movies (`genero-terror`, `genero-acao`…) |
 
 ```json
 // GET /api/categories?preview=12
@@ -90,28 +90,28 @@ Filmes por padrão. As séries têm as mesmas categorias, montadas só com séri
 }
 ```
 
-Com `preview`, cada categoria já vem com os primeiros filmes: a tela inicial da
-TV inteira em **uma requisição**. Para continuar uma linha, `/api/movies?category=<id>`
-pagina como sempre. Categoria vazia não entra na lista, e um `category`
-desconhecido dá 404.
+With `preview`, each category already comes with its first movies: the whole TV home
+screen in **one request**. To continue a row, `/api/movies?category=<id>`
+paginates as usual. An empty category is left out of the list, and an unknown `category`
+gives 404.
 
-A ordem é fixa, nesta prioridade:
+The order is fixed, in this priority:
 
-1. **ter nota** — nota qualquer, não nota alta: 5.1 apurado ganha de nota nenhuma;
-2. **ano** mais recente primeiro;
-3. **maior nota** dentro do ano.
+1. **having a rating** — any rating, not a high rating: a computed 5.1 beats no rating at all;
+2. most recent **year** first;
+3. **highest rating** within the year.
 
-Obra sem nota apurada cai para o fim da lista inteira, não só do próprio ano. Na
-prática isso empurra o lançamento recente para baixo: filme de 2026 ainda não
-teve tempo de juntar 150 votos.
+A title with no computed rating drops to the end of the whole list, not just of its own year. In
+practice this pushes recent releases down: a 2026 movie has not yet had time
+to gather 150 votes.
 
-Por padrão só entra obra que casou com a TMDB: sem capa, sem sinopse e sem nota
-não há o que listar. Com `all=true` entram também as que não casaram ou ainda não
-foram consultadas (`pending`), com `poster`, `backdrop` e `rating` nulos. Sem
-`TMDB_API_KEY`, é o único jeito de listar algo — e o `/api/stats` diz por quê:
-`tmdb.configured` vem `false` e as obras aparecem como `pending`.
+By default only titles that matched TMDB are included: with no poster, no synopsis and no rating
+there is nothing to list. With `all=true`, titles that did not match or have not yet
+been looked up (`pending`) are included too, with `poster`, `backdrop` and `rating` null. Without
+`TMDB_API_KEY`, it is the only way to list anything — and `/api/stats` says why:
+`tmdb.configured` comes back `false` and the titles show up as `pending`.
 
-A resposta se descreve:
+The response describes itself:
 
 ```json
 {
@@ -123,26 +123,26 @@ A resposta se descreve:
 }
 ```
 
-Todo critério de ordenação termina em `id`, então paginar não repete nem pula
-obra — sem esse desempate, itens de mesmo ano e mesma nota mudariam de posição
-entre duas consultas.
+Every sort criterion ends in `id`, so paginating neither repeats nor skips a
+title — without this tiebreaker, items with the same year and the same rating would change position
+between two queries.
 
-### Busca
+### Search
 
-`/api/search` devolve filmes e séries numa lista só, em `results`, cada um com
-`type` (`movie` ou `series`) para a TV saber qual detalhe abrir.
+`/api/search` returns movies and series in a single list, in `results`, each one with
+`type` (`movie` or `series`) so the TV knows which detail to open.
 
-- `q` procura no título da TMDB e no do torrent, sem diferenciar acento,
-  maiúscula ou pontuação: `homem aranha` acha *Homem-Aranha*, `acao` acha *Ação*.
-  Cada palavra digitada precisa começar uma palavra do título.
-- Vem primeiro o título que começa com a busca, depois o que tem uma palavra que
-  começa com ela; dentro disso, o mais votado.
-- `genre` é um id de `/api/search/genres` (`acao`, `terror`, `comedia`…) e
-  combina com `q`. Um atalho vale para filme e série: *Ação* também pega o
-  *Action & Adventure* que a TMDB usa nas séries.
-- Sem `q` e sem `genre`, vêm os mais votados.
-- `type=movie` ou `type=series` restringe; `page`, `limit` e `all` funcionam
-  como na listagem.
+- `q` searches the TMDB title and the torrent title, ignoring accents,
+  case and punctuation: `homem aranha` finds *Homem-Aranha*, `acao` finds *Ação*.
+  Each typed word must be the start of a word in the title.
+- Titles that start with the search come first, then those with a word that
+  starts with it; within that, the most voted.
+- `genre` is an id from `/api/search/genres` (`acao`, `terror`, `comedia`…) and
+  combines with `q`. A shortcut applies to both movies and series: *Ação* (Action) also catches the
+  *Action & Adventure* that TMDB uses for series.
+- Without `q` and without `genre`, the most voted come back.
+- `type=movie` or `type=series` restricts; `page`, `limit` and `all` work
+  as in the listing.
 
 ```json
 // GET /api/search?q=batman&limit=2
@@ -155,20 +155,20 @@ entre duas consultas.
 }
 ```
 
-`/api/search/genres` traz só os atalhos que têm ao menos uma obra, com `total`.
+`/api/search/genres` brings only the shortcuts that have at least one title, with `total`.
 
-### Nota só com votação suficiente
+### Rating only with enough votes
 
-`rating` vem **nulo abaixo de `TMDB_MIN_VOTES` votos** (150 por padrão). Nota 8
-apurada em 4 votos não é nota, é ruído — e era o que colocava filme desconhecido
-no topo. A mesma regra vale para exibir e para ordenar.
+`rating` comes back **null below `TMDB_MIN_VOTES` votes** (150 by default). A rating of 8
+computed from 4 votes is not a rating, it is noise — and it was what put unknown movies
+at the top. The same rule applies to display and to sorting.
 
-`votes` continua no detalhe mesmo com a nota nula: é ele que explica o porquê.
-Hoje isso silencia **82 das 805 obras** visíveis (10%) — a cauda obscura, quase
-toda de lançamento recente.
+`votes` stays in the detail even when the rating is null: it is what explains why.
+Today this silences **82 of the 805 visible titles** (10%) — the obscure tail, almost
+all recent releases.
 
-A listagem e o detalhe não carregam a mesma coisa. **Na listagem, só o cartão**
-— a sinopse sozinha era metade do peso da página:
+The listing and the detail do not carry the same thing. **In the listing, only the card**
+— the synopsis alone was half the weight of the page:
 
 ```json
 // GET /api/movies  ->  movies[]
@@ -182,12 +182,12 @@ A listagem e o detalhe não carregam a mesma coisa. **Na listagem, só o cartão
 }
 ```
 
-`backdrop` fica na listagem porque a grade de TV costuma trocar o fundo conforme
-o item em foco — custa ~65 bytes por filme, e a imagem só é baixada para quem
-ganha foco.
+`backdrop` stays in the listing because the TV grid usually swaps the background according to
+the item in focus — it costs ~65 bytes per movie, and the image is only downloaded for the one that
+gets focus.
 
-**No detalhe, tudo de uma vez**, cópias incluídas — ao abrir um item a TV faz
-uma requisição só:
+**In the detail, everything at once**, copies included — when opening an item the TV makes
+a single request:
 
 ```json
 // GET /api/movies/362
@@ -224,162 +224,162 @@ uma requisição só:
 }
 ```
 
-As cópias vêm da mais semeada para a menos. Hoje são de 1 a 3 por obra (média
-1,02), então embutir custa pouco; na listagem elas não entram — engordariam a
-página com o que a TV só usa ao abrir o item.
+The copies come from most seeded to least. Today there are 1 to 3 per title (average
+1.02), so embedding them costs little; they are left out of the listing — they would bloat the
+page with what the TV only uses when opening the item.
 
-O payload é enxuto de propósito. `release_date`, `last_added`, `tmdb_id` e
-`status` existem no banco e são usados para ordenar e filtrar, mas **não saem na
-resposta**.
+The payload is lean on purpose. `release_date`, `last_added`, `tmdb_id` and
+`status` exist in the database and are used for sorting and filtering, but **do not go out in the
+response**.
 
-A obra que não casou com a TMDB some da listagem, mas continua acessível por
-`/api/movies/:id`, com as cópias — some da vitrine, não do acervo.
+A title that did not match TMDB disappears from the listing, but remains accessible through
+`/api/movies/:id`, with its copies — it leaves the storefront, not the collection.
 
-`size` é o `size_bytes` do banco formatado em GB (acima de 1 GB) ou MB.
+`size` is the database's `size_bytes` formatted in GB (above 1 GB) or MB.
 
-`language` diz o áudio da cópia: `dual` (dublado e original), `dubbed` (só
-dublado), `subtitled` (original com legenda) ou `null` quando nada indica. Vem
-do nome do torrent; quando o nome não diz, da linha do link ou da seção da
-página do tracker (no Comando, os títulos "DUBLADO", "LEGENDADO", "DUAL ÁUDIO"; no
-Torrent dos Filmes, os "VERSÃO MKV DUAL ÁUDIO", "VERSÃO MP4 LEGENDADO").
-Duas cópias iguais em idiomas diferentes não contam como duplicata.
+`language` tells the copy's audio: `dual` (dubbed and original), `dubbed` (dubbed
+only), `subtitled` (original with subtitles) or `null` when nothing indicates it. It comes
+from the torrent name; when the name does not say, from the link's line or the section of the
+tracker page (on Comando, the headings "DUBLADO", "LEGENDADO", "DUAL ÁUDIO" — dubbed, subtitled, dual audio; on
+Torrent dos Filmes, the "VERSÃO MKV DUAL ÁUDIO", "VERSÃO MP4 LEGENDADO").
+Two identical copies in different languages do not count as duplicates.
 
-Consulta direta ao banco, sem subir nada:
+Direct database query, without starting anything:
 
 ```bash
 npm run query "SELECT name, seeders FROM item ORDER BY created_at DESC LIMIT 10"
 ```
 
-## Documentação da API
+## API documentation
 
-O Swagger não é escrito à mão: ele sai dos mesmos schemas que validam a
-requisição e serializam a resposta, em `src/api/public/schemas.js`. Um campo que
-não esteja no schema não aparece na documentação **e não sai na resposta** — os
-dois não têm como divergir.
+The Swagger is not written by hand: it comes from the same schemas that validate the
+request and serialize the response, in `src/api/public/schemas.js`. A field that
+is not in the schema does not appear in the documentation **and does not go out in the response** — the
+two have no way to diverge.
 
-| Arquivo | Responsabilidade |
+| File | Responsibility |
 |---|---|
-| `api/public/schemas.js` | schemas JSON: filtros, obras, cópias e respostas |
-| `api/public/docs.js` | metadados do OpenAPI e a página em `/api/docs` |
-| `api/public/catalog.js` | rotas de `/api/movies` e `/api/series`, cada uma ligada ao seu schema |
-| `api/public/dto.js` | linha do banco → payload (URLs de imagem, tamanho, nota) |
+| `api/public/schemas.js` | JSON schemas: filters, titles, copies and responses |
+| `api/public/docs.js` | OpenAPI metadata and the page at `/api/docs` |
+| `api/public/catalog.js` | routes for `/api/movies` and `/api/series`, each one bound to its schema |
+| `api/public/dto.js` | database row → payload (image URLs, size, rating) |
 
-São quatro schemas, dois por entidade: `Movie`/`Series` para a obra e
-`MovieTorrent`/`SeriesTorrent` para a cópia — cada par sai de uma função só, e
-a de série apenas acrescenta `season` e `episode`. Todo campo é `required`: o
-que não se sabe vai como `null`, nunca ausente, então o cliente não precisa
-testar existência de chave.
+There are four schemas, two per entity: `Movie`/`Series` for the title and
+`MovieTorrent`/`SeriesTorrent` for the copy — each pair comes from a single function, and
+the series one only adds `season` and `episode`. Every field is `required`: what
+is not known goes as `null`, never absent, so the client does not need to
+test for key existence.
 
-Acrescentar um filtro é uma linha em `LIST_QUERY`, mais o `WHERE` em
-`db/works.js`. A documentação acompanha sozinha.
+Adding a filter is one line in `LIST_QUERY`, plus the `WHERE` in
+`db/works.js`. The documentation follows on its own.
 
 ## Debrid (TorBox)
 
-Entrega à TV o **link direto do vídeo** de um torrent, pelo provedor de debrid
-configurado em *Configurações → Debrid*. Hoje o único provedor é o
-[TorBox](https://torbox.app); a estrutura já comporta outros.
+Delivers to the TV the **direct video link** of a torrent, through the debrid provider
+configured under *Configurações → Debrid* (Settings → Debrid). Today the only provider is
+[TorBox](https://torbox.app); the structure already supports others.
 
 ```
-POST   /api/debrid/torrents          { "hash": "...", "season"?, "episode"? }  pede o vídeo (manda baixar se preciso)
-GET    /api/debrid/torrents/:hash    só consulta: nunca adiciona nada
-DELETE /api/debrid/torrents/:hash    cancela o download / remove da conta
+POST   /api/debrid/torrents          { "hash": "...", "season"?, "episode"? }  requests the video (starts the download if needed)
+GET    /api/debrid/torrents/:hash    lookup only: never adds anything
+DELETE /api/debrid/torrents/:hash    cancels the download / removes from the account
 ```
 
-O `hash` é o `infohash` de uma cópia, que vem no detalhe da obra (hex de 40 ou
-base32 de 32 caracteres).
+The `hash` is the `infohash` of a copy, which comes in the title's detail (40-character hex or
+32-character base32).
 
-### O fluxo na TV
+### The flow on the TV
 
-1. Ao escolher uma cópia, a TV faz o `POST`.
-   - **Em cache no TorBox:** responde `200` e `ready` com a `url`, já na primeira chamada.
-   - **Fora do cache:** o TorBox começa a baixar e a resposta é `202` `downloading`, com `progress` (0–100) e `eta`.
-2. Enquanto não for `ready` ou `failed`, a TV consulta o `GET` a cada ~5 s.
-   Ele é só leitura, então repetir não custa nada além da consulta.
-3. Em `ready`, toca a `url`. Se a pessoa desistir, `DELETE`.
+1. When a copy is chosen, the TV makes the `POST`.
+   - **Cached on TorBox:** responds `200` and `ready` with the `url`, on the very first call.
+   - **Not cached:** TorBox starts downloading and the response is `202` `downloading`, with `progress` (0–100) and `eta`.
+2. While it is not `ready` or `failed`, the TV polls the `GET` every ~5 s.
+   It is read-only, so repeating it costs nothing beyond the lookup.
+3. On `ready`, play the `url`. If the person gives up, `DELETE`.
 
-| `status` | Definitivo? | Traz |
+| `status` | Final? | Carries |
 |---|---|---|
-| `ready` | sim | `url`, `file` (`id`, `name`, `size`, `season`, `episode`); `files` num pacote |
-| `downloading` | não | `progress`, `eta`, `state` |
-| `queued` | não | todas as vagas do TorBox ocupadas; tente o `POST` de novo mais tarde |
-| `failed` | sim | `reason`: `no_video`, `provider_failed` ou `episode_not_found` |
+| `ready` | yes | `url`, `file` (`id`, `name`, `size`, `season`, `episode`); `files` in a pack |
+| `downloading` | no | `progress`, `eta`, `state` |
+| `queued` | no | all TorBox slots are taken; try the `POST` again later |
+| `failed` | yes | `reason`: `no_video`, `provider_failed` or `episode_not_found` |
 
-O `POST` é idempotente: um torrent que já está na conta só é descrito, não
-adicionado de novo.
+The `POST` is idempotent: a torrent already in the account is only described, not
+added again.
 
-### Filme, episódio e pacote
+### Movie, episode and pack
 
-Com um vídeo só no torrent — filme ou episódio avulso —, é ele, com ou sem
-`season`/`episode`. Num **pacote** (temporada inteira, várias temporadas,
-`S01E01-E02`), a resposta traz `files`: todos os vídeos, por temporada e
-episódio, lidos do nome do arquivo (`S02E05`, `2x05`, `Episódio 05`, ou `05.mkv`
-numa pasta `Temporada 2`). A TV escolhe assim:
+With a single video in the torrent — a movie or a standalone episode —, it is that one, with or without
+`season`/`episode`. In a **pack** (a whole season, several seasons,
+`S01E01-E02`), the response carries `files`: all the videos, by season and
+episode, read from the file name (`S02E05`, `2x05`, `Episódio 05`, or `05.mkv`
+in a `Temporada 2` folder). The TV chooses like this:
 
-| Pedido | Vídeo |
+| Request | Video |
 |---|---|
-| sem `season`/`episode` | o maior que não é `sample` |
-| `season` + `episode` | o arquivo daquele episódio (inclui episódio duplo `E06-E07`) |
-| só `season` | o primeiro episódio da temporada |
-| episódio que o pacote não tem | `failed` com `episode_not_found`, e `files` para escolher |
+| no `season`/`episode` | the largest one that is not a `sample` |
+| `season` + `episode` | the file for that episode (includes double episode `E06-E07`) |
+| only `season` | the first episode of the season |
+| an episode the pack does not have | `failed` with `episode_not_found`, and `files` to choose from |
 
-No `GET`, `season` e `episode` vão na query: `/api/debrid/torrents/:hash?season=2&episode=5`.
+On `GET`, `season` and `episode` go in the query: `/api/debrid/torrents/:hash?season=2&episode=5`.
 
-### O link nunca é guardado
+### The link is never stored
 
-O link do TorBox expira. Ele não vai para o banco nem para cache nenhum: **cada
-`ready` gera um link novo** na hora (`requestdl`), e as rotas respondem com
-`Cache-Control: no-store`. A TV deve pedir o link logo antes de tocar, e não
-guardá-lo.
+The TorBox link expires. It goes neither to the database nor to any cache: **each
+`ready` generates a new link** on the spot (`requestdl`), and the routes respond with
+`Cache-Control: no-store`. The TV should request the link right before playing, and not
+store it.
 
-### Segurança
+### Security
 
-- **`API_TOKEN`:** as rotas exigem `Authorization: Bearer <API_TOKEN>`, como
-  todo o resto da API. Sem `API_TOKEN` definido, não respondem. É um token
-  separado do `ADMIN_TOKEN`: a TV não ganha acesso ao painel.
-- **O token do TorBox fica no servidor.** Salvo pelo painel, vai cifrado para o
-  banco, como os outros segredos. A TV nunca o recebe, e ele não aparece em
-  erro nenhum.
-- **Validação:** hash fora do formato dá `400` antes de qualquer chamada ao TorBox.
+- **`API_TOKEN`:** the routes require `Authorization: Bearer <API_TOKEN>`, like
+  the rest of the API. Without `API_TOKEN` set, they do not respond. It is a token
+  separate from `ADMIN_TOKEN`: the TV does not get access to the panel.
+- **The TorBox token stays on the server.** Saved through the panel, it goes encrypted into the
+  database, like the other secrets. The TV never receives it, and it does not appear in
+  any error.
+- **Validation:** a malformed hash gives `400` before any call to TorBox.
 
-### Erros
+### Errors
 
-Sempre `{ "error": "...", "code": "..." }`:
+Always `{ "error": "...", "code": "..." }`:
 
-| HTTP | `code` | Quando |
+| HTTP | `code` | When |
 |---|---|---|
-| 503 | `not_configured` / `missing_token` | debrid desligado, ou sem o token do provedor |
-| 404 | `not_found` | `GET`/`DELETE` de torrent que não está na conta |
-| 502 | `provider_auth` | o TorBox recusou o token |
-| 429 | `provider_rate_limit` | limite do TorBox (300/min; 60/h para adicionar fora do cache) |
-| 502 / 504 | `provider_error` / `provider_unavailable` | o TorBox errou, caiu ou demorou |
+| 503 | `not_configured` / `missing_token` | debrid turned off, or no provider token |
+| 404 | `not_found` | `GET`/`DELETE` of a torrent that is not in the account |
+| 502 | `provider_auth` | TorBox rejected the token |
+| 429 | `provider_rate_limit` | TorBox limit (300/min; 60/h for adding uncached) |
+| 502 / 504 | `provider_error` / `provider_unavailable` | TorBox errored, went down or was slow |
 
-### Endpoints do TorBox usados
+### TorBox endpoints used
 
-Base `https://api.torbox.app/v1/api`, com `Authorization: Bearer`:
+Base `https://api.torbox.app/v1/api`, with `Authorization: Bearer`:
 
-| Nosso uso | TorBox |
+| Our use | TorBox |
 |---|---|
-| já está na conta? | `GET /torrents/mylist?bypass_cache=true` |
-| está em cache? | `GET /torrents/checkcached?hash=…&format=object` |
-| mandar baixar | `POST /torrents/createtorrent` (form, `magnet`) |
-| link do vídeo | `GET /torrents/requestdl?torrent_id&file_id&redirect=false` — o token vai na query, é como esse endpoint aceita |
-| remover | `POST /torrents/controltorrent` `{ torrent_id, operation: "delete" }` |
+| already in the account? | `GET /torrents/mylist?bypass_cache=true` |
+| is it cached? | `GET /torrents/checkcached?hash=…&format=object` |
+| start the download | `POST /torrents/createtorrent` (form, `magnet`) |
+| video link | `GET /torrents/requestdl?torrent_id&file_id&redirect=false` — the token goes in the query, that is how this endpoint accepts it |
+| remove | `POST /torrents/controltorrent` `{ torrent_id, operation: "delete" }` |
 
-### Adicionando um provedor
+### Adding a provider
 
-Crie `src/debrid/<nome>/` com o mesmo contrato do TorBox e acrescente uma linha
-em `src/debrid/index.js`, mais o token em `config.debrid.tokens`:
+Create `src/debrid/<name>/` with the same contract as TorBox and add a line
+to `src/debrid/index.js`, plus the token in `config.debrid.tokens`:
 
 ```js
 module.exports = {
   id: 'realdebrid',
   label: 'Real-Debrid',
-  secret: 'realdebridToken',        // nome do segredo no painel
+  secret: 'realdebridToken',        // name of the secret in the panel
   create({ token, timeoutMs }) {
-    return { resolve(hash), status(hash), remove(hash) };  // mesmos status do TorBox
+    return { resolve(hash), status(hash), remove(hash) };  // same statuses as TorBox
   },
 };
 ```
 
-O select do painel, o campo do token (cifrado) e a validação da API se ajustam
-sozinhos.
+The panel's select, the token field (encrypted) and the API validation adjust
+on their own.

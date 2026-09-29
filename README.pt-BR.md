@@ -53,6 +53,9 @@ em [themoviedb.org](https://www.themoviedb.org/settings/api)) e rodar a
 primeira atualização. A API fica documentada em
 **<http://localhost:3000/api/docs>**.
 
+Todas as variáveis de ambiente são opcionais; veja o
+[guia de configuração](docs/configuration.md).
+
 ### Comandos
 
 | Comando | O que faz |
@@ -65,12 +68,14 @@ primeira atualização. A API fica documentada em
 
 ## Documentação
 
+Os guias estão em inglês.
+
 | Guia | Conteúdo |
 |---|---|
-| [Configuração](docs/configuracao.md) | variáveis de ambiente e acesso |
+| [Configuration](docs/configuration.md) | variáveis de ambiente e acesso |
 | [API](docs/api.md) | rotas, payloads, categorias, busca, debrid e erros |
-| [Painel](docs/painel.md) | trackers, agendamento, segredos, log e a API do admin |
-| [Arquitetura](docs/arquitetura.md) | sync, enriquecimento, classificador, estrutura e como adicionar um tracker |
+| [Panel](docs/panel.md) | trackers, agendamento, segredos, log e a API do admin |
+| [Architecture](docs/architecture.md) | sync, enriquecimento, classificador, estrutura e como adicionar um tracker |
 
 ## Contribuindo
 

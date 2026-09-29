@@ -83,6 +83,7 @@ module.exports = { sizeToBytes };
 ## Docs
 
 - Changed behavior or structure? Update the matching doc in `docs/`.
+- Guides in `docs/` are written in English. Panel labels, log lines and other text the app really shows stay in pt-BR, in italics, with the English meaning the first time.
 
 ## Git
 

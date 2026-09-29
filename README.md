@@ -53,8 +53,9 @@ token. From there you can add trackers, set the `TMDB_API_KEY` (free at
 [themoviedb.org](https://www.themoviedb.org/settings/api)) and run the first
 update. The API is documented at **<http://localhost:3000/api/docs>**.
 
-The trackers it ships with are Brazilian, so the catalog, the panel and the
-guides are in Brazilian Portuguese.
+The trackers it ships with are Brazilian, so the catalog and the panel are in
+Brazilian Portuguese. Every environment variable is optional; see the
+[configuration guide](docs/configuration.md).
 
 ### Commands
 
@@ -68,14 +69,12 @@ guides are in Brazilian Portuguese.
 
 ## Documentation
 
-The guides are in Portuguese.
-
 | Guide | Contents |
 |---|---|
-| [Configuração](docs/configuracao.md) | environment variables and access |
+| [Configuration](docs/configuration.md) | environment variables and access |
 | [API](docs/api.md) | routes, payloads, categories, search, debrid and errors |
-| [Painel](docs/painel.md) | trackers, scheduling, secrets, logs and the admin API |
-| [Arquitetura](docs/arquitetura.md) | sync, enrichment, classifier, layout and how to add a tracker |
+| [Panel](docs/panel.md) | trackers, scheduling, secrets, logs and the admin API |
+| [Architecture](docs/architecture.md) | sync, enrichment, classifier, layout and how to add a tracker |
 
 ## Contributing
 
