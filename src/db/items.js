@@ -42,17 +42,18 @@ const BEATEN = `
 
 const UPSERT = `
   INSERT INTO item (
-    source, source_id, infohash, name, raw_name, size_bytes, created_unix,
+    source, source_id, infohash, imdb_id, name, raw_name, size_bytes, created_unix,
     seeders, leechers, created_at, updated_at,
     title, year, type, season, season_end, episode, episode_end,
     resolution, release_source, video_codec, audio, hdr, language
   ) VALUES (
-    @source, @sourceId, @infohash, @name, @rawName, @sizeBytes, @createdUnix,
+    @source, @sourceId, @infohash, @imdbId, @name, @rawName, @sizeBytes, @createdUnix,
     @seeders, @leechers, @now, @now,
     @title, @year, @type, @season, @seasonEnd, @episode, @episodeEnd,
     @resolution, @releaseSource, @videoCodec, @audio, @hdr, @language
   )
   ON CONFLICT (source, source_id) DO UPDATE SET
+    imdb_id      = COALESCE(excluded.imdb_id, imdb_id),
     name         = excluded.name,
     seeders      = excluded.seeders,
     leechers     = excluded.leechers,
@@ -78,6 +79,7 @@ function createItems(db) {
   const beaten = db.prepare(BEATEN);
 
   function knownIds(source, ids) {
+    if (!ids.length) return new Set();
     const marks = ids.map(() => '?').join(',');
     const rows = db
       .prepare(`SELECT source_id FROM item WHERE source = ? AND source_id IN (${marks})`)
@@ -122,6 +124,7 @@ function createItems(db) {
           source,
           sourceId: item.sourceId,
           infohash: item.infohash ?? null,
+          imdbId: item.imdbId ?? null,
           name: item.release.canonical || item.name,
           rawName: item.name,
           sizeBytes: item.sizeBytes ?? null,
@@ -183,7 +186,7 @@ function createItems(db) {
     return db.prepare(sql).all();
   };
 
-  return { savePage, applyRules, clearSource, stats, query };
+  return { savePage, applyRules, clearSource, stats, query, knownSourceIds: knownIds };
 }
 
 module.exports = { createItems, now };

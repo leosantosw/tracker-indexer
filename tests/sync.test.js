@@ -189,3 +189,30 @@ test('termos viram uma linha de debug cada, sem repetir o resumo como info', asy
     ['debug termo "dublado": 1 página · +1 novo', 'debug termo "dual": 1 página · +0 novos']
   );
 });
+
+test('o tracker recebe quais ids já estão no banco, para não buscar o detalhe de novo', async () => {
+  const db = openDb(':memory:');
+  await run(fakeSource([[torrent(1)]]), db);
+  const asked = [];
+  const source = {
+    ...fakeSource([[torrent(1), torrent(2)]]),
+    async fetchPage({ isKnown }) {
+      asked.push(await isKnown([torrent(1).infohash, torrent(2).infohash]));
+      return { items: [], nextCursor: null };
+    },
+  };
+
+  await run(source, db);
+
+  assert.deepEqual([...asked[0]], [torrent(1).infohash]);
+});
+
+test('o imdb do torrent é gravado e não some quando uma run seguinte não traz', async () => {
+  const db = openDb(':memory:');
+  const withImdb = (imdbId) => ({ ...fakeSource([[torrent(1)]]), toItem: (raw) => ({ ...fakeSource([]).toItem(raw), imdbId }) });
+
+  await run(withImdb('tt0111161'), db);
+  await run(withImdb(null), db);
+
+  assert.equal(db.prepare('SELECT imdb_id FROM item').get().imdb_id, 'tt0111161');
+});

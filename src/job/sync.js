@@ -34,6 +34,7 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
     log.warn(source.name, message);
     onWarn(message);
   };
+  const isKnown = async (ids) => repo.knownSourceIds(source.name, ids);
 
   for (const [termIndex, term] of terms.entries()) {
     let cursor = null;
@@ -48,7 +49,7 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
 
       let page;
       try {
-        page = await source.fetchPage({ term, cursor, log: warn });
+        page = await source.fetchPage({ term, cursor, log: warn, isKnown });
       } catch (err) {
         if (signal?.aborted) throw err;
         const failed = term ? `o termo "${term}" falhou: ${err.message}` : `a página ${pages + 1} falhou: ${err.message}`;

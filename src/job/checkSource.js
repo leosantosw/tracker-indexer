@@ -3,6 +3,8 @@
 const { classify } = require('../lib/classifier');
 const { wants } = require('../sources/content');
 
+const CHECK_DETAILS = 12;
+
 /** How the CLI prints each outcome; the panel has its own labels. */
 const LABELS = { ok: 'OK', filtered: 'FORA', 'no-magnet': 'SEM MAGNET', rejected: 'REJEITADO', 'no-year': 'SEM ANO' };
 
@@ -10,7 +12,7 @@ const LABELS = { ok: 'OK', filtered: 'FORA', 'no-magnet': 'SEM MAGNET', rejected
 async function firstPage(source) {
   if (source.readPage) return source.readPage(1);
 
-  const { items } = await source.fetchPage({ term: source.terms?.[0] ?? null, cursor: null });
+  const { items } = await source.fetchPage({ term: source.terms?.[0] ?? null, cursor: null, limit: CHECK_DETAILS });
   return items.map((raw) => ({ card: { title: raw.name }, item: source.toItem(raw), status: 'ok' }));
 }
 

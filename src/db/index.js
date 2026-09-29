@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS item (
   source        TEXT NOT NULL,
   source_id     TEXT NOT NULL,
   infohash      TEXT,
+  imdb_id       TEXT,
   name          TEXT NOT NULL,
   raw_name      TEXT NOT NULL,
   title         TEXT,
@@ -146,6 +147,7 @@ const MIGRATIONS = [
   { table: 'work', column: 'lead_id', ddl: 'ALTER TABLE work ADD COLUMN lead_id INTEGER', reset: REFRESH_LEADS },
   { table: 'item', column: 'language', ddl: 'ALTER TABLE item ADD COLUMN language TEXT', reset: LANGUAGE_FROM_NAME },
   { table: 'work', column: 'manual_tmdb_id', ddl: 'ALTER TABLE work ADD COLUMN manual_tmdb_id INTEGER' },
+  { table: 'item', column: 'imdb_id', ddl: 'ALTER TABLE item ADD COLUMN imdb_id TEXT' },
 ];
 
 function migrate(db) {
