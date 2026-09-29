@@ -327,9 +327,10 @@ Node passa direto. Ainda assim, `rps: 1`, User-Agent de navegador e nenhuma
 requisição em paralelo — o `robots.txt` libera crawler geral, mas não declara
 `crawl-delay`.
 
-Série está de fora por enquanto: o site publica **um torrent por episódio**, e
-isso ainda não tem desenho no catálogo. O filtro usa o `data-tipo` do site mais
-a presença de "Temporada" no título.
+Traz filmes e séries. Para saber qual é qual, usa o `data-tipo` do site mais a
+presença de "Temporada" no título. O site publica **um torrent por episódio** (ou
+por faixa de episódios), e o nome do episódio vem do contexto do link, junto do
+título do post.
 
 ## Adicionando um tracker
 

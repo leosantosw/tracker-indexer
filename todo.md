@@ -1,10 +1,5 @@
 # TODO
 
-## Corrigir primeiro
-
-- [x] **Enrich cancelado deixa leads velhos** — `repo.refreshLeads()` (`src/job/pipeline.js:42`) só roda se o enrich terminar sem erro; cancelado ou com falha da TMDB, obras recém-casadas com o mesmo `tmdb_id` aparecem duplicadas. Chamar `refreshLeads` num `finally`.
-- [x] **Erros engolidos** — `src/debrid/cacheStatus.js:41,51`, `src/debrid/torbox/index.js:27`, `src/sources/tmdb/index.js:63`, `src/ui/lib/api.js:15`. Token TorBox revogado passa despercebido. Capturar só o erro esperado, logar o resto, repassar abort.
-
 ## Arquitetura
 
 - [ ] **Busca pesada e síncrona** — `src/db/search.js` faz `LIKE` com `fold()` em todas as obras; `/search/genres` repete 12 vezes; `node:sqlite` trava o event loop (inclusive SSE). FTS5 ou coluna `search_text` normalizada, atualizada no `saveWork`.
@@ -32,8 +27,8 @@
 - [ ] **Temporadas/episódios no detalhe da série** — agrupar em `seasons[].episodes[]` (`toWorkDetail` em `src/api/public/dto.js`). Resolve também as cópias sem paginação.
 - [ ] **Filtros nas listas** — idioma (dublado/dual), resolução mínima, ano, gênero (`LIST_QUERY` + `listWorks`).
 - [ ] **Categorias novas** — "Novos esta semana", "Em 4K", "Dublados", "Disponível instantâneo" (cache do debrid).
-- [ ] **Alerta de tracker sem itens** — hoje "template mudou?" só vai para o log. Uma linha por tracker, sobrescrita, exibida no painel (`web/src/features/dashboard/reason-alert.tsx`).
-- [ ] **Tracker BluDV** — irmão do torrentdosfilmes (`docs/trackers-candidatos.md`).
+- [ ] **Alerta de tracker sem itens** — hoje o aviso "página sem nenhum magnet" só vai para o log. Uma linha por tracker em `app_state`, sobrescrita, exibida no painel (`web/src/features/dashboard/reason-alert.tsx`).
+- [ ] **Tracker BluDV** — `bludvfilmes1.xyz` (alternativo `bludvplay1.xyz`); é da mesma rede do torrent-dos-filmes, então deve sair quase igual a `src/sources/trackers/torrentDosFilmes.js`.
 
 ### Médias
 
@@ -47,7 +42,3 @@
 - [ ] "Similares" e "Em alta" da TMDB, filtrados pelo catálogo.
 - [ ] Metadados de episódio (nome, still, data).
 - [ ] Navegador do catálogo no painel.
-
-## Docs
-
-- [ ] `docs/arquitetura.md` diz que séries do redes-torrents estão fora "por enquanto", mas o código já tem `content: 'both'`.
