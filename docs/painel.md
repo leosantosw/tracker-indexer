@@ -7,7 +7,7 @@ Uma página só:
 | Onde | O quê |
 |---|---|
 | Topo | status, *Atualizar catálogo*, *Buscar capas e notas*, *Cancelar*; ícones de documentação, configurações e tema (escuro por padrão; claro, escuro ou o do sistema, guardado no navegador) |
-| Resumo | torrents indexados, obras casadas, última e próxima execução; o card *Catálogo* traz filmes e séries e a distribuição do match com a TMDB |
+| Resumo | torrents indexados, obras casadas, última e próxima execução; os cards *Filmes e séries* e *Match com a TMDB* trazem a divisão do catálogo e a distribuição do match |
 | Atividade | parada, vira uma linha com o resumo da última execução; rodando, mostra as etapas com progresso real (trackers, depois capas e notas) e os avisos; os logs técnicos ficam recolhidos em *Ver logs* |
 | Trackers | só os trackers adicionados, uma linha por tracker: *Testar*, *Buscar torrents* só nele e as regras ativas como ícones; clicar abre a página dele. *Adicionar tracker* lista os que faltam e leva para a configuração antes de adicionar |
 | Sem match na TMDB | obras com torrent que não casaram (`not_found`) ou ficaram ambíguas (`ambiguous`), das que ganharam torrent mais recente para as mais antigas; mostra título e ano usados na busca, e os nomes crus dos torrents ao passar o mouse no título; filtra por status e por tracker, 5 por vez. *Match manual* abre a busca da TMDB com o texto editável: a obra escolhida fica gravada (`manual_tmdb_id`) e a revalidação passa a consultar por esse id, sem refazer a busca. Clicar em *sem match* ou *ambíguas* no resumo leva para cá |
