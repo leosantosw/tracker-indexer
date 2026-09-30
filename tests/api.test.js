@@ -62,6 +62,7 @@ async function setup() {
         votes: 900,
         posterPath: '/p.jpg',
         backdropPath: null, // a TMDB nem sempre tem a horizontal
+        logoPath: '/logo.png',
         trailerKey: 'abc123',
       },
     }
@@ -93,7 +94,8 @@ test('a listagem traz so o cartao da grade', async () => {
 
   const [movie] = (await get('/api/movies')).body.movies;
 
-  assert.deepEqual(Object.keys(movie).sort(), ['backdrop', 'id', 'poster', 'rating', 'title', 'year']);
+  assert.deepEqual(Object.keys(movie).sort(), ['backdrop', 'id', 'logo', 'poster', 'rating', 'title', 'year']);
+  assert.equal(movie.logo, 'https://image.tmdb.org/t/p/w300/logo.png');
   assert.equal(movie.poster, 'https://image.tmdb.org/t/p/w185/p.jpg', 'capa pequena na grade');
   assert.equal(movie.backdrop, null, 'sem backdrop e nulo, nao URL quebrada');
   assert.equal(movie.rating, 8.1);
@@ -110,6 +112,7 @@ test('o detalhe traz tudo, com as copias dentro', async () => {
   assert.equal(detalhe.votes, 900);
   assert.equal(detalhe.poster, 'https://image.tmdb.org/t/p/w342/p.jpg', 'capa maior no detalhe');
   assert.equal(detalhe.trailer, 'https://www.youtube.com/watch?v=abc123');
+  assert.equal(detalhe.logo, 'https://image.tmdb.org/t/p/w500/logo.png');
 
   assert.deepEqual(detalhe.torrents.map((t) => t.seeders), [50, 3], 'da mais semeada para a menos');
   assert.equal(detalhe.torrents[0].size, '12.24 GB');

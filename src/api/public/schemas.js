@@ -62,6 +62,14 @@ const WORK_FIELDS = {
       'Nula com mais frequência que a capa.',
     examples: ['https://image.tmdb.org/t/p/w780/xJHokMbljvjADYdit5fK5VQsXEG.jpg'],
   },
+  logo: {
+    type: ['string', 'null'],
+    description:
+      'Logo com o nome da obra, fundo transparente, para usar no lugar do título em texto: `w300` na listagem, ' +
+      '`w500` no detalhe. Prefere a versão em português, depois inglês, depois a sem idioma. Nula quando a ' +
+      'TMDB não tem logo; aí o cliente mostra `title`.',
+    examples: ['https://image.tmdb.org/t/p/w300/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png'],
+  },
   overview: {
     type: ['string', 'null'],
     description: 'Sinopse, no idioma de `TMDB_LANGUAGE` (pt-BR por padrão).',
@@ -84,7 +92,7 @@ const WORK_FIELDS = {
  * O que a grade de um cliente precisa para desenhar o cartão e o fundo do item em
  * foco -- nada mais. A sinopse sozinha era metade do peso da listagem.
  */
-const CARD_FIELDS = ['id', 'title', 'year', 'poster', 'backdrop', 'rating'];
+const CARD_FIELDS = ['id', 'title', 'year', 'poster', 'backdrop', 'logo', 'rating'];
 
 const pickFields = (keys) => Object.fromEntries(keys.map((key) => [key, WORK_FIELDS[key]]));
 

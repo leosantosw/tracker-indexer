@@ -2,12 +2,15 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
+const { mkdtempSync, rmSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join, dirname } = require('node:path');
 
 const { openDb } = require('../src/db');
 const { createRepo } = require('../src/db/repo');
 const { buildAuthedServer } = require('./authed');
 const { enrich } = require('../src/job/enrich');
-const { createTmdb, pickMatch, pickTrailer } = require('../src/sources/tmdb');
+const { createTmdb, pickMatch, pickTrailer, pickLogo } = require('../src/sources/tmdb');
 
 const config = { tmdb: { staleDays: 30 } };
 const { silentLogger: log } = require('../src/lib/logger');
@@ -43,6 +46,12 @@ const fakeJson = (results = []) => {
           { site: 'YouTube', type: 'Clip', key: 'clipe', iso_639_1: 'pt', official: true },
           { site: 'YouTube', type: 'Trailer', key: 'trailerPt', iso_639_1: 'pt', official: true },
           { site: 'YouTube', type: 'Trailer', key: 'trailerEn', iso_639_1: 'en', official: true },
+        ],
+      },
+      images: {
+        logos: [
+          { file_path: '/logoEn.png', iso_639_1: 'en', vote_average: 5 },
+          { file_path: '/logoPt.png', iso_639_1: 'pt', vote_average: 1 },
         ],
       },
     };
@@ -151,7 +160,7 @@ test('o trailer e procurado uma vez por obra, e so para quem casou', async () =>
   assert.equal(primeira.match.trailerChecked, 1);
 
   // Numa revalidacao a obra ja vem marcada, e a segunda chamada nao acontece.
-  await tmdb.search({ type: 'movie', title: 'Interestelar', year: 2014, trailerChecked: 1 });
+  await tmdb.search({ type: 'movie', title: 'Interestelar', year: 2014, trailerChecked: 1, logoChecked: 1 });
   assert.equal(detalhe(), 1, 'procurar trailer de novo custaria o dobro por obra');
 
   // Quem nao casou nunca chega a pagar a segunda chamada.
@@ -159,6 +168,45 @@ test('o trailer e procurado uma vez por obra, e so para quem casou', async () =>
   const semMatch = await tmdb.search({ type: 'movie', title: 'Nao Existe', year: 1999 });
   assert.equal(semMatch.status, 'ambiguous');
   assert.deepEqual(calls.map((u) => u.pathname), ['/3/search/movie']);
+});
+
+test('the details request also brings the logo, in Portuguese first', async () => {
+  const { getJson, calls } = fakeJson([{ id: 9, title: 'Interestelar', release_date: '2014-11-05' }]);
+  const tmdb = createTmdb({ getJson, apiKey: 'k', language: 'pt-BR' });
+
+  const result = await tmdb.search({ type: 'movie', title: 'Interestelar', year: 2014 });
+
+  const detailRequest = calls.find((u) => u.pathname === '/3/movie/9');
+  assert.equal(detailRequest.searchParams.get('append_to_response'), 'videos,images');
+  assert.equal(detailRequest.searchParams.get('include_image_language'), 'pt,en,null');
+  assert.equal(result.match.logoPath, '/logoPt.png');
+  assert.equal(result.match.logoChecked, 1);
+});
+
+test('a work whose trailer was checked still fetches the missing logo once', async () => {
+  const { getJson, calls } = fakeJson([{ id: 9, title: 'Interestelar', release_date: '2014-11-05' }]);
+  const tmdb = createTmdb({ getJson, apiKey: 'k', language: 'pt-BR' });
+  const detailCount = () => calls.filter((u) => u.pathname === '/3/movie/9').length;
+
+  const result = await tmdb.search({ type: 'movie', title: 'Interestelar', year: 2014, trailerChecked: 1 });
+
+  assert.equal(detailCount(), 1);
+  assert.equal(result.match.logoPath, '/logoPt.png');
+});
+
+test('pickLogo prefers Portuguese, then English, then no language, and png over svg', () => {
+  const logo = (over) => ({ file_path: '/x.png', iso_639_1: null, vote_average: 0, ...over });
+
+  assert.equal(pickLogo([]), null);
+  assert.equal(pickLogo(undefined), null);
+  assert.equal(pickLogo([logo({ iso_639_1: 'ja' })]), null);
+  assert.equal(pickLogo([logo({ file_path: '/none.png' }), logo({ file_path: '/en.png', iso_639_1: 'en' })]), '/en.png');
+  assert.equal(pickLogo([logo({ file_path: '/en.png', iso_639_1: 'en' }), logo({ file_path: '/pt.png', iso_639_1: 'pt' })]), '/pt.png');
+  assert.equal(pickLogo([logo({ file_path: '/pt.svg', iso_639_1: 'pt' }), logo({ file_path: '/pt.png', iso_639_1: 'pt' })]), '/pt.png');
+  assert.equal(
+    pickLogo([logo({ file_path: '/low.png', vote_average: 1 }), logo({ file_path: '/high.png', vote_average: 5 })]),
+    '/high.png'
+  );
 });
 
 test('o dicionario de generos e buscado uma vez por tipo, nao por obra', async () => {
@@ -348,6 +396,36 @@ test('falha ao buscar o trailer nao marca o trailer como procurado', async () =>
   assert.deepEqual({ ...trailerOf() }, { status: 'ok', trailer_key: 'trailerPt', trailer_checked: 1 });
   db.close();
 });
+
+test('enrich stores the logo and a later run without one keeps it', async () => {
+  const { db, repo } = withItems([item('a', { title: 'Interestelar', year: 2014 })]);
+  repo.registerWorks();
+  const { getJson } = fakeJson([{ id: 9, title: 'Interestelar', release_date: '2014-11-05' }]);
+  const logoOf = () => ({ ...db.prepare('SELECT logo_path, logo_checked FROM work').get() });
+
+  await enrich({ repo, tmdb: createTmdb({ getJson, apiKey: 'k', language: 'pt-BR' }), config, log });
+  assert.deepEqual(logoOf(), { logo_path: '/logoPt.png', logo_checked: 1 });
+
+  repo.saveWork({ type: 'movie', title: 'Interestelar', year: 2014 }, { status: 'ok', match: candidate() });
+  assert.deepEqual(logoOf(), { logo_path: '/logoPt.png', logo_checked: 1 });
+  db.close();
+});
+
+test('the logo_path migration makes enrich revisit works that were already matched', () => {
+  const file = join(mkdtempSync(join(tmpdir(), 'logo-migration-')), 'db.sqlite');
+  const before = openDb(file);
+  before.exec("INSERT INTO work (type, title, year, status, checked_at) VALUES ('movie', 'A', 2020, 'ok', 999)");
+  before.exec('ALTER TABLE work DROP COLUMN logo_checked');
+  before.exec('ALTER TABLE work DROP COLUMN logo_path');
+  before.close();
+
+  const after = openDb(file);
+  const work = after.prepare('SELECT checked_at, logo_path, logo_checked FROM work').get();
+  after.close();
+  rmSync(dirname(file), { recursive: true, force: true });
+
+  assert.deepEqual({ ...work }, { checked_at: 0, logo_path: null, logo_checked: 0 });
+})
 
 test('o que o enrich grava e o que a API mostra em /movies', async () => {
   const { db, repo } = withItems([

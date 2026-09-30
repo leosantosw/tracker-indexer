@@ -4,6 +4,7 @@ const { toCandidate, fromDetails, matchesAny, byPopularity } = require('./candid
 const { pickMatch } = require('./movie');
 const { pickSeries, titlesOf, withoutFranchise } = require('./series');
 const { pickTrailer } = require('./trailer');
+const { pickLogo } = require('./logo');
 
 const BASE_URL = 'https://api.themoviedb.org';
 
@@ -16,6 +17,7 @@ const PATHS = {
 };
 
 const VIDEO_LANGUAGES = 'pt-BR,pt,en,null';
+const IMAGE_LANGUAGES = 'pt,en,null';
 
 function createTmdb({ getJson, apiKey, language }) {
   const genreCache = new Map();
@@ -50,16 +52,24 @@ function createTmdb({ getJson, apiKey, language }) {
     const key = `${type}:${id}`;
     if (!detailCache.has(key)) {
       const request = url(PATHS[type].detail(id));
-      request.searchParams.set('append_to_response', 'videos');
+      request.searchParams.set('append_to_response', 'videos,images');
       request.searchParams.set('include_video_language', VIDEO_LANGUAGES);
+      request.searchParams.set('include_image_language', IMAGE_LANGUAGES);
       detailCache.set(key, await getJson(request));
     }
     return detailCache.get(key);
   }
 
-  const movieTrailer = async (id) => pickTrailer((await details('movie', id)).videos?.results);
+  const extrasOf = (raw) => ({
+    trailerKey: pickTrailer(raw.videos?.results),
+    trailerChecked: 1,
+    logoPath: pickLogo(raw.images?.logos),
+    logoChecked: 1,
+  });
 
-  const matched = (match, trailerKey) => ({ status: 'ok', match: { ...match, trailerKey, trailerChecked: 1 } });
+  const needsExtras = (work) => !work.trailerChecked || !work.logoChecked;
+
+  const matched = (match, extras) => ({ status: 'ok', match: { ...match, ...extras } });
 
   async function searchMovie(work) {
     if (COLLECTION_RE.test(work.title)) return { status: 'skipped' };
@@ -67,7 +77,8 @@ function createTmdb({ getJson, apiKey, language }) {
     const found = pickMatch(await find('movie', work.title), work);
     if (found.status !== 'ok') return found;
 
-    return matched(found.match, work.trailerChecked ? null : await movieTrailer(found.match.tmdbId));
+    if (!needsExtras(work)) return matched(found.match, {});
+    return matched(found.match, extrasOf(await details('movie', found.match.tmdbId)));
   }
 
   async function seriesCandidates(title) {
@@ -81,14 +92,14 @@ function createTmdb({ getJson, apiKey, language }) {
     const found = await pickSeries(await seriesCandidates(work.title), work, (id) => details('series', id));
     if (found.status !== 'ok') return found;
 
-    return matched(found.match, work.trailerChecked ? null : pickTrailer(found.details.videos?.results));
+    return matched(found.match, needsExtras(work) ? extrasOf(found.details) : {});
   }
 
   const search = (work) => (work.type === 'series' ? searchSeries(work) : searchMovie(work));
 
   async function lookup(type, id) {
     const raw = await details(type, id);
-    return matched(fromDetails(raw, type), pickTrailer(raw.videos?.results));
+    return matched(fromDetails(raw, type), extrasOf(raw));
   }
 
   async function findByImdb(type, imdbId) {
@@ -107,4 +118,4 @@ function createTmdb({ getJson, apiKey, language }) {
   return { search, lookup, findByImdb, candidates };
 }
 
-module.exports = { createTmdb, pickMatch, pickSeries, pickTrailer, toCandidate, COLLECTION_RE };
+module.exports = { createTmdb, pickMatch, pickSeries, pickTrailer, pickLogo, toCandidate, COLLECTION_RE };

@@ -156,16 +156,19 @@ Failure is recorded too. The `status` is what keeps it from asking about
 
 | Case | Calls |
 |---|---|
-| Work that matched | **2** — the search, plus the details call the trailer comes from |
+| Work that matched | **2** — the search, plus the details call the trailer and the logo come from |
 | Work that didn't match | **1** — just the search |
 | Collection | **0** — the regex cuts it before any request |
 | Genre dictionary | **2 per run**, not per work |
 
 Almost everything comes in a single response: cover, backdrop, genres, date, rating and synopsis
-come from the same search. **The trailer is the only exception** — the search returns no video
-at all. That is why it is fetched after the match (a work that didn't match doesn't pay) and
-**only once per work**: `trailer_checked` marks what has already been looked up, found
-or not, and rating revalidation never pays the second call again. A failure there
+come from the same search. **The trailer and the logo are the exception** — the search returns
+no video and no logo at all. Both come from one details call (`append_to_response=videos,images`),
+made after the match (a work that didn't match doesn't pay) and **only once per work**:
+`trailer_checked` and `logo_checked` mark what has already been looked up, found or not, and
+rating revalidation never pays the second call again. A work missing either flag pays the call
+once more; adding `logo_path` resets `checked_at`, so the next enrich fetches the logo of every
+work already in the database. A failure there
 returns `null` instead of invalidating a match that already worked.
 
 On the first run there are ~983 works (~2 min at 8 rps, or ~3.5 min counting the
@@ -178,13 +181,14 @@ The `TMDB_MIN_VOTES` floor solves the classic case: without it, a rating of 10 f
 
 ### Images and trailer
 
-There are two images, both with a direct URL on TMDB's CDN — no key and no
+There are three images, all with a direct URL on TMDB's CDN — no key and no
 limit:
 
 | Field | What | Listing | Detail |
 |---|---|---|---|
 | `poster` | vertical cover | `w185` | `w342` |
 | `backdrop` | horizontal, for background and banner | `w780` | `w1280` |
+| `logo` | the title drawn as a transparent PNG | `w300` | `w500` |
 
 A client's grid calls for a small image; the open item screen, a larger one. On a client, the
 images weigh much more than the JSON: 50 covers add up to around a megabyte, against
@@ -199,6 +203,11 @@ The `trailer` is a YouTube link, built from the video id. Among the
 dozens of videos TMDB returns (clip, behind the scenes, featurette), the choice is made
 by score: a trailer is worth more than a teaser, dubbed more than subtitled, and
 official breaks ties. Nothing below a teaser will do.
+
+The `logo` is picked the same way: Portuguese beats English, English beats a logo with no
+language, PNG beats SVG, and TMDB's vote average breaks ties. A logo in any other language
+is ignored, since it would show a title the viewer can't read; the client falls back to the text
+`title`.
 
 **Don't download the images.** Hosting them would be ~50 MB at `w342` for the 871 works,
 with the cost of maintaining and serving them — and TMDB's CDN does it for free and faster.
@@ -472,7 +481,7 @@ src/
 │  ├─ content.js             movies, series or both, per tracker
 │  ├─ trackers/              one file per tracker (torrentsCsv, redesTorrents, comando, torrentDosFilmes)
 │  ├─ html/                  template for HTML trackers (defineHtmlSource, selectors, post title)
-│  └─ tmdb/                  search and match: candidate, movie, series, trailer
+│  └─ tmdb/                  search and match: candidate, movie, series, trailer, logo
 ```
 
 The panel lives outside `src/`, in its own app:

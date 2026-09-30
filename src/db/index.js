@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS work (
   votes       INTEGER,
   poster_path TEXT,    -- vertical, para a grade
   backdrop_path TEXT,  -- horizontal, para banner e fundo
+  logo_path   TEXT,
+  logo_checked INTEGER NOT NULL DEFAULT 0,
   trailer_key TEXT,    -- id do video no YouTube; a URL e montada na API
   trailer_checked INTEGER NOT NULL DEFAULT 0,  -- 1 = ja procurou, achando ou nao
   manual_tmdb_id INTEGER,
@@ -158,6 +160,12 @@ const MIGRATIONS = [
   { table: 'item', column: 'language', ddl: 'ALTER TABLE item ADD COLUMN language TEXT', reset: LANGUAGE_FROM_NAME },
   { table: 'work', column: 'manual_tmdb_id', ddl: 'ALTER TABLE work ADD COLUMN manual_tmdb_id INTEGER' },
   { table: 'item', column: 'imdb_id', ddl: 'ALTER TABLE item ADD COLUMN imdb_id TEXT' },
+  { table: 'work', column: 'logo_path', ddl: 'ALTER TABLE work ADD COLUMN logo_path TEXT', reset: 'UPDATE work SET checked_at = 0' },
+  {
+    table: 'work',
+    column: 'logo_checked',
+    ddl: 'ALTER TABLE work ADD COLUMN logo_checked INTEGER NOT NULL DEFAULT 0',
+  },
 ];
 
 const RENAMED_SOURCES = { comando: 'comando1' };

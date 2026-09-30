@@ -8,8 +8,8 @@ const KB = 1024;
 // nada. A grade de um cliente usa imagens menores que a tela do item aberto.
 const TMDB_IMAGES = 'https://image.tmdb.org/t/p/';
 const SIZES = {
-  card: { poster: 'w185', backdrop: 'w780' },
-  detail: { poster: 'w342', backdrop: 'w1280' },
+  card: { poster: 'w185', backdrop: 'w780', logo: 'w300' },
+  detail: { poster: 'w342', backdrop: 'w1280', logo: 'w500' },
 };
 
 const image = (size, path) => (path ? `${TMDB_IMAGES}${size}${path}` : null);
@@ -63,6 +63,7 @@ const toWorkCard = (row, minVotes) => ({
   year: row.year,
   poster: image(SIZES.card.poster, row.poster_path),
   backdrop: image(SIZES.card.backdrop, row.backdrop_path),
+  logo: image(SIZES.card.logo, row.logo_path),
   rating: ratingOf(row, minVotes),
 });
 
@@ -77,6 +78,7 @@ const toWorkDetail = (row, minVotes, torrents, cachedByHash) => ({
   genres: row.genres ? row.genres.split(', ') : [],
   poster: image(SIZES.detail.poster, row.poster_path),
   backdrop: image(SIZES.detail.backdrop, row.backdrop_path),
+  logo: image(SIZES.detail.logo, row.logo_path),
   overview: row.overview,
   rating: ratingOf(row, minVotes),
   votes: row.votes,

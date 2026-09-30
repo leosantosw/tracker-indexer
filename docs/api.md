@@ -107,7 +107,7 @@ to gather 150 votes.
 
 By default only titles that matched TMDB are included: with no poster, no synopsis and no rating
 there is nothing to list. With `all=true`, titles that did not match or have not yet
-been looked up (`pending`) are included too, with `poster`, `backdrop` and `rating` null. Without
+been looked up (`pending`) are included too, with `poster`, `backdrop`, `logo` and `rating` null. Without
 `TMDB_API_KEY`, it is the only way to list anything — and `/api/stats` says why:
 `tmdb.configured` comes back `false` and the titles show up as `pending`.
 
@@ -178,6 +178,7 @@ The listing and the detail do not carry the same thing. **In the listing, only t
   "year": 2014,
   "poster": "https://image.tmdb.org/t/p/w185/tR1XVa5bxgdh2bRw2u0DzrgkO2l.jpg",
   "backdrop": "https://image.tmdb.org/t/p/w780/8sNiAPPYU14PUepFNeSNGUTiHW.jpg",
+  "logo": "https://image.tmdb.org/t/p/w300/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png",
   "rating": 8.487
 }
 ```
@@ -185,6 +186,10 @@ The listing and the detail do not carry the same thing. **In the listing, only t
 `backdrop` stays in the listing because a client's grid usually swaps the background according to
 the item in focus — it costs ~65 bytes per movie, and the image is only downloaded for the one that
 gets focus.
+
+`logo` is the work's name drawn as an image (transparent PNG), for a client to show in place of
+the text title over the backdrop. It is null when TMDB has no logo in Portuguese, English or
+without a language; the client then falls back to `title`.
 
 **In the detail, everything at once**, copies included — when opening an item the client makes
 a single request:
@@ -198,6 +203,7 @@ a single request:
   "genres": ["Aventura", "Drama", "Ficção científica"],
   "poster": "https://image.tmdb.org/t/p/w342/tR1XVa5bxgdh2bRw2u0DzrgkO2l.jpg",
   "backdrop": "https://image.tmdb.org/t/p/w1280/8sNiAPPYU14PUepFNeSNGUTiHW.jpg",
+  "logo": "https://image.tmdb.org/t/p/w500/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png",
   "overview": "As reservas naturais da Terra estão chegando ao fim...",
   "rating": 8.487,
   "votes": 41140,

@@ -122,6 +122,7 @@ const REGISTER = `
 const PENDING = `
   SELECT i.type, i.title, ${WORK_YEAR} AS year,
          COALESCE(MAX(w.trailer_checked), 0) AS trailerChecked,
+         COALESCE(MAX(w.logo_checked), 0) AS logoChecked,
          MAX(w.manual_tmdb_id) AS manualTmdbId,
          GROUP_CONCAT(i.imdb_id) AS imdbIds,
          MAX(COALESCE(i.season_end, i.season)) AS maxSeason,
@@ -158,11 +159,11 @@ const WORK_STATS = `
 const INSERT = `
   INSERT INTO work (
     type, title, year, tmdb_id, tmdb_title, release_date, genres, overview,
-    rating, votes, poster_path, backdrop_path, trailer_key, trailer_checked,
+    rating, votes, poster_path, backdrop_path, logo_path, logo_checked, trailer_key, trailer_checked,
     status, checked_at
   ) VALUES (
     @type, @title, @year, @tmdbId, @tmdbTitle, @releaseDate, @genres, @overview,
-    @rating, @votes, @posterPath, @backdropPath, @trailerKey, @trailerChecked,
+    @rating, @votes, @posterPath, @backdropPath, @logoPath, @logoChecked, @trailerKey, @trailerChecked,
     @status, @checkedAt
   )
 `;
@@ -182,6 +183,8 @@ const UPDATE = `
     votes        = @votes,
     poster_path  = @posterPath,
     backdrop_path = @backdropPath,
+    logo_path = COALESCE(@logoPath, logo_path),
+    logo_checked = MAX(@logoChecked, logo_checked),
     trailer_key = COALESCE(@trailerKey, trailer_key),
     trailer_checked = MAX(@trailerChecked, trailer_checked),
     status      = @status,
@@ -292,6 +295,8 @@ function createWorks(db) {
       votes: match.votes ?? null,
       posterPath: match.posterPath ?? null,
       backdropPath: match.backdropPath ?? null,
+      logoPath: match.logoPath ?? null,
+      logoChecked: match.logoChecked ?? 0,
       trailerKey: match.trailerKey ?? null,
       trailerChecked: match.trailerChecked ?? 0,
       status: result.status,
