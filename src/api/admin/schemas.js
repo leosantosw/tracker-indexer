@@ -3,6 +3,7 @@
 const { PROVIDERS, PROVIDER_IDS } = require('../../debrid');
 const { CONTENT_IDS } = require('../../sources/content');
 const { RESOLUTION_IDS } = require('../../sources/resolution');
+const { SIZE_LIMIT_KINDS } = require('../../sources/sizeLimit');
 const { trackerSecretNames } = require('../../settings/secrets');
 
 /** Admin routes stay out of the public Swagger: they drive the job, not the catalog. */
@@ -11,6 +12,7 @@ const hidden = (schema) => ({ hide: true, ...schema });
 const positiveInt = { type: 'integer', minimum: 1 };
 const optionalPositiveInt = { type: ['integer', 'null'], minimum: 1 };
 const rps = { type: 'number', exclusiveMinimum: 0, maximum: 50 };
+const sizeLimitGb = { type: ['number', 'null'], exclusiveMinimum: 0, maximum: 1000 };
 
 /** A string sets the secret, null removes the panel value. No whitespace. */
 const secret = (minLength, maxLength) => ({ type: ['string', 'null'], minLength, maxLength, pattern: '^\\S+$' });
@@ -29,6 +31,12 @@ const SOURCE_PATCH = {
       minItems: 1,
       uniqueItems: true,
       items: { enum: RESOLUTION_IDS },
+    },
+    maxSizeGb: {
+      type: ['object', 'null'],
+      additionalProperties: false,
+      required: SIZE_LIMIT_KINDS,
+      properties: Object.fromEntries(SIZE_LIMIT_KINDS.map((kind) => [kind, sizeLimitGb])),
     },
     freeleechOnly: { type: 'boolean' },
     terms: {

@@ -2,6 +2,7 @@
 
 const { transaction } = require('./index');
 const { NAMED_RESOLUTIONS, OTHER_RESOLUTION } = require('../sources/resolution');
+const { GB } = require('../sources/sizeLimit');
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -49,6 +50,19 @@ const OUTSIDE_RESOLUTIONS = `
     AND (CASE WHEN resolution IN (${NAMED_LIST}) THEN resolution ELSE '${OTHER_RESOLUTION}' END)
         NOT IN (SELECT value FROM json_each(?))
 `;
+
+const OVER_SIZE_LIMIT = `
+  DELETE FROM item
+  WHERE source = @source
+    AND size_bytes > 0
+    AND CASE
+      WHEN type IS NOT 'series' THEN size_bytes > @movie
+      WHEN episode IS NOT NULL THEN size_bytes > @episode * MAX(1, COALESCE(episode_end, episode) - episode + 1)
+      ELSE size_bytes > @season * MAX(1, COALESCE(season_end, season, 1) - COALESCE(season, 1) + 1)
+    END
+`;
+
+const limitInBytes = (gigabytes) => (gigabytes === null || gigabytes === undefined ? null : gigabytes * GB);
 
 const UPSERT = `
   INSERT INTO item (
@@ -167,9 +181,9 @@ function createItems(db) {
    * da run e nao no insert porque duplicata chega por paginas e termos
    * diferentes -- so da para enxerga-la com a base inteira em maos.
    */
-  function applyRules(source, rules = {}, resolutions = null) {
-    const removed = { noYear: 0, duplicate: 0, resolution: 0 };
-    if (!rules.requireYear && !rules.dedupe && !resolutions) return removed;
+  function applyRules(source, rules = {}, { resolutions = null, maxSizeGb = null } = {}) {
+    const removed = { noYear: 0, duplicate: 0, resolution: 0, size: 0 };
+    if (!rules.requireYear && !rules.dedupe && !resolutions && !maxSizeGb) return removed;
 
     transaction(db, () => {
       if (rules.requireYear) {
@@ -182,6 +196,14 @@ function createItems(db) {
       }
       if (resolutions) {
         removed.resolution = db.prepare(OUTSIDE_RESOLUTIONS).run(source, JSON.stringify(resolutions)).changes;
+      }
+      if (maxSizeGb) {
+        removed.size = db.prepare(OVER_SIZE_LIMIT).run({
+          source,
+          movie: limitInBytes(maxSizeGb.movie),
+          episode: limitInBytes(maxSizeGb.episode),
+          season: limitInBytes(maxSizeGb.season),
+        }).changes;
       }
     });
 

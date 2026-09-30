@@ -3,6 +3,7 @@
 const { classify } = require('../lib/classifier');
 const { wants } = require('../sources/content');
 const { acceptsResolution } = require('../sources/resolution');
+const { acceptsSize } = require('../sources/sizeLimit');
 
 /**
  * O tracker ordena por seeders e nao tem rota de "mais recentes", entao nao ha
@@ -23,7 +24,7 @@ const { acceptsResolution } = require('../sources/resolution');
 async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn = () => {} }) {
   const rules = source.rules ?? {};
   const quietLimit = source.stopAfterQuietPages ?? Infinity;
-  const total = { pages: 0, inserted: 0, removed: { noYear: 0, duplicate: 0, resolution: 0 }, terms: null, stop: 'end', stopAfter: null };
+  const total = { pages: 0, inserted: 0, removed: { noYear: 0, duplicate: 0, resolution: 0, size: 0 }, terms: null, stop: 'end', stopAfter: null };
 
   // Tracker de busca varre por termo; tracker de catalogo, por pagina.
   const terms = source.terms ?? [null];
@@ -69,6 +70,7 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
         .filter((item) => !item.release.rejected)
         .filter((item) => wants(source.content, item.release.type))
         .filter((item) => acceptsResolution(source.resolutions, item.release.resolution))
+        .filter((item) => acceptsSize(source.maxSizeGb, item.sizeBytes, item.release))
         .filter((item) => !rules.requireYear || item.release.type !== 'movie' || item.release.year !== null);
 
       const inserted = repo.savePage(source.name, items, rules);
@@ -105,7 +107,7 @@ async function syncSource(source, { repo, log, signal, onPage = () => {}, onWarn
 
   // Depois de gravar tudo: so com a base inteira da para ver duplicata que
   // chegou por termos diferentes.
-  total.removed = repo.applyRules(source.name, rules, source.resolutions);
+  total.removed = repo.applyRules(source.name, rules, { resolutions: source.resolutions, maxSizeGb: source.maxSizeGb });
 
   return total;
 }

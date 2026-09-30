@@ -163,6 +163,24 @@ test('resolutions accept known values or null, and refuse an empty or unknown li
   await app.close();
 });
 
+test('size limits accept positive numbers or null, and refuse zero or a missing kind', async () => {
+  const { app } = await setup();
+  const put = (maxSizeGb) =>
+    app.inject({ method: 'PUT', url: '/api/admin/settings', payload: { sources: { 'redes-torrents': { maxSizeGb } } } });
+
+  const limited = await put({ movie: 20, episode: 5, season: null });
+  const off = await put(null);
+  const zero = await put({ movie: 0, episode: null, season: null });
+  const missing = await put({ movie: 20 });
+
+  assert.equal(limited.statusCode, 200);
+  assert.deepEqual(json(limited).sources.find((source) => source.name === 'redes-torrents').maxSizeGb, { movie: 20, episode: 5, season: null });
+  assert.equal(json(off).sources.find((source) => source.name === 'redes-torrents').maxSizeGb, null);
+  assert.equal(zero.statusCode, 400);
+  assert.equal(missing.statusCode, 400);
+  await app.close();
+});
+
 test('um job por vez; o segundo leva 409', async () => {
   const { app, sync } = await setup();
 

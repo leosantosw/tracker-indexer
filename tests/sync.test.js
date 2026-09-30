@@ -244,3 +244,17 @@ test('only the selected resolutions are saved, and older copies outside them are
   assert.deepEqual(saved, [{ resolution: '1080p', n: 2 }]);
   db.close();
 });
+
+const remuxTorrent = (n) => ({ ...torrent(n), size_bytes: 70 * 1024 ** 3 });
+
+test('copies over the size limit are skipped, and older ones over it are removed', async () => {
+  const db = openDb(':memory:');
+  await run(fakeSource([[torrent(1), remuxTorrent(2)]]), db);
+
+  const total = await run({ ...fakeSource([[torrent(3), remuxTorrent(4)]]), maxSizeGb: { movie: 20, episode: null, season: null } }, db);
+
+  assert.equal(total.inserted, 1);
+  assert.equal(total.removed.size, 1);
+  assert.equal(countItems(db), 2);
+  db.close();
+});

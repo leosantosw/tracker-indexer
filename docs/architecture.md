@@ -57,6 +57,14 @@ keeps every resolution. The sync skips copies outside the list, the tracker chec
 are deleted, like the other rules. It exists for trackers whose 2160p copies are huge Blu-ray
 remuxes a TV client can't play.
 
+A tracker can also cap the **size** of what it keeps (`maxSizeGb`, set in the panel under
+*Regras* → *Tamanho máximo* (maximum size)). It has one limit per kind, in GB: `movie` for a
+movie, `episode` per episode (a range like `S01E01-E03` is divided by its episodes) and `season`
+per season of a pack (`S01-S03` is divided by three). A `null` limit, or `maxSizeGb: null`, keeps
+everything of that kind, and a copy with no known size always stays. The sync, the tracker check
+and the end-of-run cleanup treat it like `resolutions`. It exists because a resolution filter can't
+catch a 70 GB 1080p remux.
+
 A duplicate is the same `(type, title, year, season, episode)`, so a series
 episode doesn't run over another episode, and a remake doesn't run over the original (`Cinderela` from
 1950 and from 2015 coexist). A tie in seeders goes to the oldest item, so the
@@ -488,6 +496,7 @@ src/
 │  ├─ index.js               registry
 │  ├─ content.js             movies, series or both, per tracker
 │  ├─ resolution.js          which resolutions a tracker keeps
+│  ├─ sizeLimit.js           the largest movie, episode or season a tracker keeps
 │  ├─ trackers/              one file per tracker (torrentsCsv, redesTorrents, comando, torrentDosFilmes)
 │  ├─ html/                  template for HTML trackers (defineHtmlSource, selectors, post title)
 │  └─ tmdb/                  search and match: candidate, movie, series, trailer, logo
@@ -530,7 +539,7 @@ web/                         React + Vite + TypeScript + Tailwind v4 + shadcn/ui
   `all=true` to see the rest, and the detail (`/api/movies/:id`) always works.
 - **All copies come in the detail, without pagination.** Today the maximum observed is 3
   per work; if a series tracker brings in hundreds of episodes, this changes.
-- **Tracker rules really delete.** `requireYear`, `dedupe` and `resolutions` do a
+- **Tracker rules really delete.** `requireYear`, `dedupe`, `resolutions` and `maxSizeGb` do a
   `DELETE`; the item comes back on the next sync if it still exists on the tracker, but its
   `created_at` starts over.
 - **`updated_at` advances on every sync**, even when nothing changed in the item — it

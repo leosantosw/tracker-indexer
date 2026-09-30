@@ -30,3 +30,15 @@ test('without resolutions the check lets every resolution in', async () => {
 
   assert.deepEqual(result.totals, { ok: 2 });
 });
+
+test('the check marks copies over the size limit as filtered', async () => {
+  const sized = { 'Filme Um (2024) 1080p Remux': 70 * 1024 ** 3, 'Filme Dois (2024) 1080p WEB-DL': 4 * 1024 ** 3 };
+  const source = sourceWith(Object.keys(sized), {
+    maxSizeGb: { movie: 20, episode: null, season: null },
+    readPage: async () => Object.entries(sized).map(([name, sizeBytes]) => ({ ...entryOf(name), item: { name, sizeBytes } })),
+  });
+
+  const result = await inspectSource(source);
+
+  assert.deepEqual(result.entries.map((entry) => entry.status), ['filtered', 'ok']);
+});

@@ -5,7 +5,7 @@ const { providerOptions } = require('../debrid');
 const { SettingsError } = require('./errors');
 
 const EDITABLE_TMDB = ['language', 'rps', 'staleDays', 'minVotes'];
-const EDITABLE_SOURCE = ['enabled', 'rps', 'pages', 'stopAfterQuietPages', 'content', 'resolutions', 'freeleechOnly'];
+const EDITABLE_SOURCE = ['enabled', 'rps', 'pages', 'stopAfterQuietPages', 'content', 'resolutions', 'maxSizeGb', 'freeleechOnly'];
 const EDITABLE_DEBRID = ['provider', 'checkCache'];
 const EDITABLE_SCHEDULE = ['enabled', 'mode', 'time', 'days', 'everyMinutes'];
 

@@ -9,11 +9,11 @@ const { createRepo } = require('../src/db/repo');
 const RULES = { requireYear: true, dedupe: 'seeders' };
 
 /** Item pronto para o savePage; so o que a regra olha importa aqui. */
-const item = (sourceId, { title, year = 2020, type = 'movie', season = null, episode = null, seeders = 1, resolution = null }) => ({
+const item = (sourceId, { title, year = 2020, type = 'movie', season = null, seasonEnd = null, episode = null, episodeEnd = null, seeders = 1, resolution = null, sizeBytes = 1 }) => ({
   sourceId,
   infohash: sourceId,
   name: title,
-  sizeBytes: 1,
+  sizeBytes,
   createdUnix: 1,
   seeders,
   leechers: 0,
@@ -23,7 +23,9 @@ const item = (sourceId, { title, year = 2020, type = 'movie', season = null, epi
     year,
     type,
     season,
+    seasonEnd,
     episode,
+    episodeEnd,
     resolution,
     source: null,
     videoCodec: null,
@@ -140,7 +142,7 @@ test('source sem rules nao perde nada', () => {
 
   const removed = repo.applyRules('outro', undefined);
 
-  assert.deepEqual(removed, { noYear: 0, duplicate: 0, resolution: 0 });
+  assert.deepEqual(removed, { noYear: 0, duplicate: 0, resolution: 0, size: 0 });
   assert.equal(names(db, 'outro').length, 3);
   db.close();
 });
@@ -154,7 +156,7 @@ test('resolutions removes only the unselected copies of that tracker', () => {
   ]);
   repo.savePage('outro', [item('other-uhd', { title: 'E', resolution: '2160p' })]);
 
-  const removed = repo.applyRules('torrents-csv', {}, ['1080p', 'other']);
+  const removed = repo.applyRules('torrents-csv', {}, { resolutions: ['1080p', 'other'] });
 
   assert.equal(removed.resolution, 1);
   assert.deepEqual(names(db, 'torrents-csv'), ['full-hd', 'hd-tag', 'unknown']);
@@ -165,9 +167,45 @@ test('resolutions removes only the unselected copies of that tracker', () => {
 test('without resolutions nothing is removed by resolution', () => {
   const { db, repo } = setup([item('uhd', { title: 'A', resolution: '2160p' })]);
 
-  const removed = repo.applyRules('torrents-csv', {}, null);
+  const removed = repo.applyRules('torrents-csv', {}, { resolutions: null });
 
   assert.equal(removed.resolution, 0);
   assert.equal(names(db, 'torrents-csv').length, 1);
+  db.close();
+});
+
+const GB = 1024 ** 3;
+
+test('maxSizeGb removes movies, episodes and season packs over their own limit', () => {
+  const { db, repo } = setup([
+    item('movie-remux', { title: 'A', sizeBytes: 70 * GB }),
+    item('movie-encode', { title: 'B', sizeBytes: 12 * GB }),
+    item('movie-unknown-size', { title: 'C', sizeBytes: null }),
+    item('episode-remux', { title: 'D', type: 'series', season: 1, episode: 1, sizeBytes: 9 * GB }),
+    item('episode-range', { title: 'E', type: 'series', season: 1, episode: 1, episodeEnd: 3, sizeBytes: 12 * GB }),
+    item('season-pack', { title: 'F', type: 'series', season: 1, sizeBytes: 45 * GB }),
+    item('season-remux', { title: 'G', type: 'series', season: 1, sizeBytes: 90 * GB }),
+    item('seasons-pack', { title: 'H', type: 'series', season: 1, seasonEnd: 3, sizeBytes: 150 * GB }),
+  ]);
+  repo.savePage('outro', [item('other-remux', { title: 'I', sizeBytes: 70 * GB })]);
+
+  const removed = repo.applyRules('torrents-csv', {}, { maxSizeGb: { movie: 20, episode: 5, season: 60 } });
+
+  assert.equal(removed.size, 3);
+  assert.deepEqual(names(db), ['episode-range', 'movie-encode', 'movie-unknown-size', 'season-pack', 'seasons-pack']);
+  assert.equal(names(db, 'outro').length, 1);
+  db.close();
+});
+
+test('a null size limit leaves that kind alone', () => {
+  const { db, repo } = setup([
+    item('movie-remux', { title: 'A', sizeBytes: 70 * GB }),
+    item('season-remux', { title: 'B', type: 'series', season: 1, sizeBytes: 90 * GB }),
+  ]);
+
+  const removed = repo.applyRules('torrents-csv', {}, { maxSizeGb: { movie: 20, episode: null, season: null } });
+
+  assert.equal(removed.size, 1);
+  assert.deepEqual(names(db), ['season-remux']);
   db.close();
 });

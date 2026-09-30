@@ -216,3 +216,17 @@ test('resolutions start as all and the saved selection reaches the tracker', () 
   assert.deepEqual(built.resolutions, ['1080p', '720p']);
   assert.equal(sourceOf(config, 'torrents-csv').resolutions, null);
 });
+
+test('size limits start off and the saved limits reach the tracker', () => {
+  const { store } = setup();
+  const limits = { movie: 20, episode: 5, season: null };
+  assert.equal(sourceOf(store.config(), 'amigos-share-club').maxSizeGb, null);
+
+  store.save({ sources: { 'amigos-share-club': { enabled: true, maxSizeGb: limits } } });
+
+  const config = store.config();
+  const built = createSources(config).find((source) => source.name === 'amigos-share-club');
+  assert.deepEqual(sourceOf(config, 'amigos-share-club').maxSizeGb, limits);
+  assert.deepEqual(built.maxSizeGb, limits);
+  assert.equal(sourceOf(config, 'torrents-csv').maxSizeGb, null);
+});
