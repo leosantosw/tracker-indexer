@@ -15,6 +15,7 @@ import {
   type LogEntry,
   type Resolution,
   type ScheduleStatus,
+  type SizeLimits,
   type UnmatchedStatus,
   type WorkType,
 } from '@/lib/schemas'
@@ -78,6 +79,7 @@ export type SourcePatch = Partial<{
   terms: string[]
   freeleechOnly: boolean
   resolutions: Resolution[] | null
+  maxSizeGb: SizeLimits | null
   rules: { requireYear?: boolean; dedupe?: 'seeders' | null }
 }>
 

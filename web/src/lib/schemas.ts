@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const jobNameSchema = z.enum(['sync', 'enrich', 'cache'])
 export const contentSchema = z.enum(['movies', 'series', 'both'])
 export const resolutionSchema = z.enum(['2160p', '1080p', '720p', '480p', 'other'])
+export const sizeLimitsSchema = z.object({ movie: z.number().nullable(), episode: z.number().nullable(), season: z.number().nullable() })
 export const workTypeSchema = z.enum(['movie', 'series'])
 export const matchStatusSchema = z.enum(['ok', 'ambiguous', 'not_found', 'skipped', 'pending'])
 export const stepStateSchema = z.enum(['pending', 'running', 'done', 'skipped', 'failed'])
@@ -97,6 +98,7 @@ export const sourceSchema = z.object({
   mode: z.enum(['terms', 'pages']),
   content: contentSchema,
   resolutions: z.array(resolutionSchema).nullish(),
+  maxSizeGb: sizeLimitsSchema.nullish(),
   categories: z.partialRecord(contentSchema, z.array(z.string())).nullish(),
   rps: z.number(),
   pages: z.number().nullable(),
@@ -186,6 +188,7 @@ export const logEntrySchema = z.object({ at: z.string(), level: logLevelSchema, 
 export type JobName = z.infer<typeof jobNameSchema>
 export type Content = z.infer<typeof contentSchema>
 export type Resolution = z.infer<typeof resolutionSchema>
+export type SizeLimits = z.infer<typeof sizeLimitsSchema>
 export type WorkType = z.infer<typeof workTypeSchema>
 export type MatchStatus = z.infer<typeof matchStatusSchema>
 export type StepState = z.infer<typeof stepStateSchema>

@@ -16,6 +16,7 @@ import { SwitchField } from '@/components/app/switch-field'
 import { TagInput } from '@/components/app/tag-input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FieldDescription, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useJobActions } from '@/features/jobs/use-job-actions'
@@ -279,6 +280,23 @@ function TrackerFormView({ source, secrets, indexed, running, mode }: TrackerVie
                 </ToggleGroup>
               )}
             </FormField>
+            <FieldSet>
+              <FieldLegend variant="label">Tamanho máximo</FieldLegend>
+              <div className="grid gap-5 sm:grid-cols-3">
+                <FormField<TrackerForm, 'maxMovieGb'> name="maxMovieGb" label="Filme (GB)">
+                  {(field) => <NumberInput {...field} min={1} placeholder="sem limite" />}
+                </FormField>
+                <FormField<TrackerForm, 'maxEpisodeGb'> name="maxEpisodeGb" label="Episódio (GB)">
+                  {(field) => <NumberInput {...field} min={1} placeholder="sem limite" />}
+                </FormField>
+                <FormField<TrackerForm, 'maxSeasonGb'> name="maxSeasonGb" label="Temporada (GB)">
+                  {(field) => <NumberInput {...field} min={1} placeholder="sem limite" />}
+                </FormField>
+              </div>
+              <FieldDescription>
+                Cópia maior que o limite fica de fora, e as já gravadas saem na próxima atualização deste tracker. Episódio e temporada contam por unidade: um pacote S01-S03 pode ter até 3× o limite da temporada. Sem tamanho informado, a cópia fica.
+              </FieldDescription>
+            </FieldSet>
             <Controller
               control={form.control}
               name="requireYear"

@@ -36,6 +36,7 @@ describe('formulário do tracker', () => {
     expect(toPatch(values)).toEqual({
       content: 'both',
       resolutions: null,
+      maxSizeGb: null,
       rps: 1,
       pages: 3,
       stopAfterQuietPages: null,
@@ -106,5 +107,32 @@ describe('resoluções do tracker', () => {
     const result = trackerFormFor(byPages).safeParse({ ...toFormValues(byPages), resolutions: [] })
 
     expect(result.error?.issues.map((issue) => issue.message)).toEqual(['marque ao menos uma resolução'])
+  })
+})
+
+describe('tamanho máximo do tracker', () => {
+  it('tracker sem limite abre com os campos vazios e continua sem limite', () => {
+    const values = toFormValues(byPages)
+
+    expect([values.maxMovieGb, values.maxEpisodeGb, values.maxSeasonGb]).toEqual([null, null, null])
+    expect(toPatch(values).maxSizeGb).toBeNull()
+  })
+
+  it('manda os limites preenchidos e null nos vazios', () => {
+    const values = { ...toFormValues(byPages), maxMovieGb: 20, maxSeasonGb: 60 }
+
+    expect(toPatch(values).maxSizeGb).toEqual({ movie: 20, episode: null, season: 60 })
+  })
+
+  it('abre com os limites salvos', () => {
+    const values = toFormValues({ ...byPages, maxSizeGb: { movie: 20, episode: 5, season: null } })
+
+    expect([values.maxMovieGb, values.maxEpisodeGb, values.maxSeasonGb]).toEqual([20, 5, null])
+  })
+
+  it('recusa limite zero', () => {
+    const result = trackerFormFor(byPages).safeParse({ ...toFormValues(byPages), maxEpisodeGb: 0 })
+
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual(['maior que zero'])
   })
 })

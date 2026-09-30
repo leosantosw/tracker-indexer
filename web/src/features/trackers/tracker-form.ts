@@ -1,9 +1,11 @@
 import { z } from 'zod'
 
 import type { SettingsPatch, SourcePatch } from '@/lib/api'
-import { contentSchema, resolutionSchema, type Resolution, type Source } from '@/lib/schemas'
+import { contentSchema, resolutionSchema, type Resolution, type SizeLimits, type Source } from '@/lib/schemas'
 
 const optionalCount = z.number().int('número inteiro').min(1, 'no mínimo 1').nullable()
+
+const optionalGigabytes = z.number().positive('maior que zero').max(1000, 'no máximo 1000').nullable()
 
 export const ACCOUNT_FIELDS = ['username', 'password'] as const
 
@@ -12,6 +14,9 @@ export type AccountField = (typeof ACCOUNT_FIELDS)[number]
 export const trackerFormSchema = z.object({
   content: contentSchema,
   resolutions: z.array(resolutionSchema).min(1, 'marque ao menos uma resolução'),
+  maxMovieGb: optionalGigabytes,
+  maxEpisodeGb: optionalGigabytes,
+  maxSeasonGb: optionalGigabytes,
   rps: z.number({ error: 'obrigatório' }).positive('maior que zero').max(50, 'no máximo 50'),
   pages: optionalCount,
   stopAfterQuietPages: optionalCount,
@@ -46,9 +51,17 @@ const ALL_RESOLUTIONS = resolutionSchema.options
 
 const selectedResolutions = (resolutions: Resolution[]) => (resolutions.length === ALL_RESOLUTIONS.length ? null : resolutions)
 
+const NO_SIZE_LIMITS: SizeLimits = { movie: null, episode: null, season: null }
+
+const sizeLimitsOf = ({ maxMovieGb, maxEpisodeGb, maxSeasonGb }: TrackerForm): SizeLimits | null =>
+  maxMovieGb === null && maxEpisodeGb === null && maxSeasonGb === null ? null : { movie: maxMovieGb, episode: maxEpisodeGb, season: maxSeasonGb }
+
 export const toFormValues = (source: Source): TrackerForm => ({
   content: source.content,
   resolutions: source.resolutions ?? [...ALL_RESOLUTIONS],
+  maxMovieGb: (source.maxSizeGb ?? NO_SIZE_LIMITS).movie,
+  maxEpisodeGb: (source.maxSizeGb ?? NO_SIZE_LIMITS).episode,
+  maxSeasonGb: (source.maxSizeGb ?? NO_SIZE_LIMITS).season,
   rps: source.rps,
   pages: source.pages,
   stopAfterQuietPages: source.stopAfterQuietPages,
@@ -60,13 +73,17 @@ export const toFormValues = (source: Source): TrackerForm => ({
   password: '',
 })
 
-export const toPatch = ({ requireYear, dedupeBySeeders, terms, freeleechOnly, resolutions, username, password, ...values }: TrackerForm): SourcePatch => ({
-  ...values,
-  resolutions: selectedResolutions(resolutions),
-  rules: { requireYear, dedupe: dedupeBySeeders ? 'seeders' : null },
-  ...(terms && { terms }),
-  ...(freeleechOnly !== null && { freeleechOnly }),
-})
+export const toPatch = (form: TrackerForm): SourcePatch => {
+  const { requireYear, dedupeBySeeders, terms, freeleechOnly, resolutions, maxMovieGb, maxEpisodeGb, maxSeasonGb, username, password, ...values } = form
+  return {
+    ...values,
+    resolutions: selectedResolutions(resolutions),
+    maxSizeGb: sizeLimitsOf(form),
+    rules: { requireYear, dedupe: dedupeBySeeders ? 'seeders' : null },
+    ...(terms && { terms }),
+    ...(freeleechOnly !== null && { freeleechOnly }),
+  }
+}
 
 export const toAddPatch = (values: TrackerForm): SourcePatch => ({ ...toPatch(values), enabled: true })
 
