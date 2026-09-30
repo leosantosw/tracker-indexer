@@ -3,7 +3,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { describeSourceRun, describeTmdbRun, describeStart, describeOutcome } = require('../src/job/summary');
+const { describeSourceRun, describeTmdbRun, describeStart, describeOutcome, countRemoved } = require('../src/job/summary');
 
 const noneRemoved = { noYear: 0, duplicate: 0 };
 
@@ -17,6 +17,13 @@ test('tracker por busca resume os termos e conta o que as regras tiraram', () =>
   const run = { pages: 27, inserted: 12, removed: { noYear: 3, duplicate: 1 }, terms: 9, stop: 'end', stopAfter: null };
 
   assert.equal(describeSourceRun(run, 42_000), '9 termos · 27 páginas · +12 novos · 4 removidos pelas regras · 42s');
+});
+
+test('copies removed by resolution count with the other rules', () => {
+  const run = { pages: 3, inserted: 2, removed: { noYear: 1, duplicate: 0, resolution: 5 }, terms: null, stop: 'end', stopAfter: null };
+
+  assert.equal(countRemoved(run.removed), 6);
+  assert.match(describeSourceRun(run, 1_000), /6 removidos pelas regras/);
 });
 
 test('limite de páginas e erro aparecem como motivo da parada', () => {

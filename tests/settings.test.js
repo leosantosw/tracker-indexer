@@ -203,3 +203,16 @@ test('tracker renomeado leva junto os torrents e a configuração salva', (t) =>
   assert.equal(sourceOf(store.config(), 'redes-torrents').pages, 2);
   db.close();
 });
+
+test('resolutions start as all and the saved selection reaches the tracker', () => {
+  const { store } = setup();
+  assert.equal(sourceOf(store.config(), 'amigos-share-club').resolutions, null);
+
+  store.save({ sources: { 'amigos-share-club': { enabled: true, resolutions: ['1080p', '720p'] } } });
+
+  const config = store.config();
+  const built = createSources(config).find((source) => source.name === 'amigos-share-club');
+  assert.deepEqual(sourceOf(config, 'amigos-share-club').resolutions, ['1080p', '720p']);
+  assert.deepEqual(built.resolutions, ['1080p', '720p']);
+  assert.equal(sourceOf(config, 'torrents-csv').resolutions, null);
+});

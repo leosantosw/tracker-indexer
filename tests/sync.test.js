@@ -229,3 +229,18 @@ test('tracker com categorias limita as páginas em cada uma e fala em categoria'
   assert.equal(total.byCategory, true);
   assert.match(entries[0].message, /^categoria "filmes": 3 páginas/);
 });
+
+const uhdTorrent = (n) => ({ ...torrent(n), name: `Filme ${n} (2024) 2160p WEB-DL x265 Dublado` });
+
+test('only the selected resolutions are saved, and older copies outside them are removed', async () => {
+  const db = openDb(':memory:');
+  await run(fakeSource([[torrent(1), uhdTorrent(2)]]), db);
+
+  const total = await run({ ...fakeSource([[torrent(3), uhdTorrent(4)]]), resolutions: ['1080p'] }, db);
+
+  const saved = db.prepare('SELECT resolution, COUNT(*) AS n FROM item GROUP BY resolution').all().map((row) => ({ ...row }));
+  assert.equal(total.inserted, 1);
+  assert.equal(total.removed.resolution, 1);
+  assert.deepEqual(saved, [{ resolution: '1080p', n: 2 }]);
+  db.close();
+});

@@ -1,6 +1,7 @@
 'use strict';
 
 const { transaction } = require('./index');
+const { NAMED_RESOLUTIONS, OTHER_RESOLUTION } = require('../sources/resolution');
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -38,6 +39,15 @@ const BEATEN = `
     AND language IS @language
     AND seeders >= @seeders
   LIMIT 1
+`;
+
+const NAMED_LIST = NAMED_RESOLUTIONS.map((resolution) => `'${resolution}'`).join(', ');
+
+const OUTSIDE_RESOLUTIONS = `
+  DELETE FROM item
+  WHERE source = ?
+    AND (CASE WHEN resolution IN (${NAMED_LIST}) THEN resolution ELSE '${OTHER_RESOLUTION}' END)
+        NOT IN (SELECT value FROM json_each(?))
 `;
 
 const UPSERT = `
@@ -157,9 +167,9 @@ function createItems(db) {
    * da run e nao no insert porque duplicata chega por paginas e termos
    * diferentes -- so da para enxerga-la com a base inteira em maos.
    */
-  function applyRules(source, rules = {}) {
-    const removed = { noYear: 0, duplicate: 0 };
-    if (!rules.requireYear && !rules.dedupe) return removed;
+  function applyRules(source, rules = {}, resolutions = null) {
+    const removed = { noYear: 0, duplicate: 0, resolution: 0 };
+    if (!rules.requireYear && !rules.dedupe && !resolutions) return removed;
 
     transaction(db, () => {
       if (rules.requireYear) {
@@ -169,6 +179,9 @@ function createItems(db) {
       }
       if (rules.dedupe === 'seeders') {
         removed.duplicate = db.prepare(DEDUPE_BY_SEEDERS).run(source).changes;
+      }
+      if (resolutions) {
+        removed.resolution = db.prepare(OUTSIDE_RESOLUTIONS).run(source, JSON.stringify(resolutions)).changes;
       }
     });
 

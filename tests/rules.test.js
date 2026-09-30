@@ -9,7 +9,7 @@ const { createRepo } = require('../src/db/repo');
 const RULES = { requireYear: true, dedupe: 'seeders' };
 
 /** Item pronto para o savePage; so o que a regra olha importa aqui. */
-const item = (sourceId, { title, year = 2020, type = 'movie', season = null, episode = null, seeders = 1 }) => ({
+const item = (sourceId, { title, year = 2020, type = 'movie', season = null, episode = null, seeders = 1, resolution = null }) => ({
   sourceId,
   infohash: sourceId,
   name: title,
@@ -24,7 +24,7 @@ const item = (sourceId, { title, year = 2020, type = 'movie', season = null, epi
     type,
     season,
     episode,
-    resolution: null,
+    resolution,
     source: null,
     videoCodec: null,
     audio: [],
@@ -140,7 +140,34 @@ test('source sem rules nao perde nada', () => {
 
   const removed = repo.applyRules('outro', undefined);
 
-  assert.deepEqual(removed, { noYear: 0, duplicate: 0 });
+  assert.deepEqual(removed, { noYear: 0, duplicate: 0, resolution: 0 });
   assert.equal(names(db, 'outro').length, 3);
+  db.close();
+});
+
+test('resolutions removes only the unselected copies of that tracker', () => {
+  const { db, repo } = setup([
+    item('uhd', { title: 'A', resolution: '2160p' }),
+    item('full-hd', { title: 'B', resolution: '1080p' }),
+    item('hd-tag', { title: 'C', resolution: 'HD' }),
+    item('unknown', { title: 'D', resolution: null }),
+  ]);
+  repo.savePage('outro', [item('other-uhd', { title: 'E', resolution: '2160p' })]);
+
+  const removed = repo.applyRules('torrents-csv', {}, ['1080p', 'other']);
+
+  assert.equal(removed.resolution, 1);
+  assert.deepEqual(names(db, 'torrents-csv'), ['full-hd', 'hd-tag', 'unknown']);
+  assert.equal(names(db, 'outro').length, 1);
+  db.close();
+});
+
+test('without resolutions nothing is removed by resolution', () => {
+  const { db, repo } = setup([item('uhd', { title: 'A', resolution: '2160p' })]);
+
+  const removed = repo.applyRules('torrents-csv', {}, null);
+
+  assert.equal(removed.resolution, 0);
+  assert.equal(names(db, 'torrents-csv').length, 1);
   db.close();
 });

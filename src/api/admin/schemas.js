@@ -2,6 +2,7 @@
 
 const { PROVIDERS, PROVIDER_IDS } = require('../../debrid');
 const { CONTENT_IDS } = require('../../sources/content');
+const { RESOLUTION_IDS } = require('../../sources/resolution');
 const { trackerSecretNames } = require('../../settings/secrets');
 
 /** Admin routes stay out of the public Swagger: they drive the job, not the catalog. */
@@ -23,6 +24,12 @@ const SOURCE_PATCH = {
     pages: optionalPositiveInt,
     stopAfterQuietPages: optionalPositiveInt,
     content: { enum: CONTENT_IDS },
+    resolutions: {
+      type: ['array', 'null'],
+      minItems: 1,
+      uniqueItems: true,
+      items: { enum: RESOLUTION_IDS },
+    },
     freeleechOnly: { type: 'boolean' },
     terms: {
       type: 'array',

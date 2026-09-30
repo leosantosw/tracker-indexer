@@ -16,6 +16,7 @@ const percentOf = (part, whole) => `${Math.round((part / whole) * 100)}%`;
 const count = (n) => n.toLocaleString('pt-BR');
 const plural = (n, one, many) => `${count(n)} ${n === 1 ? one : many}`;
 const joined = (parts) => parts.filter(Boolean).join(' · ');
+const countRemoved = (removed) => Object.values(removed).reduce((sum, n) => sum + n, 0);
 
 function stopText({ stop, stopAfter, pages }) {
   if (stop === 'quiet') return `parou após ${plural(stopAfter, 'página', 'páginas')} sem novidade`;
@@ -26,7 +27,7 @@ function stopText({ stop, stopAfter, pages }) {
 }
 
 function describeSourceRun(run, ms) {
-  const removed = run.removed.noYear + run.removed.duplicate;
+  const removed = countRemoved(run.removed);
   return joined([
     run.terms && (run.byCategory ? plural(run.terms, 'categoria', 'categorias') : plural(run.terms, 'termo', 'termos')),
     plural(run.pages, 'página', 'páginas'),
@@ -85,4 +86,4 @@ function describeOutcome({ job, result, reason, error, startedAt, finishedAt, pr
   };
 }
 
-module.exports = { describeSourceRun, describeTmdbRun, describeCacheRun, describeStart, describeOutcome };
+module.exports = { describeSourceRun, describeTmdbRun, describeCacheRun, describeStart, describeOutcome, countRemoved };

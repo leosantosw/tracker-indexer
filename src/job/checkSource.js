@@ -2,6 +2,7 @@
 
 const { classify } = require('../lib/classifier');
 const { wants } = require('../sources/content');
+const { acceptsResolution } = require('../sources/resolution');
 
 const CHECK_DETAILS = 12;
 
@@ -16,12 +17,13 @@ async function firstPage(source) {
   return items.map((raw) => ({ card: { title: raw.name }, item: source.toItem(raw), status: 'ok' }));
 }
 
-function verdict(entry, { rules = {}, content }) {
+function verdict(entry, { rules = {}, content, resolutions }) {
   if (entry.status !== 'ok') return { status: entry.status, detail: entry.card.title };
 
   const release = classify(entry.item.name);
   if (release.rejected) return { status: 'rejected', detail: entry.item.name };
   if (!wants(content, release.type)) return { status: 'filtered', detail: release.canonical };
+  if (!acceptsResolution(resolutions, release.resolution)) return { status: 'filtered', detail: release.canonical };
   if (rules.requireYear && release.type === 'movie' && release.year === null) return { status: 'no-year', detail: release.title };
 
   return { status: 'ok', detail: release.canonical };

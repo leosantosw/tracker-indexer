@@ -6,7 +6,7 @@ const { enrich } = require('./enrich');
 const { createProgress } = require('./progress');
 const { checkCache } = require('./cacheCheck');
 const { createDebrid, providerOf } = require('../debrid');
-const { describeSourceRun, describeTmdbRun, describeCacheRun } = require('./summary');
+const { describeSourceRun, describeTmdbRun, describeCacheRun, countRemoved } = require('./summary');
 
 /**
  * What a job hands back to the runner. `skipped` means nothing was done;
@@ -154,7 +154,7 @@ async function runSync({ repo, config, log, signal, only, report }) {
       onWarn: (text) => progress.warn(source.name, text),
     });
     log.info(source.name, describeSourceRun(total, Date.now() - startedAt));
-    progress.endSource(source.name, { removed: total.removed.noYear + total.removed.duplicate });
+    progress.endSource(source.name, { removed: countRemoved(total.removed) });
   }
 
   // A TMDB fora do ar nao pode derrubar o sync: o dado do tracker ja esta

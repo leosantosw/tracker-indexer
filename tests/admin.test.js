@@ -145,6 +145,24 @@ test('settings invalido volta 400', async () => {
   await app.close();
 });
 
+test('resolutions accept known values or null, and refuse an empty or unknown list', async () => {
+  const { app } = await setup();
+  const put = (resolutions) =>
+    app.inject({ method: 'PUT', url: '/api/admin/settings', payload: { sources: { 'redes-torrents': { resolutions } } } });
+
+  const selected = await put(['1080p', 'other']);
+  const all = await put(null);
+  const empty = await put([]);
+  const unknown = await put(['8k']);
+
+  assert.equal(selected.statusCode, 200);
+  assert.deepEqual(json(selected).sources.find((source) => source.name === 'redes-torrents').resolutions, ['1080p', 'other']);
+  assert.equal(json(all).sources.find((source) => source.name === 'redes-torrents').resolutions, null);
+  assert.equal(empty.statusCode, 400);
+  assert.equal(unknown.statusCode, 400);
+  await app.close();
+});
+
 test('um job por vez; o segundo leva 409', async () => {
   const { app, sync } = await setup();
 
