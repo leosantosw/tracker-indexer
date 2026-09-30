@@ -178,7 +178,7 @@ The listing and the detail do not carry the same thing. **In the listing, only t
   "year": 2014,
   "poster": "https://image.tmdb.org/t/p/w185/tR1XVa5bxgdh2bRw2u0DzrgkO2l.jpg",
   "backdrop": "https://image.tmdb.org/t/p/w780/8sNiAPPYU14PUepFNeSNGUTiHW.jpg",
-  "logo": "https://image.tmdb.org/t/p/w300/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png",
+  "logo": "https://image.tmdb.org/t/p/w500/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png",
   "rating": 8.487
 }
 ```

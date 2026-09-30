@@ -8,7 +8,7 @@ const KB = 1024;
 // nada. A grade de um cliente usa imagens menores que a tela do item aberto.
 const TMDB_IMAGES = 'https://image.tmdb.org/t/p/';
 const SIZES = {
-  card: { poster: 'w185', backdrop: 'w780', logo: 'w300' },
+  card: { poster: 'w185', backdrop: 'w780', logo: 'w500' },
   detail: { poster: 'w342', backdrop: 'w1280', logo: 'w500' },
 };
 

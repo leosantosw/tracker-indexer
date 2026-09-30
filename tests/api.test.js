@@ -95,7 +95,7 @@ test('a listagem traz so o cartao da grade', async () => {
   const [movie] = (await get('/api/movies')).body.movies;
 
   assert.deepEqual(Object.keys(movie).sort(), ['backdrop', 'id', 'logo', 'poster', 'rating', 'title', 'year']);
-  assert.equal(movie.logo, 'https://image.tmdb.org/t/p/w300/logo.png');
+  assert.equal(movie.logo, 'https://image.tmdb.org/t/p/w500/logo.png');
   assert.equal(movie.poster, 'https://image.tmdb.org/t/p/w185/p.jpg', 'capa pequena na grade');
   assert.equal(movie.backdrop, null, 'sem backdrop e nulo, nao URL quebrada');
   assert.equal(movie.rating, 8.1);

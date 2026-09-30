@@ -65,10 +65,10 @@ const WORK_FIELDS = {
   logo: {
     type: ['string', 'null'],
     description:
-      'Logo com o nome da obra, fundo transparente, para usar no lugar do título em texto: `w300` na listagem, ' +
-      '`w500` no detalhe. Prefere a versão em português, depois inglês, depois a sem idioma. Nula quando a ' +
+      'Logo com o nome da obra, fundo transparente, para usar no lugar do título em texto: `w500` na listagem ' +
+      'e no detalhe. Prefere a versão em português, depois inglês, depois a sem idioma. Nula quando a ' +
       'TMDB não tem logo; aí o cliente mostra `title`.',
-    examples: ['https://image.tmdb.org/t/p/w300/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png'],
+    examples: ['https://image.tmdb.org/t/p/w500/bgXjuxLiDZAsKrKDX2AaoKpVAFz.png'],
   },
   overview: {
     type: ['string', 'null'],

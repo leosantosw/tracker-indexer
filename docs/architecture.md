@@ -188,7 +188,7 @@ limit:
 |---|---|---|---|
 | `poster` | vertical cover | `w185` | `w342` |
 | `backdrop` | horizontal, for background and banner | `w780` | `w1280` |
-| `logo` | the title drawn as a transparent PNG | `w300` | `w500` |
+| `logo` | the title drawn as a transparent PNG | `w500` | `w500` |
 
 A client's grid calls for a small image; the open item screen, a larger one. On a client, the
 images weigh much more than the JSON: 50 covers add up to around a megabyte, against
