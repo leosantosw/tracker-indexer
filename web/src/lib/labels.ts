@@ -1,5 +1,5 @@
 import type { BadgeVariant } from '@/components/ui/badge'
-import type { CheckStatus, Content, JobName, JobResult, UnmatchedStatus, WorkType } from '@/lib/schemas'
+import type { CheckStatus, Content, JobName, JobResult, Resolution, UnmatchedStatus, WorkType } from '@/lib/schemas'
 
 export const JOBS: Record<JobName, { action: string; running: string; title: string; short: string; hint: string }> = {
   sync: {
@@ -29,6 +29,14 @@ export const CONTENT: Record<Content, { label: string; short: string }> = {
   movies: { label: 'Buscar apenas filmes', short: 'filmes' },
   series: { label: 'Buscar apenas séries', short: 'séries' },
   both: { label: 'Buscar filmes e séries', short: 'filmes e séries' },
+}
+
+export const RESOLUTION_LABEL: Record<Resolution, string> = {
+  '2160p': '2160p (4K)',
+  '1080p': '1080p',
+  '720p': '720p',
+  '480p': '480p',
+  other: 'Outras',
 }
 
 export const SOURCE_SYNC = {

@@ -17,6 +17,7 @@ import { TagInput } from '@/components/app/tag-input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useJobActions } from '@/features/jobs/use-job-actions'
 import { openCheckDialog } from '@/features/trackers/check-store'
 import { AccessBadge } from '@/features/trackers/access-badge'
@@ -34,10 +35,10 @@ import {
 } from '@/features/trackers/tracker-form'
 import { warnInvalid } from '@/lib/form-errors'
 import { formatNumber } from '@/lib/format'
-import { CONTENT, MODE_LABEL, SOURCE_SYNC } from '@/lib/labels'
+import { CONTENT, MODE_LABEL, RESOLUTION_LABEL, SOURCE_SYNC } from '@/lib/labels'
 import { paths } from '@/lib/paths'
 import { useClearSource, useLoaded, useSaveSettings } from '@/lib/queries'
-import { contentSchema, type Settings, type Source } from '@/lib/schemas'
+import { contentSchema, resolutionSchema, type Resolution, type Settings, type Source } from '@/lib/schemas'
 
 const SUBTITLE = {
   terms: 'Varre por termos de busca · resultado ordenado por seeders',
@@ -45,6 +46,8 @@ const SUBTITLE = {
 }
 
 type Mode = 'edit' | 'add'
+
+const TOGGLE_ON = 'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground'
 
 type TrackerViewProps = { source: Source; indexed: number; running: boolean }
 
@@ -253,6 +256,29 @@ function TrackerFormView({ source, secrets, indexed, running, mode }: TrackerVie
           </FormSection>
 
           <FormSection id="regras" title="Regras" description="Valem só para o catálogo deste tracker.">
+            <FormField<TrackerForm, 'resolutions'>
+              name="resolutions"
+              label="Resoluções"
+              description="Só as marcadas entram no catálogo. As já gravadas que ficarem de fora saem na próxima atualização deste tracker. Outras: sem resolução no nome."
+            >
+              {({ value, onChange, id }) => (
+                <ToggleGroup
+                  id={id}
+                  type="multiple"
+                  variant="outline"
+                  spacing={2}
+                  className="flex-wrap"
+                  value={value}
+                  onValueChange={(picked) => picked.length && onChange(resolutionSchema.options.filter((resolution) => picked.includes(resolution)))}
+                >
+                  {resolutionSchema.options.map((resolution: Resolution) => (
+                    <ToggleGroupItem key={resolution} value={resolution} className={`px-4 ${TOGGLE_ON}`}>
+                      {RESOLUTION_LABEL[resolution]}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
+            </FormField>
             <Controller
               control={form.control}
               name="requireYear"

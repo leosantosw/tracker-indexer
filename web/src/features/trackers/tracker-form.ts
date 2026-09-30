@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { SettingsPatch, SourcePatch } from '@/lib/api'
-import { contentSchema, type Source } from '@/lib/schemas'
+import { contentSchema, resolutionSchema, type Resolution, type Source } from '@/lib/schemas'
 
 const optionalCount = z.number().int('número inteiro').min(1, 'no mínimo 1').nullable()
 
@@ -11,6 +11,7 @@ export type AccountField = (typeof ACCOUNT_FIELDS)[number]
 
 export const trackerFormSchema = z.object({
   content: contentSchema,
+  resolutions: z.array(resolutionSchema).min(1, 'marque ao menos uma resolução'),
   rps: z.number({ error: 'obrigatório' }).positive('maior que zero').max(50, 'no máximo 50'),
   pages: optionalCount,
   stopAfterQuietPages: optionalCount,
@@ -41,8 +42,13 @@ export const trackerFormFor = (source: Source, saved: SavedAccount = ALL_SAVED) 
     }
   })
 
+const ALL_RESOLUTIONS = resolutionSchema.options
+
+const selectedResolutions = (resolutions: Resolution[]) => (resolutions.length === ALL_RESOLUTIONS.length ? null : resolutions)
+
 export const toFormValues = (source: Source): TrackerForm => ({
   content: source.content,
+  resolutions: source.resolutions ?? [...ALL_RESOLUTIONS],
   rps: source.rps,
   pages: source.pages,
   stopAfterQuietPages: source.stopAfterQuietPages,
@@ -54,8 +60,9 @@ export const toFormValues = (source: Source): TrackerForm => ({
   password: '',
 })
 
-export const toPatch = ({ requireYear, dedupeBySeeders, terms, freeleechOnly, username, password, ...values }: TrackerForm): SourcePatch => ({
+export const toPatch = ({ requireYear, dedupeBySeeders, terms, freeleechOnly, resolutions, username, password, ...values }: TrackerForm): SourcePatch => ({
   ...values,
+  resolutions: selectedResolutions(resolutions),
   rules: { requireYear, dedupe: dedupeBySeeders ? 'seeders' : null },
   ...(terms && { terms }),
   ...(freeleechOnly !== null && { freeleechOnly }),

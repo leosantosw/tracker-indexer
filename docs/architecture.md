@@ -49,6 +49,14 @@ rules: { requireYear: true, dedupe: 'seeders' },
 | `requireYear` | deletes items without a year — without it there is no way to match against an external catalog |
 | `dedupe: 'seeders'` | for the same work, only the most seeded copy is kept |
 
+Next to the rules, a tracker can keep only some **resolutions** (`resolutions`, set in the panel
+under *Regras* (rules) → *Resoluções* (resolutions)). The values are `2160p`, `1080p`, `720p`,
+`480p` and `other`, which covers a bare `HD` tag and names with no resolution. `null`, the default,
+keeps every resolution. The sync skips copies outside the list, the tracker check marks them as
+*FORA* (filtered), and at the end of the run the copies already stored that fall outside the list
+are deleted, like the other rules. It exists for trackers whose 2160p copies are huge Blu-ray
+remuxes a TV client can't play.
+
 A duplicate is the same `(type, title, year, season, episode)`, so a series
 episode doesn't run over another episode, and a remake doesn't run over the original (`Cinderela` from
 1950 and from 2015 coexist). A tie in seeders goes to the oldest item, so the
@@ -479,6 +487,7 @@ src/
 ├─ sources/
 │  ├─ index.js               registry
 │  ├─ content.js             movies, series or both, per tracker
+│  ├─ resolution.js          which resolutions a tracker keeps
 │  ├─ trackers/              one file per tracker (torrentsCsv, redesTorrents, comando, torrentDosFilmes)
 │  ├─ html/                  template for HTML trackers (defineHtmlSource, selectors, post title)
 │  └─ tmdb/                  search and match: candidate, movie, series, trailer, logo
@@ -521,7 +530,7 @@ web/                         React + Vite + TypeScript + Tailwind v4 + shadcn/ui
   `all=true` to see the rest, and the detail (`/api/movies/:id`) always works.
 - **All copies come in the detail, without pagination.** Today the maximum observed is 3
   per work; if a series tracker brings in hundreds of episodes, this changes.
-- **Tracker rules really delete.** `requireYear` and `dedupe` do a
+- **Tracker rules really delete.** `requireYear`, `dedupe` and `resolutions` do a
   `DELETE`; the item comes back on the next sync if it still exists on the tracker, but its
   `created_at` starts over.
 - **`updated_at` advances on every sync**, even when nothing changed in the item — it

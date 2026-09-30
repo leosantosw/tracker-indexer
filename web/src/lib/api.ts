@@ -13,6 +13,7 @@ import {
   type JobName,
   type JobStatus,
   type LogEntry,
+  type Resolution,
   type ScheduleStatus,
   type UnmatchedStatus,
   type WorkType,
@@ -76,6 +77,7 @@ export type SourcePatch = Partial<{
   stopAfterQuietPages: number | null
   terms: string[]
   freeleechOnly: boolean
+  resolutions: Resolution[] | null
   rules: { requireYear?: boolean; dedupe?: 'seeders' | null }
 }>
 

@@ -35,6 +35,7 @@ describe('formulário do tracker', () => {
 
     expect(toPatch(values)).toEqual({
       content: 'both',
+      resolutions: null,
       rps: 1,
       pages: 3,
       stopAfterQuietPages: null,
@@ -82,5 +83,28 @@ describe('formulário do tracker', () => {
 
   it('tracker sem a opção de freeleech não manda o campo', () => {
     expect(toPatch(toFormValues(byPages))).not.toHaveProperty('freeleechOnly')
+  })
+})
+
+describe('resoluções do tracker', () => {
+  it('tracker sem filtro abre com todas as resoluções marcadas e continua sem filtro', () => {
+    const values = toFormValues(byPages)
+
+    expect(values.resolutions).toEqual(['2160p', '1080p', '720p', '480p', 'other'])
+    expect(toPatch(values).resolutions).toBeNull()
+  })
+
+  it('manda só as resoluções marcadas', () => {
+    expect(toPatch({ ...toFormValues(byPages), resolutions: ['1080p', '720p'] }).resolutions).toEqual(['1080p', '720p'])
+  })
+
+  it('abre com a seleção salva', () => {
+    expect(toFormValues({ ...byPages, resolutions: ['1080p'] }).resolutions).toEqual(['1080p'])
+  })
+
+  it('exige ao menos uma resolução', () => {
+    const result = trackerFormFor(byPages).safeParse({ ...toFormValues(byPages), resolutions: [] })
+
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual(['marque ao menos uma resolução'])
   })
 })
