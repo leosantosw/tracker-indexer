@@ -88,6 +88,16 @@ test('a pagina do painel abre sem autenticar, a API nao', async () => {
   await app.close();
 });
 
+test('the root redirects to the panel without authenticating', async () => {
+  const { app } = await setup({ token: 's3cret', uiDir: builtPanel() });
+
+  const root = await app.inject({ url: '/', headers: { authorization: '' } });
+
+  assert.equal(root.statusCode, 302);
+  assert.equal(root.headers.location, '/admin');
+  await app.close();
+});
+
 test('rota do painel devolve o index.html; arquivo que falta da 404', async () => {
   const { app } = await setup({ uiDir: builtPanel() });
 

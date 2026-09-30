@@ -35,6 +35,8 @@ function registerUiRoutes(app, { dir = WEB_DIST } = {}) {
 
   const page = (_request, reply) => sendFile(reply, 'index.html');
 
+  app.get('/', { schema: { hide: true } }, (_request, reply) => reply.redirect('/admin'));
+
   app.get('/admin', { schema: { hide: true } }, page);
 
   app.get('/admin/*', { schema: { hide: true } }, (request, reply) => {

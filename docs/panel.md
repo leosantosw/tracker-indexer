@@ -1,6 +1,6 @@
 # Panel
 
-With `serve` running, **<http://localhost:3000/admin>** updates the catalog,
+With `serve` running, **<http://localhost:3000/admin>** (the root `/` redirects there) updates the catalog,
 cancels whatever is running, shows the live log and edits the configuration.
 It is a single page:
 
